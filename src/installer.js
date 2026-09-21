@@ -30,7 +30,7 @@ const { t } = require('./i18n');
 // Categories whose VPKs must load with higher priority: lower pak numbers (02-09).
 // The game only mounts files named pakNN_dir.vpk — the "!pak" prefix seen in
 // Dota2PornFx cart zips is a merge-order hint for VPKMerge, not a valid install name.
-const PRIORITY_CATEGORIES = ['trees', 'river', 'shaders', 'herofx', 'ranged-attack', 'hero-items', 'optimization'];
+const PRIORITY_CATEGORIES = ['ranks', 'trees', 'river', 'shaders', 'herofx', 'ranged-attack', 'hero-items', 'optimization'];
 
 // Merging a multi-volume import into one file holds the whole mod in memory once. Well
 // above any real skin pack (a Skinchanger export is ~70 MB), but a multi-GB set is left
@@ -377,15 +377,9 @@ class Installer {
         return name;
       }
     }
-    // Extended slots: Allow pak slots beyond 99 (pak100_dir.vpk up to pak250_dir.vpk)
-    // for users with large mod collections or VIP accounts.
-    for (let n = 100; n <= 250; n++) {
-      const name = `pak${n}_dir.vpk`;
-      if (!used.has(name)) {
-        used.add(name);
-        return name;
-      }
-    }
+    // Note on Dota 2 filesystem: filesystem_stdio.dll strictly validates pak file names
+    // with a 13-character length check (pakNN_dir.vpk) and parses exactly two digits.
+    // Files beyond pak99 (pak100+) are silently ignored by the engine and never mounted.
     throw new Error(t('Свободных слотов pakNN не осталось (10-99 заняты)'));
   }
 
@@ -592,7 +586,15 @@ class Installer {
       const lang = this.langFolder();
       this.ensureLangFolder();
       const used = this.usedPakNames();
-      const pakName = this.allocatePak(used, isPriority);
+      let pakName;
+      if (categoryId === 'ranks') {
+        for (let n = 2; n <= 9; n++) if (!used.has(`pak0${n}_dir.vpk`)) { pakName = `pak0${n}_dir.vpk`; break; }
+        if (!pakName) for (let n = 10; n <= 99; n++) if (!RESERVED_PAKS.includes(n) && !used.has(`pak${n}_dir.vpk`)) { pakName = `pak${n}_dir.vpk`; break; }
+        pakName = pakName || 'pak05_dir.vpk';
+        used.add(pakName);
+      } else {
+        pakName = this.allocatePak(used, isPriority);
+      }
       this.writeInto(buffer, safeJoin(lang, pakName), tx);
       return [{ root: 'lang', relPath: pakName }];
     });

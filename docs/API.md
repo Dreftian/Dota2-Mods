@@ -1134,7 +1134,7 @@ _No description in the source._
 ### `PRIORITY_CATEGORIES`
 
 ```js
-const PRIORITY_CATEGORIES = ['trees', 'river', 'shaders', 'herofx', 'ranged-attack', 'hero-items', 'optimization']
+const PRIORITY_CATEGORIES = ['ranks', 'trees', 'river', 'shaders', 'herofx', 'ranged-attack', 'hero-items', 'optimization']
 ```
 
 Categories whose VPKs must load with higher priority: lower pak numbers (02-09).

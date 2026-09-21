@@ -154,7 +154,7 @@ function generateRankVpk({
     const patchedShowcase = patchCssResource(
       showcaseCss,
       '#HeaderNameContainer .RankBadge{width: 100px;height: 100px;margin-top: -10px;z-index: 2;}',
-      `#HeaderNameContainer .RankBadge{width: 100px;height: 100px;margin-top: -10px;z-index: 2;}.ViewingSelf #HeaderNameContainer .RankBadge #RankTier,.ViewingSelf #HeaderNameContainer #RankTier{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}.ViewingSelf #HeaderNameContainer #RankLeaderboard,.ViewingSelf #HeaderNameContainer .RankBadge #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRule}${heroBadgeProfileRule}`,
+      `#HeaderNameContainer .RankBadge{width: 100px;height: 100px;margin-top: -10px;z-index: 2;}.ViewingSelf #HeaderNameContainer .RankBadge #RankTier,.ViewingSelf #HeaderNameContainer #RankBadge #RankTier,.ViewingSelf #HeaderNameContainer DOTARankBadge #RankTier,.ViewingSelf #HeaderNameContainer #RankTier,.ViewingSelf #HeaderNameContainer .RankTierImage,.ViewingSelf DOTARankBadge #RankTier,.ViewingSelf #RankTier,.ViewingSelf .RankTierImage,.ViewingSelf.RankTier0 #RankTier,.ViewingSelf .RankTier0 .RankTierImage{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;visibility: visible !important;}.ViewingSelf #HeaderNameContainer #RankLeaderboard,.ViewingSelf #HeaderNameContainer .RankBadge #RankLeaderboard,.ViewingSelf #RankLeaderboard,.ViewingSelf DOTARankBadge #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRule}${heroBadgeProfileRule}`,
     );
     entries.push({
       ext: 'vcss_c',
@@ -170,13 +170,13 @@ function generateRankVpk({
   const miniCss = readAssetSafe('styles', 'mini_showcase.vcss_c');
   if (miniCss) {
     let pipsRuleMini = numStars > 0
-      ? 'DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankPips{visibility: visible !important;background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_pips_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}'
-      : 'DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankPips{visibility: collapse !important;}';
+      ? 'DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankBadge #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankPips{visibility: visible !important;background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_pips_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;}'
+      : 'DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankBadge #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankPips{visibility: collapse !important;}';
 
     const patchedMini = patchCssResource(
       miniCss,
       '#RankTierContainer{horizontal-align: right;vertical-align: center;margin-right: 5px;width: 100px;height: 100px;tooltip-position: bottom;tooltip-body-position: 50% 10%;ui-scale: 72%;}',
-      `#RankTierContainer{horizontal-align: right;vertical-align: center;margin-right: 5px;width: 100px;height: 100px;tooltip-position: bottom;tooltip-body-position: 50% 10%;ui-scale: 72%;}DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankTier{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_mini_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRuleMini}`,
+      `#RankTierContainer{horizontal-align: right;vertical-align: center;margin-right: 5px;width: 100px;height: 100px;tooltip-position: bottom;tooltip-body-position: 50% 10%;ui-scale: 72%;}DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankTier,DOTAMiniShowcase:not(.ViewingOther) #RankBadge #RankTier,DOTAMiniShowcase:not(.ViewingOther) .RankBadge #RankTier,DOTAMiniShowcase:not(.ViewingOther) DOTARankBadge #RankTier,DOTAMiniShowcase:not(.ViewingOther) #RankTier,DOTAMiniShowcase:not(.ViewingOther) .RankTierImage,DOTAMiniShowcase:not(.ViewingOther).RankTier0 #RankTier,DOTAMiniShowcase:not(.ViewingOther) .RankTier0 .RankTierImage{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_mini_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;visibility: visible !important;}DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankLeaderboard,DOTAMiniShowcase:not(.ViewingOther) #RankBadge #RankLeaderboard,DOTAMiniShowcase:not(.ViewingOther) #RankLeaderboard,DOTAMiniShowcase:not(.ViewingOther) DOTARankBadge #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRuleMini}`,
     );
     entries.push({
       ext: 'vcss_c',
@@ -201,7 +201,7 @@ function generateRankVpk({
     const patchedProfile = patchCssResource(
       profileCss,
       '.RankTier0 #RankTier.RankTierImage{background-size: 150%;}',
-      `.RankTier0 #RankTier.RankTierImage{background-size: 150%;}.ViewingSelf #ProfileContainer #Header .RankBadge #RankTier,.ViewingSelf .HeaderNameContainer #RankTier{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}.ViewingSelf #ProfileContainer #Header #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRule}${heroBadgeProfileRule}`,
+      `.RankTier0 #RankTier.RankTierImage{background-size: 150%;}.ViewingSelf #ProfileContainer #Header .RankBadge #RankTier,.ViewingSelf #ProfileContainer #Header #RankBadge #RankTier,.ViewingSelf #ProfileContainer #Header DOTARankBadge #RankTier,.ViewingSelf #ProfileContainer #Header #RankTier,.ViewingSelf #ProfileContainer #Header .RankTierImage,.ViewingSelf .HeaderNameContainer #RankTier,.ViewingSelf .HeaderNameContainer .RankTierImage,.ViewingSelf #RankTier{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;visibility: visible !important;}.ViewingSelf #ProfileContainer #Header #RankLeaderboard,.ViewingSelf .HeaderNameContainer #RankLeaderboard,.ViewingSelf #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRule}${heroBadgeProfileRule}`,
     );
     entries.push({
       ext: 'vcss_c',
@@ -210,6 +210,32 @@ function generateRankVpk({
       crc: crc32(patchedProfile),
       preload: Buffer.alloc(0),
       data: patchedProfile,
+    });
+  }
+
+  // Global DOTARankBadge stylesheet: applies to all avatar rank badges across panorama
+  const rankBadgeCss = readAssetSafe('styles', 'ui_rank_badge.vcss_c');
+  if (rankBadgeCss) {
+    let pipsRuleBadge = numStars > 0
+      ? '.ViewingSelf #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankPips{visibility: visible !important;background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_pips_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;}'
+      : '.ViewingSelf #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankPips{visibility: collapse !important;}';
+
+    let eliteFxRule = (targetMedalId === 'rank8c' || (isImmortal && numImmortalRank && numImmortalRank <= 10))
+      ? '.ViewingSelf #EliteFX,DOTAMiniShowcase:not(.ViewingOther) #EliteFX{visibility: visible !important;}'
+      : '';
+
+    const patchedBadge = patchCssResource(
+      rankBadgeCss,
+      'DOTARankBadge{tooltip-position: bottom;tooltip-body-position: 50% 10%;background-size: 100%;}',
+      `DOTARankBadge{tooltip-position: bottom;tooltip-body-position: 50% 10%;background-size: 100%;}.ViewingSelf #RankTier,.ViewingSelf .RankTierImage,.ViewingSelf.RankTier0 #RankTier,.ViewingSelf .RankTier0 .RankTierImage,DOTAMiniShowcase:not(.ViewingOther) #RankTier,DOTAMiniShowcase:not(.ViewingOther) .RankTierImage,DOTAMiniShowcase:not(.ViewingOther).RankTier0 #RankTier,DOTAMiniShowcase:not(.ViewingOther) .RankTier0 .RankTierImage{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;visibility: visible !important;}DOTAMiniShowcase:not(.ViewingOther) #RankTier.Minimal,DOTAMiniShowcase:not(.ViewingOther) .RankTierImage.Minimal{background-image: url("s2r://panorama/images/rank_tier_icons/mini/custom_profile_rank_mini_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;}.ViewingSelf #RankLeaderboard,DOTAMiniShowcase:not(.ViewingOther) #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRuleBadge}${eliteFxRule}`,
+    );
+    entries.push({
+      ext: 'vcss_c',
+      folder: 'panorama/styles',
+      name: 'ui_rank_badge',
+      crc: crc32(patchedBadge),
+      preload: Buffer.alloc(0),
+      data: patchedBadge,
     });
   }
 
