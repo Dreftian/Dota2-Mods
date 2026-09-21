@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- form-action and base-uri do not fall back to default-src, so they are spelled out:
+       the first stops injected markup from posting anywhere, the second stops it from
+       moving every relative URL on the page to another host. Navigation itself is refused
+       in main.js (see createWindow), which is the part CSP has no say over. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://raw.githubusercontent.com https://cdn.dota2modmanager.com data:; media-src https://raw.githubusercontent.com https://cdn.dota2modmanager.com blob:; connect-src 'self'; object-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'">
+  <title>Mod Assistant</title>
+  <!-- Order matters: tokens define the scales, base and shell set the ground
+       rules, component files follow. Adding a file means adding it here. -->
+  <link rel="stylesheet" href="styles/fonts.css">
+  <link rel="stylesheet" href="styles/themes.css">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/shell.css">
+  <link rel="stylesheet" href="styles/controls.css">
+  <link rel="stylesheet" href="styles/catalog.css">
+  <link rel="stylesheet" href="styles/modal.css">
+  <link rel="stylesheet" href="styles/guide.css">
+  <link rel="stylesheet" href="styles/library.css">
+  <link rel="stylesheet" href="styles/presets.css">
+  <link rel="stylesheet" href="styles/settings.css">
+  <link rel="stylesheet" href="styles/feedback.css">
+  <link rel="stylesheet" href="styles/transitions.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+  </div>
+
+  <div id="app">
+    <!-- Custom title bar -->
+    <header id="titlebar">
+      <div class="tb-brand">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="#e33d26" aria-hidden="true"><path d="M19.43 6.97c.18-.96.32-1.78.32-1.82s-.25-.25-.68-.55l-.73-.51c-.05-.03-3.9.98-3.9 1.05s4.64 3.6 4.66 3.58c.01-.01.15-.8.33-1.75zM7.28 19.92c1.01-.38 1.84-.7 1.84-.7s-3.93-3.82-4.44-4.31l-.29-.23c-.01.01-.33.86-.71 1.89-.42 1.14-.68 1.9-.66 1.93.03.04 2.4 2.09 2.42 2.1.01 0 .83-.31 1.84-.68zm13.52-2.09c.52-1.27.93-2.31.92-2.33-.02-.02-9.83-6.64-16.7-11.27l-.55-.37-.9.41c-.5.22-.9.42-.89.45.01.03 3.33 3.51 7.38 7.74l7.37 7.69h2.41l.96-2.32z"/></svg>
+        <span class="tb-title">Mod Assistant</span>
+        <span class="tb-sub">Dota 2</span>
+        <!-- Click the hero to recolour the window. The catalog's own site does this beside
+             its logo and h6rd let us bring both the mascots and the idea across. -->
+        <button class="tb-mascot" id="themeMascot" title="Change the colours" data-i18n-title="Сменить цвета">
+          <img alt="" draggable="false">
+        </button>
+      </div>
+
+      <nav id="tbNav">
+        <button class="tb-tab active" data-view="catalog" data-i18n="Каталог">Catalog</button>
+        <button class="tb-tab" data-view="library" data-i18n="Мои моды">My mods<span class="tb-badge" id="libCount"></span></button>
+        <button class="tb-tab" data-view="presets" data-i18n="Пресеты">Presets</button>
+        <button class="tb-tab" data-view="settings" data-i18n="Настройки">Settings</button>
+      </nav>
+
+      <!-- Where a stuck user goes: the catalog's wiki, in their language, and its Discord.
+           The guides themselves now sit inside the mod they explain. -->
+      <div class="tb-help">
+        <button class="tb-help-btn" id="helpBtn" title="Help" data-i18n-title="Помощь"
+                aria-haspopup="menu" aria-expanded="false"><span class="ms">help</span></button>
+        <div class="tb-menu hidden" id="helpMenu" role="menu"></div>
+      </div>
+
+      <div class="tb-spacer"></div>
+
+      <div class="tb-search">
+        <span class="ms" aria-hidden="true">search</span>
+        <input id="globalSearch" placeholder="Search mods…" data-i18n-ph="Поиск модов…" spellcheck="false">
+        <button id="clearSearch" class="tb-search-clear hidden" aria-label="Clear" data-i18n-aria="Очистить"><span class="ms">close</span></button>
+      </div>
+
+      <!-- Mods picked out to install together -->
+      <button class="tb-queue" id="queueBtn" title="Install list" data-i18n-title="Список установки" disabled>
+        <span class="ms">playlist_add_check</span>
+        <span class="tb-queue-count" id="queueCount"></span>
+      </button>
+
+      <!-- Discord account: filled in by the renderer, hidden when sign-in isn't configured -->
+      <div class="tb-account" id="tbAccount"></div>
+
+      <div class="tb-controls">
+        <button class="tb-ctl" id="winMin" aria-label="Minimize" data-i18n-aria="Свернуть"><svg viewBox="0 0 12 12" width="12" height="12"><line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.2"/></svg></button>
+        <button class="tb-ctl" id="winMax" aria-label="Maximize" data-i18n-aria="Развернуть"><svg viewBox="0 0 12 12" width="12" height="12"><rect x="2.5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.2" rx="1"/></svg></button>
+        <button class="tb-ctl tb-close" id="winClose" aria-label="Close" data-i18n-aria="Закрыть"><svg viewBox="0 0 12 12" width="12" height="12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+      </div>
+    </header>
+
+    <!-- Drag the bar's height, or fold it down to the window buttons -->
+    <div class="panel-grip grip-h" id="gripTop" role="separator" aria-orientation="horizontal"
+         title="Drag to resize · double-click to reset" data-i18n-title="Потяни, чтобы изменить высоту · двойной клик сбрасывает">
+      <button class="grip-toggle" id="topToggle" aria-label="Hide the top bar" data-i18n-aria="Свернуть верхнюю панель"><span class="ms">expand_less</span></button>
+    </div>
+
+    <!-- Body -->
+    <div id="body">
+      <!-- Category rail (catalog view only) -->
+      <aside id="catRail" class="cat-rail"></aside>
+
+      <div class="panel-grip grip-v" id="gripRail" role="separator" aria-orientation="vertical"
+           title="Drag to resize · double-click to reset" data-i18n-title="Потяни, чтобы изменить ширину · двойной клик сбрасывает">
+        <button class="grip-toggle" id="railToggle" aria-label="Hide the categories" data-i18n-aria="Скрыть категории"><span class="ms">chevron_left</span></button>
+      </div>
+
+      <main id="main">
+        <div id="view-root"></div>
+      </main>
+    </div>
+
+    <div class="panel-grip grip-h" id="gripBottom" role="separator" aria-orientation="horizontal"
+         title="Drag to resize · double-click to reset" data-i18n-title="Потяни, чтобы изменить высоту · двойной клик сбрасывает">
+      <button class="grip-toggle" id="bottomToggle" aria-label="Hide the bottom bar" data-i18n-aria="Свернуть нижнюю панель"><span class="ms">expand_more</span></button>
+    </div>
+
+    <!-- Status footer strip -->
+    <footer id="statusbar">
+      <span class="dot" id="dotaStatusDot"></span>
+      <span id="dotaStatusText">Looking for Dota 2…</span>
+      <div class="sb-right">
+        <button class="mods-switch safe-switch on" id="safeModeBtn" role="switch" aria-checked="true" title="Safe mode: patch-only mods (effects, cosmetics) are hidden and inactive. Turn it off to enable them — the app will register its folder in the game files." data-i18n-title="Безопасный режим: моды из патча (эффекты, косметика) скрыты и не работают. Выключи, чтобы их включить — приложение впишет свою папку в файлы игры.">
+          <span class="ms safe-switch-icon">shield</span>
+          <span class="mods-switch-txt"><span data-i18n="Безопасно:">Safe:</span> <b id="safeModeState">on</b></span>
+          <span class="mods-switch-track"><span class="mods-switch-thumb"></span></span>
+        </button>
+        <button class="btn btn-sm" id="openModsFolderBtn" title="Open the folder the mods are installed into" data-i18n-title="Открыть папку, куда ставятся моды"><span class="ms">folder_open</span><span data-i18n="Папка модов">Mods folder</span></button>
+        <button class="mods-switch on" id="modsMasterBtn" role="switch" aria-checked="true" title="Turn all mods on/off at once (to launch the vanilla game)" data-i18n-title="Включить/выключить все моды сразу (для запуска ванильной игры)">
+          <span class="mods-switch-txt"><span data-i18n="Моды:">Mods:</span> <b id="modsMasterState">on</b></span>
+          <span class="mods-switch-track"><span class="mods-switch-thumb"></span></span>
+        </button>
+        <button class="btn btn-primary btn-play" id="launchBtn" title="Launch Dota 2 through Steam with your launch options" data-i18n-title="Запустить Dota 2 через Steam с твоими параметрами запуска">
+          <span class="ms">play_arrow</span><span data-i18n="Играть">Play</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Progress bar (bottom) -->
+    <div id="progressBar" class="progress-bar hidden">
+      <div class="progress-info">
+        <span id="progressLabel"></span>
+        <span id="progressSize"></span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <!-- Toasts -->
+    <div id="toasts"></div>
+
+    <!-- Modal -->
+    <div id="modalOverlay" class="modal-overlay hidden">
+      <div id="modalContent" class="modal-content"></div>
+    </div>
+
+    <!-- The list of mods waiting to be installed together -->
+    <div id="queueOverlay" class="modal-overlay hidden">
+      <div id="queuePanel" class="queue-panel"></div>
+    </div>
+  </div>
+
+  <!-- i18n stays a classic script: it publishes L/tr on window and everything else,
+       including the modules below, reads them from there. -->
+  <script src="i18n-locales.js"></script>
+  <script src="i18n.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+name: Fingerprints
+
+# Keeps fingerprints.json in sync with the catalog: new/changed mods are fetched and
+# fingerprinted, unchanged ones are skipped (state is checkpointed in the repo), and the
+# result is committed only when it actually changes. Pushes to main here don't build a
+# release (that workflow triggers on v* tags only).
+#
+# It also rebuilds the site's hero pages, because they are made of the same downloads. The job
+# already opens every archive to fingerprint it and works out which heroes each one is about;
+# the site then needs the catalog's preview for those same mods. Doing it anywhere else means
+# fetching the catalog twice and having two answers to when it last changed.
+#
+# Node 24 rather than 20: tools/catalog.mjs imports the site's TypeScript directly, which older
+# Node cannot read.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # every 30 min; a no-op unless the catalog changed
+  workflow_dispatch:
+
+# Read only. The commit goes back over SSH with the deploy key below, which carries its own write
+# access to this one repository, and the checkpoint cache has a token of its own. Nothing in the job
+# writes with the workflow token, so it no longer gets to (OpenSSF Scorecard, 2026-09-15).
+permissions:
+  contents: read
+
+concurrency:
+  group: fingerprints
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Pushed back over SSH with a deploy key that can write to this repository and nothing
+          # else. main's ruleset refuses a push that has not passed the tests, and deploy keys
+          # are on its bypass list. This used to be the owner's personal access token, which
+          # could write to every repository on the account and expired on 2026-09-15, taking
+          # the job with it. A personal repository cannot put the workflow's own token on a
+          # bypass list (GitHub answers that only an organisation can), so a key that never
+          # expires and reaches one repository is the narrowest thing that works.
+          ssh-key: ${{ secrets.FINGERPRINTS_DEPLOY_KEY }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install deps (skip the electron binary — not needed here)
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+
+      # The per-mod checkpoint that makes this job incremental. It belongs to the job and to
+      # nothing else, so it is cached rather than committed - see .gitignore. The key moves
+      # every run and the restore-key takes the newest match, which is how a cache is used as
+      # a rolling state file.
+      - name: Restore the fingerprint checkpoint
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: fingerprints.state.json
+          key: fingerprint-state-${{ github.run_id }}
+          restore-keys: fingerprint-state-
+
+      - name: Regenerate fingerprints (incremental)
+        run: node tools/gen-fingerprints.js --conc 8
+
+      - name: Save the fingerprint checkpoint
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        if: always()
+        with:
+          path: fingerprints.state.json
+          key: fingerprint-state-${{ github.run_id }}
+
+      # sharp, for reading each preview's size and for refusing the two catalog entries that
+      # are mp4 files wearing a .webp name
+      - name: Install the site's deps
+        run: npm ci --prefix site
+
+      - name: Rebuild the hero and category pages
+        run: npm run catalog --prefix site
+
+      - name: Commit if changed
+        run: |
+          paths="fingerprints.json hero-index.json site/src/data/heroes.json site/src/data/categories.json site/public/mods"
+          if git diff --quiet -- $paths && [ -z "$(git ls-files --others --exclude-standard -- $paths)" ]; then
+            echo "catalog unchanged"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add $paths
+            # Say what moved. Every commit this job has ever made was called "Update mod
+            # fingerprints and hero pages", which is a quarter of the history saying nothing;
+            # tools/index-delta.js counts the mods between the two versions and names them.
+            # The old index comes from HEAD because $paths is already staged.
+            git show HEAD:fingerprints.json > /tmp/fp-before.json 2>/dev/null || true
+            subject="$(node tools/index-delta.js /tmp/fp-before.json fingerprints.json)"
+            # [skip ci] because a push made with a real token starts workflows and the
+            # default one never did. Nothing here is worth a run of anything.
+            git commit -m "$subject [skip ci]"
+            git push
+          fi

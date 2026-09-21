@@ -1,0 +1,119 @@
+{
+  "name": "mod-assistant",
+  "productName": "Mod Assistant",
+  "version": "1.0.0",
+  "description": "Mod Assistant for Dota 2 — browse, install, toggle and manage cosmetic mods",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "test": "node --test \"test/**/*.test.js\"",
+    "lint": "eslint .",
+    "typecheck": "node tools/typecheck.mjs",
+    "size": "node tools/size-budget.mjs",
+    "verify": "npm run lint && npm run typecheck && npm run size && npm run test:coverage",
+    "test:coverage": "node tools/coverage.mjs",
+    "sandbox:seed": "node tools/sandbox.js seed",
+    "sandbox:reset": "node tools/sandbox.js reset",
+    "sandbox:status": "node tools/sandbox.js status",
+    "start:sandbox": "electron . --user-data-dir=sandbox/userdata",
+    "e2e": "node tools/e2e.mjs",
+    "fuzz": "node tools/fuzz-parsers.mjs",
+    "mutate": "node tools/mutate.mjs",
+    "rollback": "node tools/rollback.mjs",
+    "docs": "node tools/gen-api-docs.js && node tools/gen-doc-facts.js",
+    "docs:check": "node tools/gen-api-docs.js --check",
+    "aur": "node tools/gen-aur.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dreftian/Dota2-Mods.git"
+  },
+  "author": "Dreftian Devs",
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://github.com/Dreftian/Dota2-Mods",
+  "devDependencies": {
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "eslint": "^10.10.0",
+    "fast-check": "^4.10.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.1",
+    "electron-updater": "^6.3.9"
+  },
+  "build": {
+    "appId": "com.dreftian.modassistant",
+    "productName": "Mod Assistant",
+    "icon": "build/icon.ico",
+    "directories": {
+      "output": "Install"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "preload-uninstall.js",
+      "src/**/*",
+      "renderer/**/*",
+      "package.json",
+      "CHANGELOG.md",
+      "CHANGELOG.ru.md",
+      "LICENSE",
+      "NOTICE"
+    ],
+    "protocols": [
+      {
+        "name": "Mod Assistant preset",
+        "schemes": [
+          "d2mm"
+        ]
+      }
+    ],
+    "fileAssociations": [
+      {
+        "ext": "d2mm",
+        "name": "Mod Assistant preset",
+        "role": "Editor",
+        "mimeType": "application/x-d2mm"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "Dota2-Mod-Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "Dota2 Mod.${ext}",
+      "requestExecutionLevel": "user"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "build/icon.png",
+      "category": "Game",
+      "artifactName": "Mod-Assistant.${ext}",
+      "synopsis": "Mods for Dota 2, without the file juggling"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Mod Assistant",
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Dreftian",
+      "repo": "Dota2-Mods",
+      "releaseType": "release"
+    }
+  }
+}

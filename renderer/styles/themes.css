@@ -1,0 +1,273 @@
+/* ============ Themes ============
+   Eight heroes, eight palettes, the same eight the catalog's own site has - h6rd let us
+   bring them across along with the mascot that switches them (2026-08-01). The values are
+   his, in Material 3's own role names, because his site is built on Material 3 and this is
+   the vocabulary the rest of our tokens now read from (see tokens.css).
+
+   Only the dark half is here. His site has a light mode; this window does not, and a
+   half-finished light theme is worse than none. If it ever gets one, this is the file that
+   grows a `[data-lightness="light"]` twin per hero and nothing else has to change.
+
+   Roles, in the order they appear below:
+     primary            the accent - light on dark, so it reads as text and as a fill
+     on-primary         the ink that goes ON that fill, dark by design
+     primary-container  a muted block of the accent, for surfaces that lean brand
+     surface            the window's floor
+     surface-container* the steps above it: cards, panels, hovers
+     on-surface         body text; on-surface-variant, the quieter kind
+     outline            borders and dividers
+     error              trouble, the one role that is the same in every theme */
+
+:root {
+  /* trouble looks the same whichever hero the window is wearing */
+  --md-on-error: #690005;
+}
+
+:root,
+[data-theme='ursa'] {
+  --md-primary: #d0bcff;
+  --md-accent: #b190ff;
+  --md-on-primary: #220a32;
+  --md-primary-container: #4f378b;
+  --md-on-primary-container: #f4e7ff;
+  --md-secondary: #ccc2dc;
+  --md-surface: #141218;
+  --md-surface-low: #1d1b20;
+  --md-surface-container: #211f26;
+  --md-surface-high: #2b2930;
+  --md-surface-highest: #36343b;
+  --md-on-surface: #e6e0e9;
+  --md-on-surface-variant: #cac4d0;
+  --md-outline: #938f99;
+  --md-error: #ffb4ab;
+}
+
+[data-theme='brew'] {
+  --md-primary: #fac898;
+  --md-accent: #f8b774;
+  --md-on-primary: #3a1f00;
+  --md-primary-container: #5c3b00;
+  --md-on-primary-container: #ffddb7;
+  --md-secondary: #e6c6a4;
+  --md-surface: #14110f;
+  --md-surface-low: #201e1b;
+  --md-surface-container: #262421;
+  --md-surface-high: #302d2a;
+  --md-surface-highest: #3a3734;
+  --md-on-surface: #f2e6dc;
+  --md-on-surface-variant: #d9c4b1;
+  --md-outline: #9d8f84;
+  --md-error: #ffb4ab;
+}
+
+[data-theme='fura'] {
+  --md-primary: #b1f9a4;
+  --md-accent: #9bf38a;
+  --md-on-primary: #00390e;
+  --md-primary-container: #0a5d1d;
+  --md-on-primary-container: #c8ffc0;
+  --md-secondary: #a4f9c2;
+  --md-surface: #121511;
+  --md-surface-low: #181c17;
+  --md-surface-container: #1e221d;
+  --md-surface-high: #282c27;
+  --md-surface-highest: #323630;
+  --md-on-surface: #e0e4dd;
+  --md-on-surface-variant: #c4d0c0;
+  --md-outline: #8b9688;
+  --md-error: #ffb4ab;
+}
+
+[data-theme='storm'] {
+  --md-primary: #c7dbf0;
+  --md-accent: #b5d0ec;
+  --md-on-primary: #10283e;
+  --md-primary-container: #334b61;
+  --md-on-primary-container: #e9f3ff;
+  --md-secondary: #c8d9ea;
+  --md-surface: #13171a;
+  --md-surface-low: #191e22;
+  --md-surface-container: #1f2428;
+  --md-surface-high: #292e32;
+  --md-surface-highest: #34393d;
+  --md-on-surface: #e6ebef;
+  --md-on-surface-variant: #c9cdd1;
+  --md-outline: #959a9f;
+  --md-error: #ffb4ab;
+}
+
+[data-theme='invoker'] {
+  --md-primary: #ffffff;
+  --md-accent: #e0e0e0;
+  --md-on-primary: #000000;
+  --md-primary-container: #404040;
+  --md-on-primary-container: #ffffff;
+  --md-secondary: #cccccc;
+  --md-surface: #0e0e0e;
+  --md-surface-low: #1a1a1a;
+  --md-surface-container: #1e1e1e;
+  --md-surface-high: #2a2a2a;
+  --md-surface-highest: #363636;
+  --md-on-surface: #ffffff;
+  --md-on-surface-variant: #e0e0e0;
+  --md-outline: #7a7a7a;
+  --md-error: #ffb4ab;
+}
+
+[data-theme='meepo'] {
+  --md-primary: #ffb0c8;
+  --md-accent: #ff8fb3;
+  --md-on-primary: #5e0029;
+  --md-primary-container: #83003e;
+  --md-on-primary-container: #ffd9e3;
+  --md-secondary: #e5bdc7;
+  --md-surface: #191113;
+  --md-surface-low: #221a1d;
+  --md-surface-container: #272023;
+  --md-surface-high: #322a2d;
+  --md-surface-highest: #3d3437;
+  --md-on-surface: #f0dee5;
+  --md-on-surface-variant: #d6c2c8;
+  --md-outline: #9f8c92;
+  --md-error: #ffb4ab;
+}
+
+[data-theme='bh'] {
+  --md-primary: #f1d783;
+  --md-accent: #ebcc6d;
+  --md-on-primary: #3a2e00;
+  --md-primary-container: #574600;
+  --md-on-primary-container: #ffe8b8;
+  --md-secondary: #e0d0a0;
+  --md-surface: #15130f;
+  --md-surface-low: #1d1b18;
+  --md-surface-container: #242220;
+  --md-surface-high: #2e2c28;
+  --md-surface-highest: #383632;
+  --md-on-surface: #ebe6dc;
+  --md-on-surface-variant: #d2c9b5;
+  --md-outline: #9a9286;
+  --md-error: #ffb4ab;
+}
+
+[data-theme='axe'] {
+  --md-primary: #ffb4a9;
+  --md-accent: #ff897a;
+  --md-on-primary: #680003;
+  --md-primary-container: #930006;
+  --md-on-primary-container: #ffdad4;
+  --md-secondary: #e5bdb6;
+  --md-surface: #1a1110;
+  --md-surface-low: #231917;
+  --md-surface-container: #28201d;
+  --md-surface-high: #332a27;
+  --md-surface-highest: #3e3531;
+  --md-on-surface: #f1e0dc;
+  --md-on-surface-variant: #d8c2bd;
+  --md-outline: #a08c88;
+  --md-error: #ffb4ab;
+}
+
+/* ============ Light Mode ============
+   High-contrast, clean modern light mode palettes.
+   Activated when [data-theme-mode="light"] is set on <html>.
+*/
+[data-theme-mode="light"] {
+  --md-surface: #f4f5f8;
+  --md-surface-low: #e9ecf2;
+  --md-surface-container: #ffffff;
+  --md-surface-high: #dde1ea;
+  --md-surface-highest: #d2d7e2;
+  --md-on-surface: #181b20;
+  --md-on-surface-variant: #494e5a;
+  --md-outline: #727782;
+  --md-error: #ba1a1a;
+  --md-on-error: #ffffff;
+
+  --bg-deep: #e8ecf4;
+  --bg-base: #f4f5f8;
+  --bg-elev: #ffffff;
+  --surface: rgba(0, 0, 0, 0.04);
+  --surface-hover: rgba(0, 0, 0, 0.08);
+  --surface-solid: #ffffff;
+  --border: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.24);
+
+  --text: #181b20;
+  --text-muted: #535865;
+  --text-faint: #7b8190;
+  --installed: #059669;
+}
+
+[data-theme-mode="light"],
+[data-theme-mode="light"][data-theme='ursa'] {
+  --md-primary: #6750a4;
+  --md-accent: #7f67be;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #eaddff;
+  --md-on-primary-container: #21005d;
+  --md-secondary: #625b71;
+}
+
+[data-theme-mode="light"][data-theme='brew'] {
+  --md-primary: #8b5000;
+  --md-accent: #a86200;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #ffddb7;
+  --md-on-primary-container: #2c1600;
+  --md-secondary: #745b42;
+}
+
+[data-theme-mode="light"][data-theme='fura'] {
+  --md-primary: #1b6d28;
+  --md-accent: #2e8b3e;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #a4f6a2;
+  --md-on-primary-container: #002206;
+  --md-secondary: #526350;
+}
+
+[data-theme-mode="light"][data-theme='storm'] {
+  --md-primary: #006495;
+  --md-accent: #197eb5;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #cbe6ff;
+  --md-on-primary-container: #001e30;
+  --md-secondary: #50606e;
+}
+
+[data-theme-mode="light"][data-theme='invoker'] {
+  --md-primary: #9c27b0;
+  --md-accent: #ba68c8;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #f3e5f5;
+  --md-on-primary-container: #4a148c;
+  --md-secondary: #6a1b9a;
+}
+
+[data-theme-mode="light"][data-theme='meepo'] {
+  --md-primary: #a02050;
+  --md-accent: #bf366c;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #ffd9e3;
+  --md-on-primary-container: #3e0018;
+  --md-secondary: #74565f;
+}
+
+[data-theme-mode="light"][data-theme='bh'] {
+  --md-primary: #7d5900;
+  --md-accent: #9a7000;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #ffdf9e;
+  --md-on-primary-container: #261a00;
+  --md-secondary: #6c5e3f;
+}
+
+[data-theme-mode="light"][data-theme='axe'] {
+  --md-primary: #b3261e;
+  --md-accent: #cf3c34;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #f9dedc;
+  --md-on-primary-container: #410e0b;
+  --md-secondary: #775652;
+}

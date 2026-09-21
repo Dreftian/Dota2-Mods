@@ -1,0 +1,1282 @@
+/* ============ Modal ============ */
+/* Opening a mod, on one clock:
+     0ms   the dimming starts, 200ms long
+     0ms   the window starts, 200ms: it comes out of the card that was clicked, growing from
+           a third of its size into place
+     120ms the picture starts, 200ms, growing from a point at the centre of the window
+     320ms everything has landed
+   The picture used to wait for the window to stop before it began, and 550ms to open a mod
+   is a mod manager that feels slow - people press these forty times in a sitting. It starts
+   while the window is on its last fifth instead, which still reads as the window arriving
+   first, and everything is done in the time the picture alone used to take. Where the card was is passed in as --from-x / --from-y (see openFrom);
+   with no card - a mod reached from a link - both are zero and the window simply grows in
+   place. Leaving is a single 200ms fall: an exit as long as its entrance feels like the
+   window is arguing about being closed. */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(3, 3, 6, 0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+  animation: fadeIn var(--dur-base) var(--ease-standard) both;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-overlay.hidden { display: none; }
+.modal-overlay.closing { animation: fadeOut var(--dur-base) var(--ease-accelerate) both; }
+@keyframes fadeOut { to { opacity: 0; } }
+.modal-content {
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  width: min(700px, calc(92vw / var(--content-zoom)));
+  max-height: calc(88vh / var(--content-zoom));
+  overflow-y: auto;
+  box-shadow: var(--shadow), 0 0 60px color-mix(in srgb, var(--md-primary) 8%, transparent);
+  animation: windowIn var(--dur-base) var(--ease-decelerate) both;
+}
+.closing .modal-content { animation: windowOut var(--dur-base) var(--ease-accelerate) both; }
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes windowIn {
+  from {
+    opacity: 0;
+    transform: translate(var(--from-x, 0), var(--from-y, 0)) scale(0.34);
+  }
+}
+@keyframes windowOut { to { opacity: 0; transform: scale(0.97); } }
+
+.modal-media {
+  aspect-ratio: 16 / 9;
+  background: var(--bg-elev);
+  position: relative;
+  /* the window's own top corners, and a hard edge for the picture growing inside: without
+     this the picture crosses the rounded corner on its way out to full size */
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow: hidden;
+}
+/* From a point in the middle of the window out to the full frame. It is the picture that
+   grows, never the frame around it - the frame has stopped by then and scaling it would
+   open a gap at the window's edge. */
+.modal-media img, .modal-media video {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  animation: pictureIn var(--dur-base) var(--ease-decelerate) var(--dur-fast) both;
+}
+@keyframes pictureIn { from { opacity: 0; transform: scale(0.02); } }
+.modal-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 75%, rgba(20, 20, 29, 0.9) 100%);
+  pointer-events: none;
+}
+.modal-body { padding: 16px 22px 22px; display: flex; flex-direction: column; gap: 13px; }
+.modal-title-row { display: flex; align-items: flex-start; gap: 12px; }
+.modal-title { font-size: 20px; font-weight: 800; flex: 1; }
+.modal-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: rgba(10, 10, 16, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: 50%;
+  line-height: 0;
+  transition: all 0.15s;
+  z-index: 2;
+}
+.modal-close:hover { background: rgba(232, 17, 35, 0.85); color: #fff; transform: rotate(90deg); }
+.modal-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+/* Which look gets installed. Filled in its own colour, these shouted louder than Install and
+   read as four things to press; the colour is a label, not a call to action. So the colour
+   is now the outline and a low wash behind the name, which also lets it glow a little in the
+   dark theme instead of sitting there as a slab. The name stays because colour alone cannot
+   tell Retro from Retro v2, two greens a shade apart, and the name is all the catalog knows
+   about a variant. The same looks are dots on the card, where the picture does the talking. */
+.style-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.style-btn {
+  --wash: color-mix(in srgb, var(--c, var(--md-primary)) 14%, transparent);
+  background: var(--wash);
+  border: 1px solid color-mix(in srgb, var(--c, var(--md-primary)) 55%, transparent);
+  border-radius: 999px;
+  color: var(--text-muted);
+  padding: 7px 15px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard),
+    background var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
+}
+/* the colour itself, as a mark rather than a field */
+.style-btn::before {
+  content: '';
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--c, var(--md-primary));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--c, var(--md-primary)) 70%, transparent);
+  flex-shrink: 0;
+}
+.style-btn:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--c, var(--md-primary)) 80%, transparent);
+}
+.style-btn:active { transform: scale(0.97); }
+.style-btn.active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--c, var(--md-primary)) 22%, transparent);
+  border-color: var(--c, var(--md-primary));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--c, var(--md-primary)) 32%, transparent);
+}
+.modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.modal-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.modal-links .btn .ms { color: var(--primary-soft); }
+.modal-note {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 9px 13px;
+}
+/* same amber as .lib-banner.warn — something needs attention but nothing is broken */
+.modal-note.warn {
+  background: rgba(251, 191, 36, 0.11);
+  border-color: rgba(251, 191, 36, 0.32);
+}
+.modal-note.warn b { color: var(--warning); }
+
+/* ============ Confirm dialog ============ */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 6, 14, 0.66);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  animation: fadeIn 0.2s var(--ease);
+}
+.confirm-box {
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 24px 26px 20px;
+  width: min(400px, calc(88vw / var(--content-zoom)));
+  box-shadow: var(--shadow), 0 0 50px color-mix(in srgb, var(--md-primary) 10%, transparent);
+  animation: modalIn 0.28s var(--ease);
+}
+.confirm-msg { font-size: 15px; font-weight: 600; margin-bottom: 20px; line-height: 1.5; }
+/* wraps rather than spilling out of the box when labels are long (RU labels are) */
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+/* ============ Preview toggle / audio ============ */
+.preview-toggle {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(14, 12, 20, 0.72);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--md-primary) 30%, transparent);
+  color: var(--primary-soft);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 2;
+  transition: all 0.25s var(--ease);
+}
+.preview-toggle:hover {
+  background: color-mix(in srgb, var(--md-primary) 25%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--md-primary) 30%, transparent);
+  transform: translateY(-1px);
+}
+.preview-toggle .ms { font-size: 17px; }
+
+.audio-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--md-primary) 18%, transparent), transparent 70%);
+}
+.audio-icon { font-size: 54px !important; color: var(--primary-soft); }
+.audio-wrap audio { width: 80%; }
+audio { accent-color: var(--primary); }
+audio::-webkit-media-controls-panel { background: var(--surface-solid); }
+.modal-media.audio-mode { aspect-ratio: 16 / 7; }
+
+/* ============ Built-in player ============ */
+.player-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 6, 14, 0.78);
+  backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  animation: fadeIn 0.25s var(--ease);
+}
+.player-box {
+  position: relative;
+  width: min(960px, calc(90vw / var(--content-zoom)));
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--shadow), 0 0 80px color-mix(in srgb, var(--md-primary) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-primary) 22%, transparent);
+  animation: modalIn 0.32s var(--ease);
+}
+.player-box video {
+  width: 100%;
+  display: block;
+  max-height: calc(78vh / var(--content-zoom));
+  background: #000;
+  cursor: pointer;
+}
+.player-box.audio {
+  background: linear-gradient(160deg, var(--surface-solid), var(--bg-deep));
+}
+.player-audio-visual {
+  height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--md-primary) 25%, transparent), transparent 70%);
+}
+.player-audio-visual .ms {
+  font-size: 84px;
+  color: var(--primary-soft);
+  filter: drop-shadow(0 0 24px color-mix(in srgb, var(--md-primary) 60%, transparent));
+}
+.player-title {
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: 2;
+}
+.player-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(14, 12, 20, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 7px;
+  border-radius: 50%;
+  line-height: 0;
+  z-index: 3;
+  transition: all 0.2s;
+}
+.player-close:hover { background: rgba(232, 17, 35, 0.85); color: #fff; transform: rotate(90deg); }
+.player-controls {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  background: linear-gradient(180deg, transparent, rgba(5, 4, 10, 0.85));
+  z-index: 2;
+}
+.player-box.audio .player-controls { position: relative; background: none; }
+.pl-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s var(--ease);
+  flex-shrink: 0;
+}
+.pl-btn:hover { background: color-mix(in srgb, var(--md-primary) 45%, transparent); box-shadow: 0 0 16px color-mix(in srgb, var(--md-primary) 40%, transparent); }
+.pl-btn .ms { font-size: 20px; }
+.pl-progress {
+  position: relative;
+  flex: 1;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.pl-progress:hover { height: 7px; }
+.pl-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-soft));
+  border-radius: 3px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--md-primary) 60%, transparent);
+}
+.pl-knob {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--md-primary) 80%, transparent);
+  pointer-events: none;
+}
+.pl-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* A confirm box holding a list rather than a sentence. */
+.confirm-box.wide { max-width: 460px; width: 90vw; }
+.prompt-input { margin: var(--space-4) 0 var(--space-1); width: 100%; }
+
+/* ============ Install list ============ */
+/* The same window shape as a mod's, because it is the same kind of thing: something that
+   opened over the catalog and will close again. Rows are the mod as the grid showed it -
+   picture, name, where it came from - so the list reads as the cards you pressed. */
+.queue-panel {
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  width: min(520px, calc(92vw / var(--content-zoom)));
+  max-height: calc(84vh / var(--content-zoom));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow), 0 0 60px color-mix(in srgb, var(--md-primary) 8%, transparent);
+  animation: windowIn var(--dur-base) var(--ease-decelerate) both;
+}
+.queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.queue-head h2 { font-size: var(--text-lg); font-weight: var(--weight-bold); }
+.queue-x {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  line-height: 0;
+  padding: var(--space-1);
+  border-radius: 50%;
+  transition: color var(--dur-fast) var(--ease-standard), background var(--dur-fast) var(--ease-standard);
+}
+.queue-x:hover { color: var(--text); background: var(--surface-hover); }
+.queue-list { overflow-y: auto; padding: var(--space-2) var(--space-3); }
+.queue-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+.queue-row:hover { background: var(--surface); }
+.queue-thumb {
+  width: 64px;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg-elev);
+}
+.queue-thumb img, .queue-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.queue-info { flex: 1; min-width: 0; }
+.queue-name { font-weight: var(--weight-semibold); font-size: var(--text-sm); }
+.queue-cat { color: var(--text-faint); font-size: var(--text-xs); }
+.queue-drop {
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  line-height: 0;
+  padding: var(--space-1);
+  border-radius: 50%;
+  transition: color var(--dur-fast) var(--ease-standard), background var(--dur-fast) var(--ease-standard);
+}
+.queue-drop:hover { color: var(--danger); background: var(--surface-hover); }
+.queue-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5) var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+/* Finding one row among eighty is the whole reason the list exists, so it can be searched
+   once it is long enough to be scrolled rather than read. */
+.queue-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) var(--space-5) 0;
+  padding: 0 var(--space-3);
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--bg-elev);
+  transition: border-color var(--dur-fast) var(--ease-standard);
+}
+.queue-search:focus-within { border-color: var(--primary); }
+.queue-search .ms { font-size: var(--icon-sm); color: var(--text-faint); }
+.queue-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+.queue-search input::placeholder { color: var(--text-faint); }
+
+/* ============ Turning safe mode off ============
+   The only dialog that has to be read rather than clicked through, so it is laid out as a
+   move from one state to the next instead of a comparison: the card above is what the app
+   does today and sits quiet, the card below is what it will do and is lit, and a short rule
+   runs from one to the other. The shields are the status bar switch's own icons, so the
+   window also shows what the thing being flipped looks like afterwards. */
+.safe-box { width: min(600px, calc(92vw / var(--content-zoom))); text-align: left; }
+.safe-title {
+  font-family: var(--font-head);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-5);
+}
+/* The argument scrolls; the warning and the buttons under it never do. On a short window the
+   two state cards are what gets cut, and they are the part somebody can scroll back to. */
+.safe-body {
+  max-height: min(calc(56vh / var(--content-zoom)), 480px);
+  overflow-y: auto;
+  padding-right: var(--space-2);
+}
+
+.safe-step {
+  position: relative;
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  animation: cardIn var(--dur-medium) var(--ease-out) both;
+}
+.safe-step.to {
+  margin-top: var(--space-4);
+  border-color: color-mix(in srgb, var(--md-primary) 30%, transparent);
+  background: var(--primary-dim);
+  animation-delay: 60ms;
+}
+/* the rule between them, ending in the accent of the state being moved to */
+.safe-step.from::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: calc(var(--space-4) + var(--icon-md) / 2 - 1px);
+  width: 2px;
+  height: var(--space-4);
+  background: linear-gradient(var(--border-strong), var(--primary));
+}
+.safe-step-icon {
+  flex-shrink: 0;
+  font-size: var(--icon-md);
+  color: var(--text-faint);
+}
+.safe-step.to .safe-step-icon { color: var(--primary-soft); }
+.safe-step-text { flex: 1; min-width: 0; }
+.safe-eyebrow {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.safe-step.to .safe-eyebrow { color: var(--primary-soft); }
+.safe-step-text b {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+.safe-step-text p {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-muted);
+}
+.safe-step-text p.safe-undo { color: var(--text-faint); }
+
+/* Which files, and what lands in each. Named because the people who use this app install
+   .vpk files by hand - "we will modify game files" is both vaguer and more frightening. */
+.safe-files {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  margin: var(--space-3) 0 0;
+}
+.safe-files dt { min-width: 0; }
+.safe-files code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--bg-elev);
+  color: var(--primary-soft);
+}
+.safe-files dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-muted);
+}
+
+/* Padded like the cards above so all three icon columns line up down the left edge. */
+.safe-gain,
+.safe-risk {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0 var(--space-4);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-muted);
+}
+.safe-gain .ms,
+.safe-risk .ms { flex-shrink: 0; font-size: var(--icon-md); }
+.safe-gain .ms { color: var(--primary-soft); }
+/* the same amber as .banner.warn: something to weigh, not something broken */
+.safe-risk {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  border-radius: var(--radius-sm);
+  background: rgba(251, 191, 36, 0.11);
+}
+.safe-risk .ms { color: var(--warning); }
+.safe-box .confirm-actions { margin-top: var(--space-5); }
+
+/* ============ The Source 2 toolchain, offered once ============
+   A first-run question rather than a screen, so it stays close to the plain confirm box:
+   what it is, what it buys, what it costs, two buttons. */
+.tool-box { width: min(520px, calc(90vw / var(--content-zoom))); text-align: left; }
+.tool-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
+.tool-head .ms { font-size: var(--icon-xl); color: var(--primary-soft); }
+.tool-title {
+  font-family: var(--font-head);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+.tool-sub { font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-1); }
+.tool-lede,
+.tool-cost {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-muted);
+}
+.tool-cost { color: var(--text-faint); margin-top: var(--space-4); }
+.tool-gains {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.tool-gains li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-muted);
+}
+.tool-gains .ms { flex-shrink: 0; font-size: var(--icon-md); color: var(--primary-soft); }
+.tool-gains b { color: var(--text); font-weight: var(--weight-semibold); }
+.tool-box .confirm-actions { margin-top: var(--space-5); }
+
+/* ============ The window the uninstaller opens ============
+   Its own small page (renderer/uninstall.html), not a screen of the app: no titlebar, no
+   rail, no status bar, and it lives for a few seconds. It borrows the tokens and the buttons
+   so that the last thing somebody sees of this app still looks like it. */
+.uninstall-body {
+  background: var(--bg-base);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: var(--weight-body);
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: drag; /* frameless, so the whole page moves the window */
+}
+.uninstall-shell {
+  -webkit-app-region: no-drag;
+  width: 100%;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+}
+.uninstall-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); }
+.uninstall-head .ms { font-size: var(--icon-xl); color: var(--danger); }
+.uninstall-title {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+.uninstall-sub { margin: var(--space-1) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
+.uninstall-opts { display: grid; gap: var(--space-3); }
+.uninstall-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-standard);
+}
+.uninstall-opt:hover { border-color: var(--border-strong); }
+.uninstall-opt input { margin-top: var(--space-px); accent-color: var(--primary); flex-shrink: 0; }
+.uninstall-opt-body { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.uninstall-opt-body b { font-size: var(--text-base); font-weight: var(--weight-semibold); }
+.uninstall-opt-body small {
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-muted);
+}
+.uninstall-note {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-faint);
+  min-height: 1em;
+}
+.uninstall-shell .confirm-actions { margin-top: var(--space-5); }
+
+/* ============ Auth Modal ============ */
+.auth-modal-box {
+  width: min(440px, calc(92vw / var(--content-zoom)));
+  padding: var(--space-6);
+  background: var(--surface-solid, #181920);
+  border: 1px solid var(--border-strong, #323544);
+  border-radius: var(--radius-lg, 16px);
+}
+.auth-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.auth-brand h2 {
+  margin: 0;
+  font-size: var(--text-lg, 18px);
+  font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.auth-close-btn, .checkout-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-close-btn:hover, .checkout-close-btn:hover {
+  background: var(--surface-hover, rgba(255,255,255,0.06));
+  color: var(--text);
+}
+.auth-tabs {
+  display: flex;
+  background: var(--bg-elev, #101115);
+  padding: 4px;
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: var(--space-5);
+  gap: 4px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: var(--text-sm, 13px);
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.auth-tab.active {
+  background: var(--surface, #242735);
+  color: var(--text, #fff);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.auth-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.auth-input-wrap .ms:first-child {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  font-size: 18px;
+  pointer-events: none;
+}
+.auth-input-wrap input {
+  width: 100%;
+  padding: 10px 12px 10px 38px;
+  background: var(--bg-elev, #0d0e12);
+  border: 1px solid var(--border, #2a2d3d);
+  border-radius: var(--radius-md, 8px);
+  color: var(--text, #fff);
+  font-size: 14px;
+  transition: border-color 0.15s;
+}
+.auth-input-wrap input:focus {
+  outline: none;
+  border-color: #e33d26;
+  box-shadow: 0 0 0 2px rgba(227, 61, 38, 0.2);
+}
+.auth-toggle-pwd {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+}
+.auth-hint {
+  font-size: 11px;
+  color: var(--text-faint, #7a7f96);
+}
+.btn-auth-submit, .btn-pay-action {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #e33d26, #b02a18);
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  color: #fff;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-auth-submit:hover, .btn-pay-action:hover {
+  opacity: 0.94;
+  transform: translateY(-1px);
+}
+.auth-footer, .pay-footer {
+  margin-top: var(--space-5);
+  font-size: 11px;
+  color: var(--text-faint, #63687e);
+  text-align: center;
+}
+
+/* ============ Checkout Modal ============ */
+.checkout-modal-box {
+  width: min(840px, calc(94vw / var(--content-zoom)));
+  display: flex;
+  flex-direction: row;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong, #323544);
+  background: var(--surface-solid, #15171e);
+}
+@media (max-width: 760px) {
+  .checkout-modal-box { flex-direction: column; }
+}
+.checkout-summary {
+  flex: 0 0 340px;
+  background: linear-gradient(165deg, rgba(227, 61, 38, 0.15), rgba(18, 20, 26, 0.95) 70%);
+  padding: 28px;
+  border-right: 1px solid var(--border, #2a2d3d);
+  display: flex;
+  flex-direction: column;
+}
+.checkout-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ff8a00, #e52e71);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+.checkout-badge .ms { font-size: 14px; }
+.checkout-summary h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-family: var(--font-head);
+  font-weight: 700;
+}
+.checkout-price {
+  margin-bottom: 24px;
+}
+.price-val {
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+}
+.price-period {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+.checkout-perks {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.checkout-perks li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.perk-icon {
+  color: #2ed573;
+  font-size: 18px;
+  margin-top: 2px;
+}
+.checkout-perks b {
+  display: block;
+  font-size: 13px;
+  color: #fff;
+}
+.checkout-perks p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+.checkout-security-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.checkout-security-box .ms { color: #2ed573; font-size: 18px; }
+
+.checkout-methods-panel {
+  flex: 1;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+}
+.checkout-methods-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.checkout-methods-top h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+.pay-methods-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.pay-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-elev, #0d0e12);
+  border: 1px solid var(--border, #2a2d3d);
+  border-radius: var(--radius-md, 8px);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pay-tab .ms { font-size: 18px; }
+.pay-tab:hover {
+  background: var(--surface, #1e212b);
+  color: #fff;
+}
+.pay-tab.active {
+  border-color: #e33d26;
+  background: rgba(227, 61, 38, 0.1);
+  color: #fff;
+}
+.pay-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pay-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.stripe-badge-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(99, 91, 255, 0.12);
+  border: 1px solid rgba(99, 91, 255, 0.3);
+  border-radius: 6px;
+  font-size: 11px;
+  color: #a5b4fc;
+}
+.stripe-badge-banner .ms { font-size: 14px; }
+.stripe-badge-banner code { font-weight: 700; color: #fff; }
+
+.local-pay-info {
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+  background: var(--bg-elev, #0e1017);
+  border-radius: 8px;
+  border: 1px solid var(--border, #2a2d3d);
+  margin-bottom: 4px;
+}
+.qr-box {
+  width: 70px;
+  height: 70px;
+  background: #fff;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #7822bb;
+}
+.qr-icon { font-size: 40px; }
+.qr-label { font-size: 9px; font-weight: 800; margin-top: -4px; }
+.local-pay-details h4 { margin: 0 0 4px; font-size: 13px; font-weight: 700; color: #fff; }
+.local-pay-details p { margin: 2px 0; font-size: 11px; color: var(--text-muted); }
+.bcp-account-details {
+  padding: 14px;
+  background: rgba(0, 41, 107, 0.15);
+  border: 1px solid rgba(0, 75, 195, 0.35);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bcp-account-details h4 { margin: 0 0 4px; font-size: 13px; color: #60a5fa; }
+.bcp-data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.bcp-lbl { color: var(--text-muted); }
+.bcp-val { color: #fff; font-weight: 700; font-family: var(--font-mono); }
+.btn-copy-sm {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  display: flex;
+}
+.btn-copy-sm:hover { background: rgba(255,255,255,0.1); }
+.bcp-hint {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.3;
+}
+.bcp-hint .ms { font-size: 14px; color: #60a5fa; flex-shrink: 0; }
+
+/* ============ User Profile Modal ============ */
+.profile-modal-overlay {
+  z-index: 9999;
+}
+
+.profile-modal-box {
+  width: min(480px, 94vw);
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px color-mix(in srgb, var(--primary) 15%, transparent);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: modalIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+}
+
+.profile-avatar {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--md-primary-container));
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.profile-avatar-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--bg-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.profile-avatar-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: var(--primary);
+  color: var(--on-primary);
+  border-radius: 50%;
+  font-size: 14px !important;
+  padding: 3px;
+  border: 2px solid var(--bg-base);
+}
+
+.profile-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-display-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-email {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.profile-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+}
+
+.profile-close-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.profile-stat-label {
+  color: var(--text-muted);
+}
+
+.profile-stat-val {
+  color: var(--text);
+}
+
+.profile-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.profile-stat-pill.ok {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.profile-promo-box {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(236, 72, 153, 0.12));
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  border-radius: var(--radius, 12px);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.profile-promo-text h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: #d8b4fe;
+}
+
+.profile-promo-text p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.profile-upgrade-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.profile-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.profile-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+

@@ -1,0 +1,137 @@
+# Does this thing work on Linux at all?
+#
+# Dota has a native Linux build, the mods are the same files in the same folders, and the only
+# Windows-shaped parts of the app were finding Steam and asking whether the game is running.
+# Both now have a Linux branch, and a branch nobody runs is a branch that rots, so this builds
+# the AppImage and starts the app against the sandbox on every change to the code.
+#
+# Nothing here is published. The release still ships Windows only, because "supported" means
+# somebody has run it on a real desktop, and the artifacts below are how that person gets a
+# build to try without installing a toolchain.
+name: Linux
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'main.js'
+      - 'preload.js'
+      - 'src/**'
+      - 'renderer/**'
+      - 'tools/sandbox.js'
+      - 'package.json'
+      - '.github/workflows/linux.yml'
+  pull_request:
+  workflow_dispatch:
+
+# The token reads the repository and nothing more. A job that needs more asks for it itself.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build the AppImage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # --publish never on purpose: this proves the build works, it does not ship it.
+      - name: Build
+        run: npx electron-builder --linux --publish never
+
+      # An AppImage carries its own .desktop file, and that file is what tells a Linux session
+      # which program owns a d2mm:// link. Whether the session then honours it depends on the
+      # desktop, but whether we shipped the claim at all is checkable right here.
+      - name: The desktop entry claims the preset scheme
+        run: |
+          set -euo pipefail
+          cd dist
+          chmod +x ./*.AppImage
+          ./*.AppImage --appimage-extract > /dev/null
+          entry=$(ls squashfs-root/*.desktop | head -1)
+          cat "$entry"
+          grep -q 'x-scheme-handler/d2mm' "$entry"
+          grep -q 'application/x-d2mm' "$entry"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: AppImage
+          path: dist/*.AppImage
+          if-no-files-found: error
+
+  start:
+    name: Start it against the sandbox
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Electron needs an X server that a runner does not have, and the Chromium sandbox needs
+      # kernel permissions that a runner will not give it. Both are CI problems rather than
+      # app problems.
+      - name: Install xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      # The tree only: the mods themselves are a few hundred megabytes and prove nothing about
+      # whether the app starts.
+      - name: Seed the sandbox
+        run: node tools/sandbox.js seed --no-mods
+
+      # MM_SHOT is the app's own screenshot harness: it draws, saves the window and leaves the
+      # process running, so the wait is for the file rather than for the exit.
+      - name: Start the app and photograph it
+        run: |
+          set -euo pipefail
+          MM_SHOT="$PWD/linux-start.png" xvfb-run -a npx electron . \
+            --user-data-dir=sandbox/userdata --no-sandbox > electron.log 2>&1 &
+          pid=$!
+          for _ in $(seq 1 90); do
+            [ -s linux-start.png ] && break
+            sleep 1
+          done
+          kill "$pid" 2>/dev/null || true
+          if [ ! -s linux-start.png ]; then
+            echo "the window never got as far as a screenshot:"
+            # The harness writes what went wrong next to the picture it could not take.
+            cat linux-start.png.err.txt 2>/dev/null || true
+            cat electron.log
+            exit 1
+          fi
+
+      # A window can appear with the code behind it already broken. These three phrases are what
+      # a name that does not exist looks like by the time it reaches the log, and they do not
+      # occur in the GPU and sandbox noise a runner produces. Two releases in September shipped
+      # exactly this shape of failure; nothing here would have caught them, because nothing
+      # clicks anything, but a startup-time one has no excuse to get past this.
+      - name: Read the log for code that could not run
+        run: |
+          set -euo pipefail
+          log=sandbox/userdata/logs/app.log
+          [ -f "$log" ] || { echo "no app log was written"; exit 0; }
+          if grep -nE "unhandledrejection|is not defined|is not a function" "$log"; then
+            echo "::error::the app logged a name it could not resolve while starting"
+            exit 1
+          fi
+          echo "the log has no unresolved names in it"
+
+      - name: What it looked like
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: first-window
+          path: |
+            linux-start.png
+            linux-start.png.err.txt
+            electron.log
+          if-no-files-found: warn

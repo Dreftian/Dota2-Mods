@@ -1,0 +1,421 @@
+# Decisions, gaps and repeated claims
+
+Reviews of this repository, by people and by models, keep arriving with the same three problems.
+They file a deliberate trade-off as a flaw. They miss a real weakness because nothing points at
+it. They repeat something that was true in August and stopped being true in September.
+
+So this file carries three lists: what was decided on purpose and what the alternative cost, what
+is genuinely missing, and which claims keep coming back with the command that settles them.
+
+**Every entry ends with a check you can run.** Nothing here asks to be believed. If a check
+disagrees with what is written above it, the check is right and the text is stale, and an issue
+saying so is welcome.
+
+The countable claims are held to the code by `test/decisions.test.js`, and the wider ones by
+`test/docs-current.test.js`: between them they fail when this file and the repository disagree
+about how long `main.js` is, how many test files there are, what the app depends on, where the
+fingerprint index is fetched from, whether there is a linter, which npm scripts exist, or whether
+a link in any document points at a file that is gone. The date below is left out of that on
+purpose: it records when a person last read the whole file, and a test that kept it current would
+be forging a review nobody did.
+
+Last gone over on 2026-09-20, at version 1.0.0.
+
+---
+
+## Decided on purpose
+
+### The linter looks for code that cannot run, and never for style
+
+`eslint.config.js` turns on `no-undef`, `no-unused-vars` and about fifteen other rules that all
+answer one question: will this line throw the first time somebody reaches it. No formatting
+rules, no opinions about spacing or quotes. `.editorconfig` covers indentation and
+`.gitattributes` covers line endings, and nothing enforces shape beyond that.
+
+That split is the whole decision. A full style config would produce a reformatting commit nobody
+can review, and a CI gate that fails on spacing teaches people to skim CI - and a lint run people
+skim is worth nothing on the day it has something to say. This one had something to say on the
+day it arrived: it named two live bugs, one of which had already shipped in two releases.
+
+Until 2026-09-10 there was no linter at all and this entry argued for that. What changed it:
+splitting a file left a call to `blocked('install')` in a module where `blocked` was not, every
+test passed, and nobody could install a mod in 2.6.5 or 2.6.6.
+
+*Check:* `npm run lint`, `eslint.config.js` for the rule list, and `.github/workflows/test.yml`,
+where it runs before the suite.
+
+### The app ships two dependencies
+
+`adm-zip` and `electron-updater` ship inside it; `electron`, `electron-builder`, `eslint`,
+`typescript` and `fast-check` only build and check it, and never reach a user's machine. The VPK reader and writer, the
+KeyValues parser, the zip guards, the mirror logic and the update checks are written here,
+because every dependency is a stranger with write access to a game folder on tens of thousands
+of machines. That is a bias rather than a ban: a pull request adding one has to say what it
+replaces and why writing it here is worse.
+
+`eslint` was added on 2026-09-10 and is the one case where writing it here would have been the
+wrong answer. Two releases shipped in which no mod could be installed, because splitting a file
+left a function call pointing at a function that had stayed behind. Every test passed: they read
+the files as text, or never loaded a module that needs Electron. `no-undef` names that in under
+a second, and a scope analyser is exactly the kind of thing not to write by hand - the version
+attempted here first reported 240 problems, of which one was real.
+
+`typescript` was added on 2026-09-16 for the same kind of reason, and the app is still plain
+JavaScript: nothing is compiled and nothing is emitted. It reads the JSDoc already written here
+and says where the code and its own documentation disagree. Its first run found a `require` that
+had never resolved, which had been answering two features with "Cannot find module" for as long as
+they existed, and three functions whose JSDoc described a different signature than the code below
+it. Inferring types across thirty thousand lines is not something to write by hand either. What is
+left is counted per file in `.github/typecheck-baseline.json`, and `tools/typecheck.mjs` refuses a
+run where that count grows.
+
+`fast-check` was added on 2026-09-20, and it replaces something written here rather than adding a
+habit. The parsers were already fuzzed with generators of our own (`tools/fuzz-parsers.mjs`,
+`test/safe-zip-fuzz.test.js`), and those have one flaw that cannot be written around cheaply: when
+they find something they hand over the four kilobytes of rubbish that broke it instead of the two
+bytes that mattered. fast-check shrinks a failure to the smallest input that still fails, which is
+the difference between "an archive broke it" and "a name of one dot breaks it". Its properties are
+in `test/properties.test.js`, and the first of them already earns its keep: our hand-written crc32
+is checked against `zlib.crc32` on random bytes rather than on the cases somebody chose.
+
+It also flips a check on the OpenSSF Scorecard, which recognises fuzzing in JavaScript only
+through a short list of libraries and not through generators of our own. That is a real reason and
+not the reason: the shrinking is.
+
+*Check:* `node -e "const p=require('./package.json');console.log(p.dependencies,p.devDependencies)"`
+and `npm run typecheck`
+
+### Valve's `vpk.exe` is deliberately absent
+
+It is proprietary, and a project that bundles it is not open source in the sense a code-signing
+programme means. Reading and writing VPK archives is this repository's own code.
+
+*Check:* `src/vpk.js`, and `test/vpk.test.js`, which runs the writer against the reader.
+
+### The renderer is plain JavaScript
+
+No framework, no bundler, no transpiler, and no TypeScript in the app. What ships is what is in
+the repository, so a reviewer reading `renderer/app.js` is reading the program rather than its
+input. The documentation site under `site/` is a separate package and does use Astro and
+TypeScript.
+
+*Check:* `npm start` runs Electron against the source directly. There is no build step to read.
+
+### The documentation site lives in this repository
+
+The site's numbers come from the app's own version and from the catalog at build time, so a page
+cannot claim a version the repository does not have. Typed-in numbers had already drifted once,
+in August 2026, when the landing said 1,150 mods against a catalog holding 1,090.
+
+*Check:* `site/src/lib/stats.ts`, and the fact sheet at <https://dota2modmanager.com/facts/>.
+
+### `fingerprints.json` sits at the repository root and cannot move
+
+Reviews suggest moving the generated files to a data branch or to build artifacts. That one
+cannot go: installed copies of the app fetch it from `raw.githubusercontent.com` at the path it
+has in `main`. Moving it breaks every copy already on somebody's machine, and no release fixes
+the ones already out there.
+
+*Check:* `src/fingerprints.js`, the `FP_URL` constant.
+
+### A quarter of the commits are made by a scheduled job, and they stay
+
+A workflow checks the upstream catalog every thirty minutes and commits when it moved, which is
+127 of the 517 commits here. They are not squashed away and the interval is not lowered:
+freshness is the point, and since 2026-09-08 the files are written one record per line with a
+subject naming what arrived or left, so the commits can be read like any other.
+
+*Check:* `git log --oneline` for the subjects, `tools/json-lines.js` and `tools/index-delta.js`
+for how they are produced, and `test/json-lines.test.js` for what the formatter guarantees.
+
+### The source is mirrored, and the workflow does not name where
+
+A copy of `main` and every tag goes to <https://gitlab.com/TheFleece/dota2-mod-manager>. This is
+a Dota modding tool: the realistic ways it disappears are a takedown, a suspended account, or a
+decision about the catalog it installs from, and none of those give notice. The mirror carries no
+issues and no merge requests, because it is a copy rather than a second place to work.
+
+The workflow does not name the host. A mirror was set up on Codeberg on 2026-09-08 and stood down
+the same day, when their terms of use turned out to ask projects written with heavy use of
+language models not to host there, and moving cost a code change it should not have cost. It now
+pushes wherever the `MIRROR_PUSH_URL` secret points and exits green saying nothing is configured
+when it points nowhere, so the next move is a secret and not a commit.
+
+*Check:* `git ls-remote https://gitlab.com/TheFleece/dota2-mod-manager.git`, which needs no
+account and should answer with the same commit on `main` and the same tags as this repository.
+
+### This project is written with Claude Code, and says so
+
+Since the first commit, on 20 July 2026. Commits carry a `Co-Authored-By` trailer, `README.md`
+has a section about it above the dependency table, and `AGENTS.md` asks anyone sending a change
+to keep the trailer on theirs.
+
+Two entries used to stand here instead. One explained why eleven commits from August had a
+trailer nobody had cleaned out of them. The other said that working with an assistant was
+"stated rather than hidden", while `AGENTS.md` on the same day asked contributors not to state
+it. Together they read as a project embarrassed by a tool it uses every day, which was never the
+position and is not worth the room.
+
+So nobody has to open a review with "was this AI-generated". Yes, it is on the front page, and
+every question worth asking after that one is answered elsewhere in this file with a command.
+
+*Check:* `git log --grep='Co-Authored-By' --format='%h %ad %s' --date=short`, the "Written with
+Claude Code" section of `README.md`, and **Attribution** in `AGENTS.md`.
+
+### Every change reaches `main` through a pull request, the maintainer's own included
+
+Until 15 September the maintainer pushed straight to `main`, on the grounds that a solo project
+gains nothing from reviewing itself in a web form. What it gains is the gate. Four releases went
+out in one evening on 10 September, and 2.6.11 was built from a commit whose suite was red. The
+ruleset now requires a pull request and every check in `.github/required-checks.json`.
+
+Since 17 September it also requires a CodeQL result with no new alert at High or higher. Pull
+request #62 had merged itself the day before with one, because the rule asked for the analysis to
+run and nothing about what it found. The deploy key the catalog bot pushes its index with is the
+one bypass: those commits are data, and they never touch code.
+
+*Check:* `curl https://api.github.com/repos/TheFleece/dota2-mod-manager/rules/branches/main`, which
+needs no token, or `gh api repos/TheFleece/dota2-mod-manager/rulesets`. `tools/radar.mjs` compares
+that answer with `.github/required-checks.json` every morning and reports a rule that drifted.
+Note that `gh api repos/TheFleece/dota2-mod-manager/branches/main/protection` answers **404 Branch
+not protected**, because this is a ruleset and not classic branch protection. Reviewers have read
+that 404 as an unguarded branch.
+
+### The coverage numbers are a floor, not a target
+
+They sit just under what the suite reaches, so the gate does not fail on the state it was written
+in and does fail the moment somebody adds code nothing exercises. Node only reports files a test
+loaded, so a module with no test at all is invisible here rather than counted as zero. The gate
+holds the line; it does not claim the line is where it should be.
+
+*Check:* the `test:coverage` script in `package.json`, and the comment above the step in
+`.github/workflows/test.yml`.
+
+### The catalog is verified, and the key was pinned later than it arrived
+
+`src/catalog-signature.js` checks an ed25519 signature over every catalog file the app reads, so
+a proxy handing over a rewritten `mods.json` fails here rather than at the point where somebody's
+machine acts on it. The catalog's author holds the private half.
+
+The key arrived on 2026-09-09 and was pinned on the 10th. In between, the catalog published its
+data and its signatures in separate commits, which left one to eight minutes after every update
+where the published files disagreed with their own signatures - indistinguishable here from an
+attack, and really a bot that had not run yet. Existing users would have kept their cached
+catalog; anyone installing the app in those minutes would have had none at all, about five times
+a day. The author now writes data and signatures in one commit, so the disagreement has no moment
+to happen in.
+
+The whole chain this belongs to - what carries a proof, what each failed check costs, and what
+none of it covers - is written out in [ARCHITECTURE.md](ARCHITECTURE.md) under "Who is allowed
+to have written this".
+
+*Check:* `src/catalog-signature.js`, `test/catalog-signature.test.js`, and, in the catalog's own
+repository, [update-catalog.yml](https://github.com/h6rd/Dota2PornFxWeb/blob/main/.github/workflows/update-catalog.yml),
+where one `git add` stages the data and the signatures.
+
+### The switches this project can pull are signed too, and a failed check ignores them
+
+`config/app.json` can turn a feature off after a release and put a notice in front of everyone
+who opens the app, and it travels the same public proxies as everything else. It is signed with a
+key of this project's own, pinned in `src/remote-config.js`.
+
+A copy that does not verify is treated as no file at all, which is what that module already does
+with every other failure. Refusing to start would be the wrong trade: the worst an attacker gets
+from breaking the signature is that the notices stop arriving, and dropping the request achieved
+that already. What they no longer get is to put words on the screen in this project's name.
+
+*Check:* `test/remote-config-signature.test.js`, which fails the build when the committed file
+and its signature disagree - the failure an unsigned edit would otherwise cause in silence, on
+the day somebody reached for a switch and it did not work.
+
+### Nothing is collected, and that is enforced by review rather than by a setting
+
+There is no telemetry, no analytics, no crash reporting and no opt-out to configure, because
+there is nothing to opt out of. `PRIVACY.md` lists every address the app can contact and what it
+stores on disk.
+
+*Check:* `PRIVACY.md`, and grep the source for an outbound call: `grep -rn "fetch\|https.get" src/`.
+
+---
+
+## Known gaps
+
+Real ones. Listed here so a review does not have to find them and so the answer is the same
+whoever asks.
+
+### The installer is not signed
+
+Windows SmartScreen says "unknown publisher" on first run. SignPath Foundation, which signs open
+source for free, turned the application down in August 2026 for not having enough public
+visibility yet; a commercial certificate runs a few hundred dollars a year against a program
+nobody pays for. What stands in for a signature: every binary is built by a public workflow from
+a public commit, and the update metadata beside it carries a SHA-512 of the file.
+
+*Check:* the run that produced any release under
+<https://github.com/TheFleece/dota2-mod-manager/actions/workflows/release.yml>, and `latest.yml`
+in the release assets.
+
+### One maintainer
+
+One person writes it, reviews it and releases it. There have been two outside pull requests and
+a handful of issues from users. Nothing about the project survives that person losing interest,
+which is worth knowing before depending on it.
+
+*Check:* `git shortlog -sne HEAD`, and the contributors list on GitHub.
+
+### The coverage floor is measured on one platform only
+
+The suite runs on both since 2026-09-09, which is what issue
+[#5](https://github.com/TheFleece/dota2-mod-manager/issues/5) asked for: `ubuntu-latest` carries
+the coverage gate, `windows-latest` runs the same tests for correctness, and that job earned
+itself on its first run by finding a libuv abort Linux cannot see.
+
+What is still one-sided is the floor. `src/steam.js` takes a different half of itself on each
+operating system, so the two platforms report different figures, and a number calibrated against
+one of them fails on the other.
+
+Since 2026-09-16 the gate is two things. `tools/coverage.mjs` reads the suite's own lcov and holds
+the aggregate floor in `.github/coverage-baseline.json` on every platform, because a floor that
+sits under both is honest everywhere. The per-file lines are held per platform, in a map keyed by
+the operating system they were measured on: a line measured on one machine is not evidence about
+another, but it is evidence about that machine, and holding only one of them left the per-file
+half of the ratchet unenforced everywhere in CI. A platform with no measurement of its own is held
+to the aggregate and nothing else, and says so. The Linux numbers are taken by running the
+`coverage-baseline` job in `.github/workflows/test.yml` by hand and committing what it uploads;
+that is manual because a baseline that rewrites itself on every push is not a ratchet.
+
+Per file, because the aggregate hid the thing worth catching: it read 76.10% on the day this
+changed, while `src/presets-service.js` sat at 13.8% of its lines and `src/installer.js` at 48.5%,
+and a new module with no tests at all moves the aggregate by a fraction of a point.
+
+*Check:* `.github/coverage-baseline.json`, `tools/coverage.mjs`, and the `test:coverage` script in
+`package.json`.
+
+### A mod the published hash list is wrong about is installed anyway
+
+Since 2026-09-09 the catalog publishes a signed sha256 for every archive. A copy that does not
+match it is refused and the next mirror is asked instead. When no mirror matches, the file the
+catalog's own host serves is taken and marked unverified, rather than the mod being refused.
+
+That last part is a deliberate hole, and it is there because the list is not always right. On
+2026-09-10 it named a hash for one archive that no copy of that file has ever had - one wrong in
+1,178 checked - and until this changed, that mod was uninstallable for everybody, whatever their
+connection. The list is built by a bot in the same repository as the archives, so it can prove
+nothing about that repository in the first place. What it does prove is that bytes handed over by
+a proxy are the ones the catalog's author signed for, and that is the part worth keeping.
+
+Mods the list has not caught up with at all are a smaller version of the same thing: they fall
+back to the hash remembered from the first download.
+
+*Check:* `src/net.js`, `downloadFile`, and `test/net.test.js` for the four cases it separates - a
+stale mirror, a stale list, a proxy inventing bytes, and a hash pinned in this repository, which
+is never waived.
+
+### `main.js` still holds several jobs
+
+It went from 3,102 lines to about 1,300 when the IPC handlers moved into `src/ipc-*.js`, and to
+about 1,150 on 2026-09-16, when the cursor rules went to `src/cursors.js` and everything a freshly
+landed VPK goes through before it counts as a mod went to `src/adopt.js`. What is left is the
+window, the log, auto-update, deep links, the import progress bar, Discord presence and the
+language folder, which is still more than one file's worth of subject.
+
+It is one of five files carrying 6,754 lines between them while the median module in `src/` is
+171: `src/installer.js`, `renderer/views/catalog.js`, `renderer/views/library.js`, this one and
+`src/vpk.js`. None of them arrived that size; each grew a hundred lines at a time with nobody
+deciding to. Since 2026-09-16 each has its length written in `.github/size-budget.json`, and
+`tools/size-budget.mjs` fails a run where one grows, or where a file nobody listed crosses 800
+lines. The budget does not split anything: it stops the drift, and every split shows up in it as a
+number going down.
+
+*Check:* `npm run size`, `.github/size-budget.json`, and `ARCHITECTURE.md` for what is supposed to
+live where.
+
+### CI clicks through one mod, and only one
+
+`.github/workflows/linux.yml` runs Electron against the sandbox under xvfb on every change to the
+code, photographs the first window and fails on `unhandledrejection`, `is not defined` or
+`is not a function` in the app's log. Since 2026-09-15 `.github/workflows/e2e.yml` runs
+`tools/e2e.mjs` on Linux and on Windows: it presses Install on a fixture mod, switches it off,
+restarts the app, switches it on and removes it, and compares the language folder on disk after
+each launch. Run against the 2.6.6 code it stops at Install with `blocked is not defined`, the
+error that left installing dead in 2.6.5 and 2.6.6
+([#19](https://github.com/TheFleece/dota2-mod-manager/issues/19)). These jobs are required before
+a pull request merges and before a release builds.
+
+What it still does not cover: one mod of one shape, a zip holding a single VPK, in one category.
+Packs, load order, cursors, the schema patch, presets and imports are never driven through the
+window. A pull request tries the source tree; the installer and the AppImage are tried only on a
+tag, by `.github/workflows/release.yml` against the draft release, so a packaging mistake is found
+at release time rather than at merge time.
+
+*Check:* `.github/workflows/e2e.yml` and the `e2e-linux` and `e2e-windows` artifacts it uploads:
+a screenshot per launch, the window's own step report and the app log.
+
+### No macOS build, and the Linux one is young
+
+Windows has a year behind it. Linux has shipped an AppImage since 2.4.0 and is started against a
+game tree by CI, but it has a fraction of the running time. macOS is not built at all, and Dota's
+own layout there has never been tested here.
+
+*Check:* the assets on any release, and `.github/workflows/linux.yml`.
+
+---
+
+## Open questions
+
+Weighed, not settled. Listed so nobody files them as an oversight.
+
+### The repository carries 46 MB of catalog preview images
+
+`site/public/mods/` is 1,324 files and 49 MB on disk, and 47.3 MB of a 57.2 MB pack once history
+is counted in: 83% of it. It grows by five to ten files a day. Committing them was decided when
+there were 468 of them averaging 14 KB. The candidates are leaving it alone, fetching them during
+the site build instead of committing them, and serving them from the R2 bucket that already
+mirrors the mod archives. For what it is worth, the generated JSON at the root that reviews
+usually blame for the size is 1.3 MB of that pack, so this is where the weight actually is.
+
+*Check:*
+```
+git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize:disk) %(rest)' | awk '$1=="blob"&&$4~/^site\/public\/mods\//{n+=$3} END{print n/1048576" MB"}'
+```
+
+### Applying to SignPath again
+
+The first application was turned down for public visibility rather than for anything in the code.
+The picture has changed since: 43 releases, tens of thousands of installs, a community around the
+catalog, and a comparable tool in the same ecosystem already signed by the same programme. Not
+resubmitted yet.
+
+*Check:* download the installer from the latest release and ask Windows who signed it:
+`Get-AuthenticodeSignature .\Dota-2-Mod-Manager-Setup.exe`. It answers `NotSigned` today, and
+the day it stops, this entry is out of date.
+
+---
+
+## Claims that keep coming back
+
+Each of these has arrived in a review. Each is answered by one command.
+
+| Claim | What is true | Check |
+|---|---|---|
+| "The repository cannot be opened, so the open-source promise is unverifiable" | It is public and has been. A fetch failing at one moment is not a private repository | `gh repo view TheFleece/dota2-mod-manager --json visibility` |
+| "`main.js` is a 3,100 line monolith" | About 1,150 lines since 2026-09-06, with the IPC handlers in `src/ipc-*.js` and three more jobs moved out since | `wc -l main.js` |
+| "The catalog counts on the site disagree between pages" | They are counted when each page is built. Two pages built an hour apart show two numbers, and both were right when they were made | `site/src/lib/stats.ts` |
+| "The state files in the root are why the repository is 61 MB" | The generated JSON at the root is 1.3 MB of the pack. The preview images are 47.3 MB of 57.2 MB | the command under the open question above |
+| "It is a Windows-only app" | Every release since 2.4.0 also carries a Linux AppImage | `gh release view --json assets` |
+| "`main` is unprotected" | It is guarded by a ruleset, which the branch-protection endpoint does not report | `gh api repos/TheFleece/dota2-mod-manager/rulesets` |
+| "There are 25 test files" | More than 40 of them, run on Linux and on Windows on every push | `ls test/*.test.js \| wc -l` then `npm test` |
+| "An open issue asks for tests that already exist" | Issue #4 was closed on 2026-09-08 when that was pointed out, and `#5` on 2026-09-09 when Windows CI landed. `#3`, `#6`, `#7` and `#9` are open and really are open | `gh issue list --state open` |
+| "There is no static analysis, only tests" | `eslint` runs before the suite in CI and again in the commit guard, with rules about code that cannot run rather than about style | `npm run lint` |
+
+---
+
+## Reviewing this project
+
+Nothing here is off limits and a finding that is uncomfortable is still welcome. Two requests.
+Say which commit or release you looked at, because this repository moves quickly and a review of
+last month's tree reads as wrong rather than as dated. And run the check next to a claim before
+filing it, because most of what arrives has one.
+
+Where to put it: an [issue](https://github.com/TheFleece/dota2-mod-manager/issues) for anything
+public, and a [private advisory](SECURITY.md) for anything exploitable.

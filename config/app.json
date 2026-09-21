@@ -1,0 +1,13 @@
+{
+  "_readme": "What the app reads after it has shipped: src/remote-config.js. Everything here is optional; an empty file means the app behaves exactly as built. Switch names the app honours: install, cosmetics, voice. \"features\" switches one off in every version. \"blocks\" switch one off for a range of versions until a day, and only copies from 2.6.13 read them. A notice needs an id, text in at least one language and an until date (YYYY-MM-DD, the last day it shows); url must be https; minVersion and maxVersion bound the versions it is meant for. Copies older than the until field ignore it, so take a notice out once its date has passed. Write this file with tools/rollback.mjs, which signs it. \"beta\" is who is offered the unreleased build, as hashes; \"mirrors\" name other places the archives can be fetched from, tried after the ones built into the app.",
+  "features": {},
+  "notices": [],
+  "beta": {
+    "salt": "d823204a83ad3b6c8fa57a9c9c91576a",
+    "ids": [
+      "50246a3c2a2e388f2d4a5afcf0a685481c0ae416a2645abf7e41d5fa1b9b0c7e",
+      "b556716eab619e75fbb6c3e5947208055373aa9d5174261cae9b6673c3d22b48",
+      "9df60635937a339a515697bd254f4268d21b199c09244fef706a0f92e09cc701"
+    ]
+  }
+}
