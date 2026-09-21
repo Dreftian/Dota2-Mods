@@ -2,6 +2,20 @@
 
 Novedades de cada versión. La aplicación se actualiza de forma automática para que disfrutes de todas las mejoras sin necesidad de reinstalar.
 
+## 1.0.4
+
+### Dígitos de Rango Inmortal en Juego, Nivel 30 de Héroes, Nuevos Niveles Free/VIP y Perfiles InsForge
+
+Esta versión soluciona de forma definitiva la visualización de dígitos en las medallas y niveles de héroes dentro del juego, actualiza los planes Free y VIP, restringe enlaces de GitHub al administrador y amplía el registro de InsForge:
+
+- **Dígito de Clasificación Inmortal en Juego (#30)**: Renderizado y estampado dinámico del número de ranking (ej. `#30`) directamente sobre la placa dorada de las texturas de la medalla Inmortal (`rank8_psd.vtex_c` y miniaturas), garantizando su visibilidad en el perfil, barra de grupo, marcador y pantalla de carga sin depender de variables de servidor de Valve.
+- **Inyección de Nivel 30 en Insignias de Héroe**: Inyección de texturas y estilos en `ui_rank_badge.vcss_c`, `hero_grid_new.vcss_c` y `hero_badge.vcss_c`, sustituyendo de forma local los niveles reales de tus héroes por el nivel seleccionado (ej. Nivel 30 Gran Maestro) en la cuadrícula de selección y perfiles.
+- **Alineación de Niveles Free y VIP**:
+  - Medallas: Modo Gratuito desde «Sin calibrar» hasta «Divino» (`rank0` a `rank7`). Estado VIP para «Inmortal» y Top clasificatorio (`rank8` a `rank8c`).
+  - Insignias de Héroe: Modo Gratuito desde «Bronze» hasta «Platinum» (`tier0` a `tier3`). Estado VIP para «Master» y «Grandmaster» (`tier4` y `tier5`).
+- **Enlaces de GitHub Exclusivos para Administrador**: Todos los enlaces hacia el código fuente y GitHub están completamente ocultos para usuarios estándar, siendo visibles únicamente para la cuenta de administrador (`dreftian@gmail.com`).
+- **Perfiles Extendidos y Registro InsForge**: Nuevo formulario de registro con datos personales completos (nombre completo, edad, fecha de nacimiento, dirección de residencia, país y código postal), visualización de fecha de expiración de suscripción y registro seguro de tarjeta y métodos de pago.
+
 ## 1.0.3
 
 ### Solución Definitiva al Error de VAC y Mods Activos Solo con la App Abierta

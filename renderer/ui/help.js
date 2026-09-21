@@ -10,7 +10,6 @@
 import { $ } from '../core/dom.js';
 import { state } from '../core/store.js';
 import { HELP_LINKS } from '../core/constants.js';
-import { toast } from './toast.js';
 
 const newsUrl = (re) => (state.catalog?.mods?.modsData?.news || [])
   .map((n) => n.url)
@@ -43,6 +42,7 @@ export function bindHelp() {
     btn.setAttribute('aria-expanded', 'false');
   };
   const open = () => {
+    const isAdmin = !!(state.currentUser?.isAdmin || state.currentUser?.role === 'admin' || state.currentUser?.email === 'dreftian@gmail.com');
     menu.innerHTML = `
       <button class="tb-menu-item" data-url="${wikiUrl()}" role="menuitem">
         <span class="ms">menu_book</span>
@@ -54,11 +54,12 @@ export function bindHelp() {
         <span>Discord</span>
         <span class="ms tb-menu-out">open_in_new</span>
       </button>
+      ${isAdmin ? `
       <button class="tb-menu-item" data-url="${siteUrl()}" role="menuitem">
         <span class="ms">public</span>
         <span>${L`Сайт программы`}</span>
         <span class="ms tb-menu-out">open_in_new</span>
-      </button>`;
+      </button>` : ''}`;
     menu.querySelectorAll('[data-url]').forEach((item) => {
       item.addEventListener('click', () => {
         window.api.misc.openExternal(item.dataset.url);
@@ -71,10 +72,6 @@ export function bindHelp() {
 
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!state.currentUser?.isAdmin) {
-      toast(L`El menú de ayuda está bloqueado para usuarios estándar. Solo el admin puede acceder.`, 'warn', 5000);
-      return;
-    }
     if (menu.classList.contains('hidden')) open();
     else close();
   });

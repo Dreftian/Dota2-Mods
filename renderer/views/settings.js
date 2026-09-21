@@ -46,6 +46,8 @@ export async function renderSettings() {
   let beta = { eligible: false, on: false };
   try { beta = await window.api.beta.state(); } catch { /* older build */ }
 
+  const isAdmin = !!(state.currentUser?.isAdmin || state.currentUser?.role === 'admin' || state.currentUser?.email === 'dreftian@gmail.com');
+
   await paint(() => { viewRoot.innerHTML = `
     <div class="view-header"><h1 class="view-title">${L`Настройки`}</h1></div>
 
@@ -145,10 +147,11 @@ export async function renderSettings() {
         <span>${state.catalog?.fetchedAt ? new Date(state.catalog.fetchedAt).toLocaleString(window.i18nLocale()) : '—'}</span>
         <button class="btn btn-sm" id="refreshCatBtn2">${L`Обновить сейчас`}</button>
       </div>
+      ${isAdmin ? `
       <div class="settings-row">
         <span class="settings-label">${L`Источник`}</span>
         <a class="settings-link" id="srcLink">github.com/Dreftian/Dota2-Mods</a>
-      </div>
+      </div>` : ''}
     </div>
 
     <div class="settings-block" style="--i:5">
@@ -164,7 +167,7 @@ export async function renderSettings() {
       <div class="settings-row">
         <span class="settings-label">${L`Версия`}</span>
         <span class="num">v${esc(appVersion)}</span>
-        <a class="settings-link" id="repoLink">github.com/Dreftian/Dota2-Mods</a>
+        ${isAdmin ? `<a class="settings-link" id="repoLink">github.com/Dreftian/Dota2-Mods</a>` : ''}
       </div>
       <div class="settings-row">
         <button class="btn btn-sm" id="whatsNewBtn"><span class="ms">auto_awesome</span>${L`Что нового`}</button>
@@ -174,13 +177,13 @@ export async function renderSettings() {
       <div class="settings-row spaced">
         <span class="settings-label">${L`Спасибо`}</span>
         <span>Creado por Dreftian Devs</span>
-        <a class="settings-link" id="thanksLink">github.com/Dreftian/Dota2-Mods</a>
+        ${isAdmin ? `<a class="settings-link" id="thanksLink">github.com/Dreftian/Dota2-Mods</a>` : ''}
       </div>
       <div class="settings-hint">© 2026 Dreftian Devs · GPL-3.0 · ${L`свободная программа без каких-либо гарантий`}</div>
     </div>
   `; });
-  $('#repoLink').addEventListener('click', () => window.api.misc.openExternal('https://github.com/Dreftian/Dota2-Mods'));
-  $('#thanksLink').addEventListener('click', () => window.api.misc.openExternal('https://github.com/Dreftian/Dota2-Mods'));
+  $('#repoLink')?.addEventListener('click', () => window.api.misc.openExternal('https://github.com/Dreftian/Dota2-Mods'));
+  $('#thanksLink')?.addEventListener('click', () => window.api.misc.openExternal('https://github.com/Dreftian/Dota2-Mods'));
   // 48 MB is a real download, so it says so and waits for the press
   $('#toolInstallBtn')?.addEventListener('click', async (ev) => {
     ev.currentTarget.disabled = true;
@@ -273,5 +276,5 @@ export async function renderSettings() {
     await loadCatalog(true);
     renderSettings();
   });
-  $('#srcLink').addEventListener('click', () => window.api.misc.openExternal('https://github.com/Dreftian/Dota2-Mods'));
+  $('#srcLink')?.addEventListener('click', () => window.api.misc.openExternal('https://github.com/Dreftian/Dota2-Mods'));
 }

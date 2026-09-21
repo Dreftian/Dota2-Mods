@@ -120,7 +120,7 @@ contextBridge.exposeInMainWorld('api', {
   auth: {
     status: () => ipcRenderer.invoke('auth:status'),
     login: (email, password) => ipcRenderer.invoke('auth:login', { email, password }),
-    register: (email, password, name) => ipcRenderer.invoke('auth:register', { email, password, name }),
+    register: (payload, password, name) => ipcRenderer.invoke('auth:register', typeof payload === 'object' ? payload : { email: payload, password, name }),
     logout: () => ipcRenderer.invoke('auth:logout'),
     subscribe: (payload) => ipcRenderer.invoke('auth:subscribe', payload),
   },

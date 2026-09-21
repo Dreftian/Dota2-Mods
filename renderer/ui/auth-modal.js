@@ -54,10 +54,10 @@ export function showAuthModal({ mandatory = false, onLogin = null } = {}) {
       <!-- Sign Up Form -->
       <form class="auth-form hidden" id="signUpForm">
         <div class="auth-field">
-          <label for="regName">${L`Nombre de usuario`}</label>
+          <label for="regName">${L`Nombre completo`}</label>
           <div class="auth-input-wrap">
             <span class="ms">badge</span>
-            <input type="text" id="regName" placeholder="Tu nombre" autocomplete="name">
+            <input type="text" id="regName" placeholder="${L`Nombres y Apellidos`}" required autocomplete="name">
           </div>
         </div>
         <div class="auth-field">
@@ -73,6 +73,44 @@ export function showAuthModal({ mandatory = false, onLogin = null } = {}) {
             <span class="ms">lock</span>
             <input type="password" id="regPassword" placeholder="${L`Mínimo 6 caracteres`}" required autocomplete="new-password">
             <button type="button" class="auth-toggle-pwd" id="toggleRegPwd"><span class="ms">visibility</span></button>
+          </div>
+        </div>
+        <div class="auth-row-two">
+          <div class="auth-field">
+            <label for="regAge">${L`Edad`}</label>
+            <div class="auth-input-wrap">
+              <span class="ms">cake</span>
+              <input type="number" id="regAge" placeholder="24" min="10" max="120">
+            </div>
+          </div>
+          <div class="auth-field">
+            <label for="regBirthDate">${L`Fecha de nacimiento`}</label>
+            <div class="auth-input-wrap">
+              <input type="date" id="regBirthDate" style="padding-left: 12px;">
+            </div>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label for="regAddress">${L`Dirección de residencia`}</label>
+          <div class="auth-input-wrap">
+            <span class="ms">home</span>
+            <input type="text" id="regAddress" placeholder="${L`Av. / Calle, Ciudad`}" autocomplete="street-address">
+          </div>
+        </div>
+        <div class="auth-row-two">
+          <div class="auth-field">
+            <label for="regCountry">${L`País`}</label>
+            <div class="auth-input-wrap">
+              <span class="ms">public</span>
+              <input type="text" id="regCountry" placeholder="${L`Ej: Perú, España, México`}" autocomplete="country-name">
+            </div>
+          </div>
+          <div class="auth-field">
+            <label for="regPostalCode">${L`Código postal`}</label>
+            <div class="auth-input-wrap">
+              <span class="ms">markunread_mailbox</span>
+              <input type="text" id="regPostalCode" placeholder="15001" autocomplete="postal-code">
+            </div>
           </div>
         </div>
         <button type="submit" class="btn btn-primary btn-auth-submit" id="submitRegBtn">
@@ -171,13 +209,27 @@ export function showAuthModal({ mandatory = false, onLogin = null } = {}) {
     const name = overlay.querySelector('#regName').value.trim();
     const email = overlay.querySelector('#regEmail').value.trim();
     const password = overlay.querySelector('#regPassword').value;
+    const age = overlay.querySelector('#regAge').value;
+    const birthDate = overlay.querySelector('#regBirthDate').value;
+    const address = overlay.querySelector('#regAddress').value.trim();
+    const country = overlay.querySelector('#regCountry').value.trim();
+    const postalCode = overlay.querySelector('#regPostalCode').value.trim();
     const submitBtn = overlay.querySelector('#submitRegBtn');
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<span class="spinner"></span><span>${L`Creando cuenta…`}</span>`;
 
     try {
-      const res = await window.api.auth.register(email, password, name);
+      const res = await window.api.auth.register({
+        email,
+        password,
+        name,
+        age,
+        birthDate,
+        address,
+        country,
+        postalCode,
+      });
       if (!res.ok) {
         toast(res.error || L`Error al crear la cuenta`, 'error');
         submitBtn.disabled = false;

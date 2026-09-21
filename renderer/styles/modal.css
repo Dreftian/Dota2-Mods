@@ -694,7 +694,9 @@ audio::-webkit-media-controls-panel { background: var(--surface-solid); }
 
 /* ============ Auth Modal ============ */
 .auth-modal-box {
-  width: min(440px, calc(92vw / var(--content-zoom)));
+  width: min(500px, calc(94vw / var(--content-zoom)));
+  max-height: calc(88vh / var(--content-zoom));
+  overflow-y: auto;
   padding: var(--space-6);
   background: var(--surface-solid, #181920);
   border: 1px solid var(--border-strong, #323544);
@@ -762,6 +764,11 @@ audio::-webkit-media-controls-panel { background: var(--surface-solid); }
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+.auth-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3, 12px);
 }
 .auth-field {
   display: flex;
@@ -1077,7 +1084,9 @@ audio::-webkit-media-controls-panel { background: var(--surface-solid); }
 }
 
 .profile-modal-box {
-  width: min(480px, 94vw);
+  width: min(520px, 94vw);
+  max-height: calc(88vh / var(--content-zoom));
+  overflow-y: auto;
   background: var(--bg-base);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg, 16px);

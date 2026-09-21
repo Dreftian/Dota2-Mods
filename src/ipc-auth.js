@@ -17,9 +17,9 @@ function registerAuthIpc({ auth }) {
     }
   });
 
-  ipcMain.handle('auth:register', async (event, { email, password, name }) => {
+  ipcMain.handle('auth:register', async (event, payload) => {
     try {
-      const user = await auth.register(email, password, name);
+      const user = await auth.register(payload);
       return { ok: true, user };
     } catch (err) {
       return { ok: false, error: err.message };

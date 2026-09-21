@@ -44,6 +44,7 @@ the code, not in this page.
 | [`src/preset-link.js`](#srcpreset-linkjs) | Presets as a link: "d2mm://preset/<code>", where <code> is the whole preset squeezed |
 | [`src/preset-share.js`](#srcpreset-sharejs) | Shareable preset files (.d2mm) — a zip holding preset.json plus the VPK of every mod |
 | [`src/presets-service.js`](#srcpresets-servicejs) | Presets, and the two ways one travels to somebody else. |
+| [`src/rank-drawing.js`](#srcrank-drawingjs) | Renders authentic Dota 2 rank and hero badge numbers directly onto textures |
 | [`src/rank-generator.js`](#srcrank-generatorjs) | Generates a native Dota 2 VPK mod that overrides rank medals, star pips and hero badges |
 | [`src/remote-config.js`](#srcremote-configjs) | The one thing the app can be told after it has shipped. |
 | [`src/safe-zip.js`](#srcsafe-zipjs) | The one door every foreign archive comes through. |
@@ -2306,6 +2307,55 @@ function touchesSchema(rec)
 ```
 
 Does changing this record mean the item table has to be rebuilt?
+
+## src/rank-drawing.js
+
+Renders authentic Dota 2 rank and hero badge numbers directly onto textures
+and patches Panorama CSS style sheets for in-game display.
+
+### `renderRankPlaqueDigits`
+
+```js
+function renderRankPlaqueDigits(vtexBuffer, rankNumber)
+```
+
+Renders immortal leaderboard digits onto a rank medal texture.
+
+```
+@param {Buffer} vtexBuffer The original uncompressed RGBA .vtex_c buffer
+@param {string|number} rankNumber The leaderboard digit, e.g. 30, '#30'
+@returns {Buffer}
+```
+
+### `createHeroLevelVtex`
+
+```js
+function createHeroLevelVtex(level, baseVtexPath)
+```
+
+Generates a 32x32 transparent .vtex_c containing the level digit in white with black outline.
+
+```
+@param {string|number} level The level number, e.g. 30
+@param {string} baseVtexPath Path to a 32x32 uncompressed .vtex_c template
+@returns {Buffer}
+```
+
+### `patchCssResource`
+
+```js
+function patchCssResource(buffer, oldSnippet, newSnippet)
+```
+
+Patches a substring inside the DATA block of a RED2 CSS resource file.
+Automatically recalculates block offsets and total file length.
+
+```
+@param {Buffer} buffer Original RED2 .vcss_c buffer
+@param {string} oldSnippet Substring to find in the CSS
+@param {string} newSnippet Replacement substring
+@returns {Buffer}
+```
 
 ## src/rank-generator.js
 

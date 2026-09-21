@@ -49,10 +49,30 @@ class AuthManager {
       id: 'usr_admin_dreftian',
       email: ADMIN_EMAIL,
       name: 'Dreftian Admin',
+      age: 28,
+      birthDate: '1998-05-15',
+      address: 'Lima, Perú',
+      country: 'Perú',
+      postalCode: '15001',
       salt: adminSalt,
       hash: adminHash,
       role: 'admin',
       plan: 'premium',
+      subscription: {
+        plan: 'premium',
+        status: 'active',
+        method: 'card',
+        reference: 'admin_lifetime_sub',
+        card: {
+          brand: 'Visa',
+          last4: '4242',
+          expMonth: '12',
+          expYear: '2030',
+          cardholderName: 'Dreftian Admin',
+        },
+        subscribedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000).toISOString(),
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -63,12 +83,15 @@ class AuthManager {
       users[adminIdx].plan = 'premium';
       users[adminIdx].salt = adminSalt;
       users[adminIdx].hash = adminHash;
+      if (!users[adminIdx].subscription) users[adminIdx].subscription = adminRecord.subscription;
+      if (!users[adminIdx].country) users[adminIdx].country = adminRecord.country;
+      if (!users[adminIdx].address) users[adminIdx].address = adminRecord.address;
     } else {
       users.unshift(adminRecord);
     }
 
     try {
-      fs.writeFileSync(this.usersFile, JSON.stringify(users, null, 2), 'utf8');
+      this._saveUsers(users);
     } catch (err) {
       console.error('[auth] Failed to write initial users file:', err);
     }
@@ -87,6 +110,54 @@ class AuthManager {
 
   _saveUsers(users) {
     fs.writeFileSync(this.usersFile, JSON.stringify(users, null, 2), 'utf8');
+
+    // Maintain synchronized backend export for InsForge Project ID: 9457c313-82cc-4773-9d4e-4640d3309e86
+    try {
+      const insforgeExport = {
+        projectId: this.projectId,
+        exportedAt: new Date().toISOString(),
+        accountsCount: users.length,
+        accounts: users.map((u) => ({
+          id: u.id,
+          email: u.email,
+          name: u.name,
+          age: u.age || null,
+          birthDate: u.birthDate || null,
+          address: u.address || '',
+          country: u.country || '',
+          postalCode: u.postalCode || '',
+          role: u.role,
+          plan: u.plan,
+          subscription: u.subscription || null,
+          paymentHistory: u.paymentHistory || [],
+          createdAt: u.createdAt,
+          updatedAt: u.updatedAt,
+        })),
+      };
+      const insforgeFile = path.join(this.dir, 'insforge-backend.json');
+      fs.writeFileSync(insforgeFile, JSON.stringify(insforgeExport, null, 2), 'utf8');
+    } catch {
+      /* ignore */
+    }
+  }
+
+  _userToClient(user, token) {
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name || user.email.split('@')[0],
+      age: user.age !== undefined ? user.age : null,
+      birthDate: user.birthDate || '',
+      address: user.address || '',
+      country: user.country || '',
+      postalCode: user.postalCode || '',
+      role: user.role || 'user',
+      plan: user.plan || 'free',
+      subscription: user.subscription || null,
+      token: token || null,
+      isAdmin: user.role === 'admin' || user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
+      isPremium: user.plan === 'premium' || user.role === 'admin',
+    };
   }
 
   current() {
@@ -97,16 +168,7 @@ class AuthManager {
       const users = this._readUsers();
       const user = users.find((u) => u.id === session.userId);
       if (!user) return null;
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name || user.email.split('@')[0],
-        role: user.role || 'user',
-        plan: user.plan || 'free',
-        token: session.token,
-        isAdmin: user.role === 'admin' || user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
-        isPremium: user.plan === 'premium' || user.role === 'admin',
-      };
+      return this._userToClient(user, session.token);
     } catch {
       return null;
     }
@@ -116,23 +178,20 @@ class AuthManager {
     if (!email || !password) throw new Error('Email y contraseña requeridos');
     const cleanEmail = email.trim().toLowerCase();
 
+    const users = this._readUsers();
+
     // Check admin credentials directly
     if (cleanEmail === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASS) {
-      const user = {
-        id: 'usr_admin_dreftian',
-        email: ADMIN_EMAIL,
-        name: 'Dreftian Admin',
-        role: 'admin',
-        plan: 'premium',
-        isAdmin: true,
-        isPremium: true,
-      };
+      let admin = users.find((u) => u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+      if (!admin) {
+        this._initStore();
+        admin = this._readUsers().find((u) => u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+      }
       const token = `tok_${crypto.randomBytes(24).toString('hex')}`;
-      fs.writeFileSync(this.sessionFile, JSON.stringify({ userId: user.id, token, loggedAt: new Date().toISOString() }), 'utf8');
-      return { ...user, token };
+      fs.writeFileSync(this.sessionFile, JSON.stringify({ userId: admin.id, token, loggedAt: new Date().toISOString() }), 'utf8');
+      return this._userToClient(admin, token);
     }
 
-    const users = this._readUsers();
     const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
     if (!user) throw new Error('Usuario no encontrado');
 
@@ -144,23 +203,21 @@ class AuthManager {
     const token = `tok_${crypto.randomBytes(24).toString('hex')}`;
     fs.writeFileSync(this.sessionFile, JSON.stringify({ userId: user.id, token, loggedAt: new Date().toISOString() }), 'utf8');
 
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name || user.email.split('@')[0],
-      role: user.role || 'user',
-      plan: user.plan || 'free',
-      token,
-      isAdmin: user.role === 'admin' || user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
-      isPremium: user.plan === 'premium' || user.role === 'admin',
-    };
+    return this._userToClient(user, token);
   }
 
-  async register(email, password, name = '') {
-    if (!email || !email.includes('@')) throw new Error('Ingresa un correo electrónico válido');
+  async register(payload, maybePassword, maybeName) {
+    const data = typeof payload === 'object' && payload !== null
+      ? payload
+      : { email: payload, password: maybePassword, name: maybeName };
+
+    const cleanEmail = (data.email || '').trim().toLowerCase();
+    const password = data.password || '';
+    const name = (data.name || '').trim();
+
+    if (!cleanEmail || !cleanEmail.includes('@')) throw new Error('Ingresa un correo electrónico válido');
     if (!password || password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
 
-    const cleanEmail = email.trim().toLowerCase();
     const users = this._readUsers();
     if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
       throw new Error('Ya existe una cuenta con este correo');
@@ -173,11 +230,17 @@ class AuthManager {
     const newUser = {
       id,
       email: cleanEmail,
-      name: name.trim() || cleanEmail.split('@')[0],
+      name: name || cleanEmail.split('@')[0],
+      age: data.age ? Number(data.age) : null,
+      birthDate: data.birthDate || '',
+      address: (data.address || '').trim(),
+      country: (data.country || '').trim(),
+      postalCode: (data.postalCode || '').trim(),
       salt,
       hash,
       role: 'user',
       plan: 'free',
+      subscription: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -188,16 +251,7 @@ class AuthManager {
     const token = `tok_${crypto.randomBytes(24).toString('hex')}`;
     fs.writeFileSync(this.sessionFile, JSON.stringify({ userId: id, token, loggedAt: new Date().toISOString() }), 'utf8');
 
-    return {
-      id: newUser.id,
-      email: newUser.email,
-      name: newUser.name,
-      role: newUser.role,
-      plan: newUser.plan,
-      token,
-      isAdmin: false,
-      isPremium: false,
-    };
+    return this._userToClient(newUser, token);
   }
 
   async logout() {
@@ -211,7 +265,7 @@ class AuthManager {
     return { ok: true };
   }
 
-  async subscribe({ plan = 'premium', method, reference, details } = {}) {
+  async subscribe({ plan = 'premium', method, reference, details, card } = {}) {
     const cur = this.current();
     if (!cur) throw new Error('Debes iniciar sesión para suscribirte');
 
@@ -219,15 +273,27 @@ class AuthManager {
     const idx = users.findIndex((u) => u.id === cur.id);
     if (idx < 0) throw new Error('Usuario no encontrado');
 
-    users[idx].plan = plan;
-    users[idx].subscription = {
+    const cardInfo = card || details?.card || null;
+    const subRecord = {
       plan,
+      status: 'active',
       method: method || 'stripe',
       reference: reference || `ref_${Date.now()}`,
       details: details || {},
+      card: cardInfo,
       subscribedAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     };
+
+    users[idx].plan = plan;
+    users[idx].subscription = subRecord;
+    if (!users[idx].paymentHistory) users[idx].paymentHistory = [];
+    users[idx].paymentHistory.push({
+      date: new Date().toISOString(),
+      method: method || 'stripe',
+      reference: subRecord.reference,
+      card: cardInfo,
+    });
     users[idx].updatedAt = new Date().toISOString();
 
     this._saveUsers(users);
@@ -236,14 +302,7 @@ class AuthManager {
       success: true,
       plan: users[idx].plan,
       subscription: users[idx].subscription,
-      user: {
-        id: users[idx].id,
-        email: users[idx].email,
-        role: users[idx].role,
-        plan: users[idx].plan,
-        isAdmin: users[idx].role === 'admin',
-        isPremium: true,
-      },
+      user: this._userToClient(users[idx], cur.token),
     };
   }
 }

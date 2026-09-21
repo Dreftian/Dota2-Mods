@@ -297,6 +297,7 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
         method,
         reference,
         details,
+        card: details?.card || null,
       });
 
       if (!res.ok) {
@@ -307,6 +308,9 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
       if (state.currentUser) {
         state.currentUser.plan = 'premium';
         state.currentUser.isPremium = true;
+        if (res.user) {
+          Object.assign(state.currentUser, res.user);
+        }
       }
 
       toast(L`¡Felicidades! Tu suscripción Premium ha sido activada.`);
@@ -325,11 +329,28 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
     btn.disabled = true;
     btn.innerHTML = `<span class="spinner"></span><span>${L`Procesando con Stripe…`}</span>`;
 
+    const rawNum = overlay.querySelector('#stripeCardNum').value.replace(/\s+/g, '');
+    const last4 = rawNum.slice(-4) || '4242';
+    let brand = 'Visa';
+    if (rawNum.startsWith('5') || rawNum.startsWith('2')) brand = 'Mastercard';
+    else if (rawNum.startsWith('3')) brand = 'Amex';
+    else if (rawNum.startsWith('4')) brand = 'Visa';
+
+    const expVal = overlay.querySelector('#stripeCardExp').value;
+    const [expMonth, expYear] = expVal.split('/');
     const holder = overlay.querySelector('#stripeCardHolder').value;
     const ref = `str_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
+    const card = {
+      brand,
+      last4,
+      expMonth: expMonth || '12',
+      expYear: expYear ? (expYear.length === 2 ? `20${expYear}` : expYear) : '2028',
+      cardholderName: holder,
+    };
+
     setTimeout(() => {
-      handlePaymentSuccess('stripe', ref, { holder, accountId: STRIPE_ACCOUNT_ID });
+      handlePaymentSuccess('stripe', ref, { holder, accountId: STRIPE_ACCOUNT_ID, card });
     }, 1200);
   });
 

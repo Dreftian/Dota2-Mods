@@ -2,6 +2,20 @@
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
 
+## 1.0.4
+
+### In-Game Immortal Digit Baking, Hero Level 30 Injection, Tier Realignment and InsForge Profiles
+
+This release brings pixel-perfect in-game medal and hero level rendering, aligns Free/VIP tiers, protects administrative links, and extends InsForge cloud profile registration:
+
+- **In-Game Immortal Leaderboard Digit (#30)**: Dynamically renders and bakes the requested rank digits (e.g. `#30`) directly onto the golden plaque of Immortal medal textures (`rank8_psd.vtex_c` and `mini/` badges), guaranteeing full visibility across profile, party bar, match HUD, and loading screens without relying on Valve server dialog variables.
+- **In-Game Hero Level 30 Badge Injection**: Injects custom hero level badge textures and styles into `ui_rank_badge.vcss_c`, `hero_grid_new.vcss_c`, and `hero_badge.vcss_c`, reliably replacing default hero level numbers with your selected level (e.g. Level 30 Grandmaster) across hero selection grids and player profiles.
+- **Updated Plan Tiers (Free vs VIP)**:
+  - Medals: Free tier covers Uncalibrated through Divine (`rank0` to `rank7`). VIP subscription unlocks Immortal and Leaderboard Top medals (`rank8` to `rank8c`).
+  - Hero Badges: Free tier covers Bronze through Platinum (`tier0` to `tier3`). VIP subscription unlocks Master and Grandmaster (`tier4` and `tier5`).
+- **Admin-Only GitHub Links**: All repository, source, and developer links to GitHub are strictly hidden for standard users and accessible exclusively by authorized administrator accounts (`dreftian@gmail.com`).
+- **InsForge Extended User Profiles & Payment History**: Expanded user registration and cloud profiles with full personal details (full name, age, birth date, residency address, country, postal code), active subscription tracking with expiration countdown, and registered payment cards.
+
 ## 1.0.3
 
 ### VAC Error Resolution and Lifecycle-Bound Mod Activation
