@@ -1,33 +1,33 @@
 // Interactive Dota 2 Rank Medal, Stars, MMR, and Hero Tier Customizer
-// Matches the visual layout and feature set from Dota2Changer with local VPK generation.
+// Matches the visual layout and feature set from Dota2Changer with authentic Dota 2 graphics.
 
 import { $ } from '../core/dom.js';
 import { toast } from './toast.js';
 import { confirmDialog } from './dialog.js';
 import { refreshInstalledIndex } from '../core/installed.js';
 
-const RANK_DATA = [
-  { id: 'rank0', nameEs: 'Sin calibrar', nameEn: 'Not Calibrated', nameRu: 'Без калибровки', color: '#888', defaultMmr: 0 },
-  { id: 'rank1', nameEs: 'Heraldo', nameEn: 'Herald', nameRu: 'Рекрут', color: '#9e7149', stars: [0, 150, 300, 460, 610], defaultMmr: 300 },
-  { id: 'rank2', nameEs: 'Guardián', nameEn: 'Guardian', nameRu: 'Страж', color: '#567c52', stars: [770, 920, 1080, 1230, 1400], defaultMmr: 1080 },
-  { id: 'rank3', nameEs: 'Cruzado', nameEn: 'Crusader', nameRu: 'Рыцарь', color: '#4d889e', stars: [1540, 1700, 1850, 2000, 2150], defaultMmr: 1850 },
-  { id: 'rank4', nameEs: 'Arconte', nameEn: 'Archon', nameRu: 'Герой', color: '#38a379', stars: [2310, 2450, 2610, 2770, 2930], defaultMmr: 2610 },
-  { id: 'rank5', nameEs: 'Leyenda', nameEn: 'Legend', nameRu: 'Легенда', color: '#c9933b', stars: [3080, 3230, 3390, 3540, 3700], defaultMmr: 3390 },
-  { id: 'rank6', nameEs: 'Ancestral', nameEn: 'Ancient', nameRu: 'Властелин', color: '#8f4bb5', stars: [3850, 4000, 4150, 4300, 4460], defaultMmr: 4150 },
-  { id: 'rank7', nameEs: 'Divino', nameEn: 'Divine', nameRu: 'Божество', color: '#5894e0', stars: [4620, 4820, 5020, 5220, 5420], defaultMmr: 5020 },
-  { id: 'rank8', nameEs: 'Inmortal', nameEn: 'Immortal', nameRu: 'Титан', color: '#e69830', defaultMmr: 5620 },
-  { id: 'rank8a', nameEs: 'Inmortal, Top 1000', nameEn: 'Immortal Top 1000', nameRu: 'Титан Топ 1000', color: '#f08020', defaultMmr: 8620 },
-  { id: 'rank8b', nameEs: 'Inmortal, Top 100', nameEn: 'Immortal Top 100', nameRu: 'Титан Топ 100', color: '#f55010', defaultMmr: 10620 },
-  { id: 'rank8c', nameEs: 'Inmortal, Top 10', nameEn: 'Immortal Top 10', nameRu: 'Титан Топ 10', color: '#ff2020', defaultMmr: 12620 },
+export const RANK_DATA = [
+  { id: 'rank0', nameEs: 'Sin calibrar', nameEn: 'Not Calibrated', nameRu: 'Без калибровки', badge: 'FREE', badgeType: 'free', defaultMmr: 0 },
+  { id: 'rank1', nameEs: 'Heraldo', nameEn: 'Herald', nameRu: 'Рекрут', badge: 'FREE', badgeType: 'free', stars: [0, 150, 300, 460, 610], defaultMmr: 300 },
+  { id: 'rank2', nameEs: 'Guardián', nameEn: 'Guardian', nameRu: 'Страж', badge: 'FREE', badgeType: 'free', stars: [770, 920, 1080, 1230, 1400], defaultMmr: 1080 },
+  { id: 'rank3', nameEs: 'Cruzado', nameEn: 'Crusader', nameRu: 'Рыцарь', badge: 'FREE', badgeType: 'free', stars: [1540, 1700, 1850, 2000, 2150], defaultMmr: 1850 },
+  { id: 'rank4', nameEs: 'Arconte', nameEn: 'Archon', nameRu: 'Герой', badge: 'PREMIUM', badgeType: 'premium', locked: true, stars: [2310, 2450, 2610, 2770, 2930], defaultMmr: 2610 },
+  { id: 'rank5', nameEs: 'Leyenda', nameEn: 'Legend', nameRu: 'Легенда', badge: 'VIP', badgeType: 'vip', locked: true, stars: [3080, 3230, 3390, 3540, 3700], defaultMmr: 3390 },
+  { id: 'rank6', nameEs: 'Ancestral', nameEn: 'Ancient', nameRu: 'Властелин', badge: 'VIP', badgeType: 'vip', locked: true, stars: [3850, 4000, 4150, 4300, 4460], defaultMmr: 4150 },
+  { id: 'rank7', nameEs: 'Divino', nameEn: 'Divine', nameRu: 'Божество', badge: 'VIP', badgeType: 'vip', locked: true, stars: [4620, 4820, 5020, 5220, 5420], defaultMmr: 5020 },
+  { id: 'rank8', nameEs: 'Inmortal', nameEn: 'Immortal', nameRu: 'Титан', badge: 'VIP', badgeType: 'vip', locked: true, defaultMmr: 5620 },
+  { id: 'rank8a', nameEs: 'Inmortal, Top 1000', nameEn: 'Immortal Top 1000', nameRu: 'Титан Топ 1000', badge: 'VIP', badgeType: 'vip', locked: true, defaultMmr: 8620 },
+  { id: 'rank8b', nameEs: 'Inmortal, Top 100', nameEn: 'Immortal Top 100', nameRu: 'Титан Топ 100', badge: 'VIP', badgeType: 'vip', locked: true, defaultMmr: 10620 },
+  { id: 'rank8c', nameEs: 'Inmortal, Top 10', nameEn: 'Immortal Top 10', nameRu: 'Титан Топ 10', badge: 'VIP', badgeType: 'vip', locked: true, defaultMmr: 12620 },
 ];
 
-const HERO_TIER_DATA = [
-  { id: 0, nameEs: 'Bronce', nameEn: 'Bronze', nameRu: 'Бронза', color: '#cd7f32', levels: '1-5', defaultLevel: 5 },
-  { id: 1, nameEs: 'Plata', nameEn: 'Plata', nameRu: 'Серебро', color: '#c0c0c0', levels: '6-11', defaultLevel: 11 },
-  { id: 2, nameEs: 'Oro', nameEn: 'Gold', nameRu: 'Золото', color: '#ffd700', levels: '12-17', defaultLevel: 17 },
-  { id: 3, nameEs: 'Platino', nameEn: 'Platinum', nameRu: 'Платина', color: '#00e5ff', levels: '18-24', defaultLevel: 24 },
-  { id: 4, nameEs: 'Maestro', nameEn: 'Master', nameRu: 'Мастер', color: '#9c27b0', levels: '25-29', defaultLevel: 29 },
-  { id: 5, nameEs: 'Gran Maestro', nameEn: 'Grandmaster', nameRu: 'Грандмастер', color: '#f44336', levels: '30', defaultLevel: 30 },
+export const HERO_TIER_DATA = [
+  { id: 0, nameEs: 'Bronze', nameEn: 'Bronze', nameRu: 'Бронза', badge: 'FREE', badgeType: 'free', levels: '1-5', defaultLevel: 5 },
+  { id: 1, nameEs: 'Silver', nameEn: 'Silver', nameRu: 'Серебро', badge: 'FREE', badgeType: 'free', levels: '6-11', defaultLevel: 11 },
+  { id: 2, nameEs: 'Gold', nameEn: 'Gold', nameRu: 'Золото', badge: 'PREMIUM', badgeType: 'premium', locked: true, levels: '12-17', defaultLevel: 17 },
+  { id: 3, nameEs: 'Platinum', nameEn: 'Platinum', nameRu: 'Платина', badge: 'PREMIUM', badgeType: 'premium', locked: true, levels: '18-24', defaultLevel: 24 },
+  { id: 4, nameEs: 'Master', nameEn: 'Master', nameRu: 'Мастер', badge: 'VIP', badgeType: 'vip', locked: true, levels: '25-29', defaultLevel: 29 },
+  { id: 5, nameEs: 'Grandmaster', nameEn: 'Grandmaster', nameRu: 'Грандмастер', badge: 'VIP', badgeType: 'vip', locked: true, levels: '30', defaultLevel: 30 },
 ];
 
 let customState = {
@@ -39,65 +39,13 @@ let customState = {
   activeInstalled: null,
 };
 
-function getRankBadgeSvg(medalId) {
-  const meta = RANK_DATA.find((m) => m.id === medalId) || RANK_DATA[0];
-  const color = meta.color || '#e69830';
-  const isTop = medalId.startsWith('rank8');
-  let topText = '';
-  if (medalId === 'rank8a') topText = 'TOP 1000';
-  if (medalId === 'rank8b') topText = 'TOP 100';
-  if (medalId === 'rank8c') topText = 'TOP 10';
-
-  return `
-    <svg viewBox="0 0 100 100" class="rank-badge-svg" width="68" height="68">
-      <defs>
-        <radialGradient id="bg-${medalId}" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="${color}" stop-opacity="0.8"/>
-          <stop offset="100%" stop-color="#12141a" stop-opacity="0.95"/>
-        </radialGradient>
-        <linearGradient id="glow-${medalId}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#fff" stop-opacity="0.6"/>
-          <stop offset="50%" stop-color="${color}" stop-opacity="0.9"/>
-          <stop offset="100%" stop-color="#111" stop-opacity="0.9"/>
-        </linearGradient>
-      </defs>
-      <!-- Shield Base -->
-      <polygon points="50,6 88,24 82,72 50,94 18,72 12,24" fill="url(#bg-${medalId})" stroke="${color}" stroke-width="2.5" />
-      <!-- Wings or Embellishments -->
-      ${isTop ? `
-        <path d="M 12 40 Q 2 20 26 14 Q 30 30 18 50 Z" fill="${color}" opacity="0.85"/>
-        <path d="M 88 40 Q 98 20 74 14 Q 70 30 82 50 Z" fill="${color}" opacity="0.85"/>
-        <path d="M 50 14 L 62 30 L 50 36 L 38 30 Z" fill="#ffd700"/>
-      ` : `
-        <polygon points="50,18 76,32 72,66 50,82 28,66 24,32" fill="none" stroke="url(#glow-${medalId})" stroke-width="1.8"/>
-      `}
-      <!-- Center Emblem -->
-      <circle cx="50" cy="50" r="15" fill="#1b1e26" stroke="${color}" stroke-width="2"/>
-      <polygon points="50,38 58,50 50,62 42,50" fill="${color}"/>
-      ${topText ? `
-        <rect x="18" y="76" width="64" height="15" rx="3" fill="#1b120c" stroke="#ffd700" stroke-width="1.2"/>
-        <text x="50" y="87" fill="#ffd700" font-size="8.5" font-weight="900" text-anchor="middle" font-family="sans-serif">${topText}</text>
-      ` : ''}
-    </svg>
-  `;
-}
-
-function getHeroBadgeSvg(tierId, level) {
-  const tier = HERO_TIER_DATA.find((t) => t.id === tierId) || HERO_TIER_DATA[0];
-  const color = tier.color || '#ffd700';
-  return `
-    <svg viewBox="0 0 80 80" class="hero-tier-svg" width="54" height="54">
-      <defs>
-        <linearGradient id="tier-grad-${tierId}" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="${color}"/>
-          <stop offset="100%" stop-color="#181a20"/>
-        </linearGradient>
-      </defs>
-      <polygon points="40,4 72,20 66,62 40,76 14,62 8,20" fill="url(#tier-grad-${tierId})" stroke="${color}" stroke-width="2"/>
-      <circle cx="40" cy="40" r="18" fill="#101216" stroke="${color}" stroke-width="1.5"/>
-      <text x="40" y="46" fill="${color}" font-size="16" font-weight="900" text-anchor="middle" font-family="sans-serif">${level || tier.defaultLevel}</text>
-    </svg>
-  `;
+function getLocalizedName(item) {
+  if (!item) return '';
+  const lang = window.I18N_LANG || 'es';
+  if (lang === 'es') return item.nameEs || item.nameEn;
+  if (lang === 'en') return item.nameEn;
+  if (lang === 'ru') return item.nameRu || item.nameEn;
+  return item.nameEs || item.nameEn;
 }
 
 export async function initRankCustomizer() {
@@ -118,6 +66,7 @@ export async function initRankCustomizer() {
 
 export function rankCustomizerHtml() {
   const currentMedal = RANK_DATA.find((m) => m.id === customState.medal) || RANK_DATA[11];
+  const currentTier = HERO_TIER_DATA.find((t) => t.id === customState.heroTier) || HERO_TIER_DATA[5];
   const isImmortal = currentMedal.id.startsWith('rank8');
 
   return `
@@ -136,15 +85,22 @@ export function rankCustomizerHtml() {
       </div>
 
       <!-- Medals Grid -->
-      <div class="rc-section-title">${L`1. Selecciona tu Medalla de Rango`}</div>
+      <div class="rc-section-header-wrap">
+        <div class="rc-section-title">${L`1. Selecciona tu Medalla de Rango`}</div>
+        <div class="rc-tier-rules">${L`Herald–Crusader — gratis, Archon — con estado PREMIUM, Legend y superior — con estado VIP.`}</div>
+      </div>
       <div class="rc-medals-grid" id="rcMedalsGrid">
         ${RANK_DATA.map((m) => {
           const active = m.id === customState.medal ? 'active' : '';
           return `
             <div class="rc-medal-card ${active}" data-medal="${m.id}">
-              <div class="rc-medal-icon">${getRankBadgeSvg(m.id)}</div>
-              <div class="rc-medal-name">${tr(m.nameRu)}</div>
-              <div class="rc-medal-sub">${m.defaultMmr > 0 ? `${m.defaultMmr} MMR` : L`Sin clasificar`}</div>
+              ${m.locked ? '<span class="rc-lock-icon ms">lock</span>' : ''}
+              <div class="rc-medal-icon">
+                <img src="assets/ranks/${m.id}.png" alt="${m.nameEn}" class="rc-medal-img" draggable="false" />
+              </div>
+              <div class="rc-medal-name">${getLocalizedName(m)}</div>
+              <div class="rc-medal-sub">${m.nameEn}</div>
+              <span class="rc-tier-pill rc-pill-${m.badgeType}">${m.badge}</span>
             </div>
           `;
         }).join('')}
@@ -181,15 +137,22 @@ export function rankCustomizerHtml() {
       </div>
 
       <!-- Dota Plus Hero Tier Changer -->
-      <div class="rc-section-title">${L`4. Insignia de Nivel de Héroe (Dota Plus Hero Tier)`}</div>
+      <div class="rc-section-header-wrap">
+        <div class="rc-section-title">${L`4. Insignia de Nivel de Héroe (Dota Plus Hero Tier)`}</div>
+        <div class="rc-tier-rules">${L`Bronze y Silver son gratis, Gold y Platinum requieren estado PREMIUM, Master y Grandmaster requieren estado VIP.`}</div>
+      </div>
       <div class="rc-hero-tier-grid" id="rcHeroTierGrid">
         ${HERO_TIER_DATA.map((t) => {
           const active = customState.heroTier === t.id ? 'active' : '';
           return `
             <div class="rc-tier-card ${active}" data-tier="${t.id}">
-              <div class="rc-tier-icon">${getHeroBadgeSvg(t.id, t.defaultLevel)}</div>
-              <div class="rc-tier-name">${tr(t.nameRu)}</div>
+              ${t.locked ? '<span class="rc-lock-icon ms">lock</span>' : ''}
+              <div class="rc-tier-icon">
+                <img src="assets/herotier/tier${t.id}.png" alt="${t.nameEn}" class="rc-tier-img" draggable="false" />
+              </div>
+              <div class="rc-tier-name">${getLocalizedName(t)}</div>
               <div class="rc-tier-sub">Nivel ${t.levels}</div>
+              <span class="rc-tier-pill rc-pill-${t.badgeType}">${t.badge}</span>
             </div>
           `;
         }).join('')}
@@ -198,19 +161,19 @@ export function rankCustomizerHtml() {
       <!-- Live Preview Card -->
       <div class="rc-preview-box" id="rcPreviewBox">
         <div class="rc-preview-badge-col">
-          <div id="rcPreviewMedal">${getRankBadgeSvg(customState.medal)}</div>
-          <div class="rc-preview-stars" id="rcPreviewStars">
-            ${isImmortal ? '' : Array.from({ length: customState.stars || 1 }).map(() => '<span class="ms rc-gold-star">star</span>').join('')}
+          <div class="rc-preview-medal-wrap" id="rcPreviewMedalWrap">
+            <img src="assets/ranks/${customState.medal}.png" class="rc-preview-medal-img" id="rcPreviewMedalImg" alt="Medal" draggable="false" />
+            <img src="assets/ranks/stars${customState.stars || 1}.png" class="rc-preview-stars-img ${isImmortal ? 'hidden' : ''}" id="rcPreviewStarsImg" alt="Stars" draggable="false" />
           </div>
         </div>
         <div class="rc-preview-info-col">
-          <div class="rc-preview-title" id="rcPreviewTitle">${tr(currentMedal.nameRu)}</div>
+          <div class="rc-preview-title" id="rcPreviewTitle">${getLocalizedName(currentMedal)}</div>
           <div class="rc-preview-mmr" id="rcPreviewMmr">${customState.mmr.toLocaleString()} MMR</div>
           <div class="rc-preview-hero-badge" id="rcPreviewHeroBadge">
-            ${getHeroBadgeSvg(customState.heroTier, customState.heroLevel)}
+            <img src="assets/herotier/tier${customState.heroTier}.png" class="rc-preview-hero-img" id="rcPreviewHeroImg" alt="Hero Tier" draggable="false" />
             <div class="rc-preview-hero-text">
-              <span class="rc-preview-hero-title">${HERO_TIER_DATA[customState.heroTier]?.nameEs || 'Grandmaster'}</span>
-              <span class="rc-preview-hero-sub">Dota Plus Hero Badge</span>
+              <span class="rc-preview-hero-title" id="rcPreviewHeroTitle">${getLocalizedName(currentTier)}</span>
+              <span class="rc-preview-hero-sub">${L`Insignia de Héroe Dota Plus`} (Nivel ${customState.heroLevel})</span>
             </div>
           </div>
         </div>
@@ -258,35 +221,31 @@ function updatePreview() {
   const currentMedal = RANK_DATA.find((m) => m.id === customState.medal) || RANK_DATA[0];
   const isImmortal = currentMedal.id.startsWith('rank8');
 
-  const previewMedalEl = $('#rcPreviewMedal');
-  if (previewMedalEl) previewMedalEl.innerHTML = getRankBadgeSvg(customState.medal);
+  const previewMedalImg = $('#rcPreviewMedalImg');
+  if (previewMedalImg) previewMedalImg.src = `assets/ranks/${customState.medal}.png`;
 
-  const previewStarsEl = $('#rcPreviewStars');
-  if (previewStarsEl) {
+  const previewStarsImg = $('#rcPreviewStarsImg');
+  if (previewStarsImg) {
     if (isImmortal) {
-      previewStarsEl.innerHTML = '';
+      previewStarsImg.classList.add('hidden');
     } else {
-      previewStarsEl.innerHTML = Array.from({ length: customState.stars || 1 }).map(() => '<span class="ms rc-gold-star">star</span>').join('');
+      previewStarsImg.src = `assets/ranks/stars${customState.stars || 1}.png`;
+      previewStarsImg.classList.remove('hidden');
     }
   }
 
   const previewTitleEl = $('#rcPreviewTitle');
-  if (previewTitleEl) previewTitleEl.textContent = tr(currentMedal.nameRu);
+  if (previewTitleEl) previewTitleEl.textContent = getLocalizedName(currentMedal);
 
   const previewMmrEl = $('#rcPreviewMmr');
   if (previewMmrEl) previewMmrEl.textContent = `${Number(customState.mmr).toLocaleString()} MMR`;
 
-  const previewHeroBadgeEl = $('#rcPreviewHeroBadge');
-  if (previewHeroBadgeEl) {
-    const tier = HERO_TIER_DATA[customState.heroTier] || HERO_TIER_DATA[5];
-    previewHeroBadgeEl.innerHTML = `
-      ${getHeroBadgeSvg(customState.heroTier, customState.heroLevel)}
-      <div class="rc-preview-hero-text">
-        <span class="rc-preview-hero-title">${tier.nameEs}</span>
-        <span class="rc-preview-hero-sub">Dota Plus Hero Badge</span>
-      </div>
-    `;
-  }
+  const tier = HERO_TIER_DATA[customState.heroTier] || HERO_TIER_DATA[5];
+  const previewHeroImg = $('#rcPreviewHeroImg');
+  if (previewHeroImg) previewHeroImg.src = `assets/herotier/tier${tier.id}.png`;
+
+  const previewHeroTitle = $('#rcPreviewHeroTitle');
+  if (previewHeroTitle) previewHeroTitle.textContent = getLocalizedName(tier);
 }
 
 export function bindRankCustomizer(container) {

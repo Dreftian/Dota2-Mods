@@ -230,7 +230,7 @@ function registerModsIpc({
   });
 
   ipcMain.handle('ranks:getCustom', async () => {
-    const active = library.all().find((r) => r.categoryId === 'ranks' || r.customRank);
+    const active = library.list().find((r) => r.categoryId === 'ranks' || r.customRank);
     if (!active) return { active: false };
     return { active: true, record: active, settings: active.rankSettings || null };
   });
@@ -243,11 +243,11 @@ function registerModsIpc({
       const gen = generateRankVpk(payload);
 
       // Remove any prior rank mod to avoid pak slot conflicts
-      const oldList = library.all().filter((r) => r.categoryId === 'ranks' || r.customRank);
+      const oldList = library.list().filter((r) => r.categoryId === 'ranks' || r.customRank);
       for (const old of oldList) {
         try {
-          installer.removeMod(old);
-          library.remove(old.id);
+          if (old.files) installer.remove(old.files, { recId: old.id, deployed: old.enabled !== false });
+          library.removeRecord(old.id);
         } catch { /* proceed */ }
       }
 
@@ -277,11 +277,11 @@ function registerModsIpc({
   });
 
   ipcMain.handle('ranks:removeCustom', async () => {
-    const oldList = library.all().filter((r) => r.categoryId === 'ranks' || r.customRank);
+    const oldList = library.list().filter((r) => r.categoryId === 'ranks' || r.customRank);
     for (const old of oldList) {
       try {
-        installer.removeMod(old);
-        library.remove(old.id);
+        if (old.files) installer.remove(old.files, { recId: old.id, deployed: old.enabled !== false });
+        library.removeRecord(old.id);
       } catch { /* proceed */ }
     }
     return { ok: true };

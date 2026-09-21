@@ -512,13 +512,21 @@
   font-weight: 600;
   white-space: nowrap;
 }
+.rc-section-header-wrap {
+  margin: 22px 0 12px;
+}
 .rc-section-title {
   font-size: 13.5px;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  margin: 20px 0 12px;
+  margin: 0 0 4px;
+}
+.rc-tier-rules {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
 }
 .rc-medals-grid {
   display: grid;
@@ -526,13 +534,14 @@
   gap: 10px;
 }
 .rc-medal-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 12px 8px;
+  padding: 12px 6px 10px;
   cursor: pointer;
   transition: transform 0.2s var(--ease), border-color 0.2s, box-shadow 0.2s;
   user-select: none;
@@ -547,24 +556,61 @@
   background: color-mix(in srgb, var(--primary) 14%, var(--surface));
   box-shadow: 0 0 16px color-mix(in srgb, var(--primary) 32%, transparent);
 }
+.rc-lock-icon {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 13px;
+  color: #ffb300;
+  opacity: 0.85;
+}
 .rc-medal-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 70px;
+  min-height: 72px;
+}
+.rc-medal-img {
+  width: 66px;
+  height: 66px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
 }
 .rc-medal-name {
   font-size: 12px;
   font-weight: 700;
-  margin-top: 8px;
+  margin-top: 6px;
   text-align: center;
   color: var(--text);
+  line-height: 1.2;
 }
 .rc-medal-sub {
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--text-dim);
   margin-top: 2px;
   text-align: center;
+}
+.rc-tier-pill {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+.rc-pill-free {
+  background: #2e7d32;
+  color: #ffffff;
+}
+.rc-pill-premium {
+  background: #0288d1;
+  color: #ffffff;
+}
+.rc-pill-vip {
+  background: #f57f17;
+  color: #111111;
 }
 .rc-controls-row {
   display: grid;
@@ -660,13 +706,14 @@
   margin: 12px 0 20px;
 }
 .rc-tier-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 8px;
+  padding: 12px 8px 10px;
   cursor: pointer;
   transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
   user-select: none;
@@ -680,6 +727,18 @@
   background: rgba(255, 215, 0, 0.08);
   box-shadow: 0 0 14px rgba(255, 215, 0, 0.25);
 }
+.rc-tier-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+}
+.rc-tier-img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+}
 .rc-tier-name {
   font-size: 12px;
   font-weight: 700;
@@ -688,14 +747,14 @@
   color: var(--text);
 }
 .rc-tier-sub {
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--text-dim);
   margin-top: 2px;
 }
 .rc-preview-box {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 28px;
   background: linear-gradient(135deg, rgba(20, 24, 34, 0.92), rgba(12, 14, 20, 0.98));
   border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
   border-radius: 10px;
@@ -707,15 +766,33 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
 }
-.rc-preview-stars {
+.rc-preview-medal-wrap {
+  position: relative;
+  width: 100px;
+  height: 100px;
   display: flex;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
 }
-.rc-gold-star {
-  color: #ffd700;
-  font-size: 18px;
+.rc-preview-medal-img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6));
+}
+.rc-preview-stars-img {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96px;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8));
+}
+.rc-preview-stars-img.hidden {
+  display: none;
 }
 .rc-preview-info-col {
   display: flex;
@@ -735,8 +812,14 @@
 .rc-preview-hero-badge {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-top: 6px;
+}
+.rc-preview-hero-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
 }
 .rc-preview-hero-title {
   font-size: 13px;

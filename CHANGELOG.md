@@ -2,6 +2,19 @@
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
 
+## 1.0.1
+
+### Authentic Dota 2 Rank Medals, MMR and Hero Tier Customizer
+
+The rank customizer now features authentic high-definition Dota 2 graphic assets:
+
+- Fully resolved `library.all is not a function` error during rank customizer installation and reset
+- Authentic official Dota 2 rank medal textures and golden star pip overlays (Herald through Immortal Top 10)
+- Official Dota Plus hero tier progression badges (Bronze through Grandmaster Lv 30)
+- Visual classification badges (FREE, PREMIUM, VIP) matching Dota2Changer
+- Localized Spanish and English interface labels for all medals, tiers, and rank attributes
+- Direct in-memory VPK synthesis with atomic FileTx deployment, eliminating all external download errors
+
 ## 1.0.0
 
 ### Welcome to Mod Assistant
