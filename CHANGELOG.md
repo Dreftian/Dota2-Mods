@@ -2,6 +2,17 @@
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
 
+## 1.0.6
+
+### Slot Expansion Beyond 90 Mods, Queue Modal Spanish Localization & Website Repository Sync
+
+This release removes the ~90 mod installation ceiling, localizes the batch installation queue to Spanish, and syncs the official website repository:
+
+- **Slot Allocation Beyond 90 Mods**: Resolved the batch installation failure where installing past ~87 mods threw `"No free pakNN slots left (10-99 are taken)"`. The allocator now automatically falls back to unused priority slots (`pak02` to `pak09`) and dynamically extends up to `pak250_dir.vpk`, allowing over 240 mods to be installed without slot exhaustion errors.
+- **Install Queue Spanish Localization**: Completely translated the installation queue panel and batch install modals (`"Buscar en la lista…"`, `"Instalando…"`, `"Instalar todo"`, `"Quitar"`, `"Limpiar"`, and completion summaries).
+- **Backend Spanish Support**: Enabled Spanish localization in backend services (`src/i18n.js`), ensuring installer notifications and file operation messages render directly in Spanish.
+- **Official Website Repository**: Published complete website sources and authentic Dota 2 assets to the standalone repository `https://github.com/Dreftian/Dota2-Mods-Website`.
+
 ## 1.0.5
 
 ### Local Profile Isolation, Plaque Digit Centering, 100-Mod Free Capacity, System Tray & Official Website
