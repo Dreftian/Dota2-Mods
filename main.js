@@ -171,6 +171,33 @@ function windowFit() {
   }
 }
 
+let _isDeactivating = false;
+function deactivateModsOnExit() {
+  if (_isDeactivating) return;
+  _isDeactivating = true;
+  try {
+    if (installer) {
+      installer.setMasterEnabled(false);
+      if (typeof applyMasterToCursors === 'function') applyMasterToCursors(false);
+      diag('mods deactivated on app exit');
+    }
+  } catch (err) {
+    diag('failed to deactivate mods on exit: ' + (err?.message || err));
+  }
+  try {
+    if (settings) {
+      const game = settings.get('dotaGamePath');
+      if (game) {
+        const patcher = require('./src/patcher');
+        const backupDir = path.join(app.getPath('userData'), 'backups', 'patch');
+        patcher.revert({ gamePath: game, folder: patcher.FOLDER, backupDir });
+      }
+    }
+  } catch (err) {
+    diag('failed to revert patch on exit: ' + (err?.message || err));
+  }
+}
+
 function createWindow() {
   win = new BrowserWindow({
     ...windowFit(),
@@ -224,6 +251,7 @@ function createWindow() {
 
   win.on('maximize', () => win.webContents.send('win:maximized', true));
   win.on('unmaximize', () => win.webContents.send('win:maximized', false));
+  win.on('close', () => deactivateModsOnExit());
 
   // Ctrl +/-/0 scale the content. Handled here rather than in the renderer because
   // preventDefault() at this point also swallows Electron's built-in zoom accelerators —
@@ -548,6 +576,18 @@ app.whenReady().then(async () => {
     if (swept.restored || swept.dropped) diag(`staged files: ${swept.restored} restored, ${swept.dropped} dropped`);
   } catch (e) {
     diag('staged sweep skipped: ' + e.message);
+  }
+
+  // Mod Assistant: mods only work while the app is running.
+  // On startup, if master is not explicitly set off by user, reactivate mods.
+  try {
+    if (settings.get('masterExplicitOff') !== true) {
+      installer.setMasterEnabled(true);
+      if (typeof applyMasterToCursors === 'function') applyMasterToCursors(true);
+      diag('mods activated on app start');
+    }
+  } catch (e) {
+    diag('startup mod activation skipped: ' + (e?.message || e));
   }
 
   // one-time sweep of mods installed before the schema engine existed: they still carry a
@@ -1064,8 +1104,12 @@ function registerIpc() {
   // Launch Dota via Steam so the user's own launch options apply (-novid, -fps max,
   // -language russian … differ per user). rungameid mirrors clicking Play in Steam.
   ipcMain.handle('game:launch', () => {
-    // a Dota update wipes the search-path patch and moves the item table underneath our
-    // build: the launch button is the last chance to notice before the game starts
+    if (settings.get('masterExplicitOff') !== true) {
+      try {
+        installer.setMasterEnabled(true);
+        if (typeof applyMasterToCursors === 'function') applyMasterToCursors(true);
+      } catch { /* noop */ }
+    }
     schemaService.heal();
     shell.openExternal('steam://rungameid/570');
     return { ok: true };
@@ -1084,7 +1128,7 @@ function registerIpc() {
   // ----- managing what is installed ----- (src/ipc-library.js)
   registerLibraryIpc({
     applyMasterToCursors, catalog, disableOtherCosmetics, disableOtherCursors, fingerprints,
-    installer, isCursorRecord, library, refreshPresence, schemaService,
+    installer, isCursorRecord, library, refreshPresence, schemaService, settings,
   });
 
   // ----- combined packs ----- (src/ipc-packs.js)
@@ -1108,3 +1152,12 @@ function registerIpc() {
     lastUpdateError: () => (updater ? updater.lastError() : null),
   });
 }
+
+app.on('before-quit', () => deactivateModsOnExit());
+app.on('will-quit', () => deactivateModsOnExit());
+app.on('window-all-closed', () => {
+  deactivateModsOnExit();
+  app.quit();
+});
+process.on('SIGINT', () => { deactivateModsOnExit(); process.exit(0); });
+process.on('SIGTERM', () => { deactivateModsOnExit(); process.exit(0); });

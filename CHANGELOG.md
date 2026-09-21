@@ -2,6 +2,17 @@
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
 
+## 1.0.3
+
+### VAC Error Resolution and Lifecycle-Bound Mod Activation
+
+This release ensures 100% clean compatibility with Valve Anti-Cheat (VAC) and restricts mod loading strictly to app runtime:
+
+- **App Lifecycle Mod Activation**: Mods only function while Mod Assistant is running. Closing Mod Assistant automatically deactivates all installed mods (`.moff`), ensuring Dota 2 runs 100% vanilla and unmodified whenever the app is closed.
+- **Instant Mod Reactivation**: Launching Mod Assistant instantly reactivates all your enabled mods so they work seamlessly when playing with the app open.
+- **Complete VAC Protection**: Fully repaired and restored game files (`gameinfo.gi`, `gameinfo_branchspecific.gi`, `dota.signatures`) to Valve official vanilla state. Removed conflicting third-party patcher junctions and search-path modifications that previously triggered VAC verification warnings.
+- **Safe Mode Enforcement**: Safe Mode remains default, utilizing native Source 2 language mount points that modify zero Valve executables or cryptographic signatures.
+
 ## 1.0.2
 
 ### GitHub Auto-Updates, Immortal Leaderboard Rank Digits, and Expanded Announcers

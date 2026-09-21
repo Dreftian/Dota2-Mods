@@ -172,6 +172,9 @@ function cleanForeignText(text) {
     const re = new RegExp(`^[ \t]*(Game|Mod)[ \t]+${name}[ \t]*\r?\n?`, 'gm');
     cleaned = cleaned.replace(re, '');
   }
+  // Also remove unmarked dota_mods (left behind by foreign tools or incomplete patches)
+  const unmarkedRe = new RegExp(`^[ \t]*(Game|Mod)[ \t]+${FOLDER}(?![ \t]*//[ \t]*${MARKER})[ \t]*\r?\n?`, 'gm');
+  cleaned = cleaned.replace(unmarkedRe, '');
   return cleaned;
 }
 
@@ -394,6 +397,13 @@ function apply({ gamePath, folder, backupDir }) {
  */
 function cleanForeign({ gamePath, folder }) {
   const p = paths(gamePath);
+  if (fs.existsSync(p.gameinfo)) {
+    const rawGi = fs.readFileSync(p.gameinfo, 'latin1');
+    const cleanedGi = cleanForeignText(rawGi);
+    if (cleanedGi !== rawGi) {
+      writeAtomic(p.gameinfo, Buffer.from(cleanedGi, 'latin1'));
+    }
+  }
   if (!fs.existsSync(p.branch)) return state(gamePath, folder);
 
   const raw = fs.readFileSync(p.branch, 'latin1');
@@ -406,6 +416,10 @@ function cleanForeign({ gamePath, folder }) {
       const line = signatureLine(branchBuf);
       writeAtomic(p.signatures, Buffer.from(sigOrig.replace(/\s+$/, '') + '\r\n' + line + '\r\n', 'latin1'));
     }
+  }
+  const foreignJunction = path.join(gamePath, 'Dota2SkinChanger');
+  if (fs.existsSync(foreignJunction)) {
+    try { fs.rmdirSync(foreignJunction); } catch { /* noop */ }
   }
   return state(gamePath, folder);
 }
@@ -422,22 +436,71 @@ function cleanForeign({ gamePath, folder }) {
  */
 function revert({ gamePath, folder, backupDir }) {
   const p = paths(gamePath);
-  /* Same reasoning as apply(): what Valve shipped is the file the game has now, minus our line.
-     The backup is the fallback for the one case the live file cannot answer - it is not there. */
-  const sigSrc = path.join(backupDir, path.basename(p.signatures) + '.orig');
-  const sigNow = fs.existsSync(p.signatures) ? p.signatures : (fs.existsSync(sigSrc) ? sigSrc : null);
-  if (sigNow) {
-    writeAtomic(p.signatures, Buffer.from(stripSignatures(fs.readFileSync(sigNow, 'latin1')), 'latin1'));
+
+  // 1. Signatures: .bak first if available, else .orig from backupDir, else stripSignatures
+  const sigBak = p.signatures + '.bak';
+  const sigSrc = backupDir ? path.join(backupDir, path.basename(p.signatures) + '.orig') : null;
+  if (fs.existsSync(sigBak)) {
+    try {
+      writeAtomic(p.signatures, fs.readFileSync(sigBak));
+    } catch { /* fallback */ }
+  } else {
+    const sigNow = fs.existsSync(p.signatures) ? p.signatures : (sigSrc && fs.existsSync(sigSrc) ? sigSrc : null);
+    if (sigNow) {
+      writeAtomic(p.signatures, Buffer.from(stripSignatures(fs.readFileSync(sigNow, 'latin1')), 'latin1'));
+    }
   }
-  const branchSrc = path.join(backupDir, path.basename(p.branch) + '.orig');
-  if (fs.existsSync(branchSrc)) {
-    const want = fs.existsSync(p.signatures) ? vanillaBranchHashes(fs.readFileSync(p.signatures, 'latin1')) : null;
-    const { text } = restoreBranch(fs.readFileSync(branchSrc, 'latin1'), want);
+
+  // 2. Branchspecific: .bak if valid vanilla, else .orig from backupDir, else algorithmic restoreBranch
+  const want = fs.existsSync(p.signatures) ? vanillaBranchHashes(fs.readFileSync(p.signatures, 'latin1')) : null;
+  const branchBak = p.branch + '.bak';
+  const branchSrc = backupDir ? path.join(backupDir, path.basename(p.branch) + '.orig') : null;
+  let restored = false;
+  if (fs.existsSync(branchBak)) {
+    const bakText = fs.readFileSync(branchBak, 'latin1');
+    if (matchesVanilla(bakText, want)) {
+      writeAtomic(p.branch, Buffer.from(bakText, 'latin1'));
+      restored = true;
+    }
+  }
+  if (!restored && branchSrc && fs.existsSync(branchSrc)) {
+    const { text, verified } = restoreBranch(fs.readFileSync(branchSrc, 'latin1'), want);
+    if (verified || !want) {
+      writeAtomic(p.branch, Buffer.from(text, 'latin1'));
+      restored = true;
+    }
+  }
+  if (!restored && fs.existsSync(p.branch)) {
+    const curText = fs.readFileSync(p.branch, 'latin1');
+    const { text } = restoreBranch(curText, want);
     writeAtomic(p.branch, Buffer.from(text, 'latin1'));
   }
+
+  // 3. Gameinfo: .bak if present, else cleanForeignText
+  const giBak = p.gameinfo + '.bak';
+  if (fs.existsSync(giBak)) {
+    try {
+      writeAtomic(p.gameinfo, fs.readFileSync(giBak));
+    } catch { /* noop */ }
+  } else if (fs.existsSync(p.gameinfo)) {
+    const rawGi = fs.readFileSync(p.gameinfo, 'latin1');
+    const cleanedGi = cleanForeignText(rawGi);
+    if (cleanedGi !== rawGi) {
+      writeAtomic(p.gameinfo, Buffer.from(cleanedGi, 'latin1'));
+    }
+  }
+
+  // 4. Clean foreign junction
+  const foreignJunction = path.join(gamePath, 'Dota2SkinChanger');
+  if (fs.existsSync(foreignJunction)) {
+    try { fs.rmdirSync(foreignJunction); } catch { /* noop */ }
+  }
+
   if (folder) {
     const dir = path.join(gamePath, folder);
-    if (fs.existsSync(dir) && !fs.readdirSync(dir).length) fs.rmdirSync(dir);
+    if (fs.existsSync(dir) && !fs.readdirSync(dir).length) {
+      try { fs.rmdirSync(dir); } catch { /* noop */ }
+    }
   }
   return state(gamePath, folder);
 }

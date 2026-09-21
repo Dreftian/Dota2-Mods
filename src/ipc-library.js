@@ -17,16 +17,20 @@ const { touchesSchema } = require('./presets-service');
 /** @param {object} ctx  the services and main-process callbacks these channels use */
 function registerLibraryIpc({
   applyMasterToCursors, catalog, disableOtherCosmetics, disableOtherCursors, fingerprints,
-  installer, isCursorRecord, library, refreshPresence, schemaService,
+  installer, isCursorRecord, library, refreshPresence, schemaService, settings,
 }) {
   ipcMain.handle('mods:masterState', () => {
-    try { return { off: installer.masterIsOff() }; } catch { return { off: false }; }
+    try {
+      const explicit = settings ? settings.get('masterExplicitOff') === true : false;
+      return { off: explicit || installer.masterIsOff() };
+    } catch { return { off: false }; }
   });
 
   ipcMain.handle('mods:setMaster', (e, enabled) => {
     try {
       const r = installer.setMasterEnabled(!!enabled);
       applyMasterToCursors(!!enabled);
+      if (settings) settings.set('masterExplicitOff', !enabled);
       refreshPresence();
       return { ok: true, ...r };
     } catch (err) {
