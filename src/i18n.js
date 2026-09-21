@@ -6,7 +6,7 @@
 let currentLang = 'en';
 
 function setLang(lang) {
-  currentLang = lang === 'ru' ? 'ru' : 'en';
+  currentLang = (lang === 'ru' || lang === 'es') ? lang : 'en';
 }
 
 function getLang() {
@@ -178,13 +178,57 @@ const EN = {
   'Сборка · {0} героев': 'Bundle · {0} heroes',
 };
 
+// Spanish dictionary keyed by English strings (avoids duplicate Russian keys in check-i18n).
+const ES = {
+  'Pick the "game" folder inside "dota 2 beta"': 'Elige la carpeta "game" dentro de "dota 2 beta"',
+  'No Dota 2 here (there is no "dota" subfolder)': 'No se encontró Dota 2 aquí (no existe la subcarpeta "dota")',
+  'Already installed': 'Ya está instalado',
+  'Mod not found': 'Mod no encontrado',
+  'Save the mod as a single .vpk file': 'Guardar el mod como un único archivo .vpk',
+  'Where to unpack the mod': 'Dónde descomprimir el mod',
+  'VPK mod': 'Mod VPK',
+  'Save the cursor set as an archive': 'Guardar el cursor como archivo comprimido',
+  'Cursor archive': 'Archivo de cursor',
+  'Pick mod .vpk files, or a .zip holding them': 'Elige archivos .vpk de mods o un .zip con ellos',
+  'Mods (.vpk, .zip)': 'Mods (.vpk, .zip)',
+  'Pick a folder with mods': 'Elige una carpeta con mods',
+  'Copying mods': 'Copiando mods',
+  'Reading mods': 'Leyendo mods',
+  'No _dir.vpk to split': 'No hay _dir.vpk para separar',
+  'Fewer than two heroes in the file — nothing to split': 'Menos de dos héroes en el archivo — nada que separar',
+  'No catalog match found': 'No se encontró coincidencia con el catálogo',
+  'That file is not in the mods folder': 'Ese archivo no está en la carpeta de mods',
+  'Mod': 'Mod',
+  'This mod has no pakNN slot': 'Este mod no tiene espacio pakNN asignado',
+  'Cursor folder not found': 'Carpeta de cursor no encontrada',
+  'Pick at least 2 mods (or a pack and a mod / two packs)': 'Elige al menos 2 mods (o un pack y un mod / dos packs)',
+  'Pack ({0})': 'Pack ({0})',
+  'Pack not found': 'Pack no encontrado',
+  'No compatible mods to add': 'No hay mods compatibles para añadir',
+  'Mod not found in pack': 'Mod no encontrado en el pack',
+  'Close Dota 2 first: it holds the voice files open': 'Cierra Dota 2 primero: mantiene los archivos abiertos',
+  'HTTP {0} — could not download {1}': 'HTTP {0} — no se pudo descargar {1}',
+  'Could not download {0}: {1}': 'No se pudo descargar {0}: {1}',
+  'No free pakNN slots left (10-99 are taken)': 'No quedan espacios pakNN libres (todos los espacios 02-250 están ocupados)',
+  'installing': 'instalando',
+  'Could not build rank VPK: resource files are missing': 'No se pudo generar el VPK de rangos: faltan archivos de recursos',
+};
+
 function fill(tmpl, values) {
   return tmpl.replace(/\{(\d+)\}/g, (_, i) => (values[+i] != null ? String(values[+i]) : ''));
 }
 
 // t('Мод не найден') or t('HTTP {0} — не удалось скачать {1}', status, name)
 function t(ru, ...values) {
-  const tmpl = currentLang === 'en' && EN[ru] != null ? EN[ru] : ru;
+  let tmpl;
+  if (currentLang === 'es') {
+    const en = EN[ru];
+    tmpl = (en && ES[en]) || en || ru;
+  } else if (currentLang === 'en') {
+    tmpl = EN[ru] || ru;
+  } else {
+    tmpl = ru;
+  }
   return values.length ? fill(tmpl, values) : tmpl;
 }
 

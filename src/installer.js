@@ -368,6 +368,24 @@ class Installer {
         return name;
       }
     }
+    // Fallback: If slots 10-99 are exhausted and this was a non-priority allocation,
+    // utilize any remaining priority slots (02-09) before failing.
+    for (let n = 2; n <= 9; n++) {
+      const name = `pak0${n}_dir.vpk`;
+      if (!used.has(name)) {
+        used.add(name);
+        return name;
+      }
+    }
+    // Extended slots: Allow pak slots beyond 99 (pak100_dir.vpk up to pak250_dir.vpk)
+    // for users with large mod collections or VIP accounts.
+    for (let n = 100; n <= 250; n++) {
+      const name = `pak${n}_dir.vpk`;
+      if (!used.has(name)) {
+        used.add(name);
+        return name;
+      }
+    }
     throw new Error(t('Свободных слотов pakNN не осталось (10-99 заняты)'));
   }
 

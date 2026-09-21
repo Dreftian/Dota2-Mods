@@ -173,6 +173,38 @@ const ES = {
   '4. Insignia de Nivel de Héroe (Dota Plus Hero Tier)': '4. Insignia de Nivel de Héroe (Dota Plus Hero Tier)',
   'Aplicar e Instalar Rango': 'Aplicar e Instalar Rango',
   'Restablecer Medalla Original': 'Restablecer Medalla Original',
+
+  // Queue & Install list
+  'Найти в списке…': 'Buscar en la lista…',
+  'Find in the list…': 'Buscar en la lista…',
+  'Установка…': 'Instalando…',
+  'Installing…': 'Instalando…',
+  'Установить всё ({0})': 'Instalar todo ({0})',
+  'Install all ({0})': 'Instalar todo ({0})',
+  'Список установки': 'Lista de instalación',
+  'Ничего не найдено': 'No se encontró nada',
+  'Nothing found': 'No se encontró nada',
+  'Убрать': 'Quitar',
+  'Пусто. Жми плюс на карточке мода, чтобы собрать список.':
+    'Vacío. Haz clic en el botón + en una tarjeta de mod para armar la lista.',
+  'Empty. Press the plus on a mod to start a list.':
+    'Vacío. Haz clic en el botón + en una tarjeta de mod para armar la lista.',
+  'Список: установлено {0}{1}{2}': 'Lista: {0} instalados{1}{2}',
+  'List: {0} installed{1}{2}': 'Lista: {0} instalados{1}{2}',
+  ', пропущено {0}': ', {0} omitidos',
+  ', {0} skipped': ', {0} omitidos',
+  ', ошибок {0}': ', {0} fallidos',
+  ', {0} failed': ', {0} fallidos',
+  '«{0}» уже в списке установки. Поставить сейчас? Из списка он пропадёт.':
+    '«{0}» ya está en la lista de instalación. ¿Instalarlo ahora? Se quitará de la lista.',
+  '«{0}» is already in the install list. Install it now? It will leave the list.':
+    '«{0}» ya está en la lista de instalación. ¿Instalarlo ahora? Se quitará de la lista.',
+  'Добавить в список': 'Añadir a la lista',
+  'Add to the install list': 'Añadir a la lista',
+  'В списке установки': 'En la lista de instalación',
+  'In the install list': 'En la lista de instalación',
+  'Пак «{0}»: установлено {1}, пропущено {2}{3}': 'Pack «{0}»: {1} instalados, {2} omitidos{3}',
+  'Pack «{0}»: {1} installed, {2} skipped{3}': 'Pack «{0}»: {1} instalados, {2} omitidos{3}',
 };
 
 const JA = {
