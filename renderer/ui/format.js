@@ -16,6 +16,10 @@ export function fmtDate(unix) {
 }
 
 export function plural(n, one, few, many) {
+  if (window.I18N_LANG === 'es' && window.ES_PLURAL) {
+    const pair = window.ES_PLURAL[many];
+    return pair ? (n === 1 ? pair[0] : pair[1]) : (n === 1 ? 'mod' : 'mods');
+  }
   if (window.I18N_LANG === 'en') {
     const pair = window.EN_PLURAL[many];
     return pair ? (n === 1 ? pair[0] : pair[1]) : many;

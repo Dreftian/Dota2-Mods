@@ -176,6 +176,8 @@ const EN = {
   // kind names (title-case)
   'Варды': 'Wards', 'Курьер': 'Courier', 'Интерфейс меню': 'Menu UI', 'Звуки': 'Sounds', 'Ландшафт': 'Terrain',
   'Сборка · {0} героев': 'Bundle · {0} heroes',
+  'Открыть Mod Assistant': 'Open Mod Assistant',
+  'Выход': 'Exit',
 };
 
 // Spanish dictionary keyed by English strings (avoids duplicate Russian keys in check-i18n).
@@ -212,6 +214,8 @@ const ES = {
   'No free pakNN slots left (10-99 are taken)': 'No quedan espacios pakNN libres (todos los espacios 02-250 están ocupados)',
   'installing': 'instalando',
   'Could not build rank VPK: resource files are missing': 'No se pudo generar el VPK de rangos: faltan archivos de recursos',
+  'Open Mod Assistant': 'Abrir Mod Assistant',
+  'Exit': 'Salir',
 };
 
 function fill(tmpl, values) {

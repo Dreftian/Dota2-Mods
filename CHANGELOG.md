@@ -2,6 +2,18 @@
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
 
+## 1.0.8
+
+### Strict Profile-Only Rank Isolation, Leaderboard Plaque Without Hash, Hero Progression Badges, System Tray Fix & Presets Spanish Localization
+
+This release brings full Showcase profile isolation for rank changer mods, fixes leaderboard plaque digit rendering without the `#` prefix, updates hero progression badges across the hero loadout screens, fixes the Windows notification tray icon in packaged builds, and fully translates the Presets view to Spanish:
+
+- **Strict Profile-Only Rank Isolation**: Scoped rank medal, star pip, and leaderboard styling strictly to the local player's profile via `.ViewingSelf #HeaderNameContainer` in `dashboard_page_showcase.vcss_c` and `DOTAMiniShowcase:not(.ViewingOther)` in `mini_showcase.vcss_c`. Overrides are completely decoupled from shared textures and generic `.RankBadge` classes, ensuring other players across match scoreboards, popups, and the Watch tab retain their authentic medals and ranks without any visual leak.
+- **Immortal Plaque Clean Digit Formatting**: Fully collapsed Valve's cyan `#RankLeaderboard` text overlay inside `.ViewingSelf` and mini profile views, allowing only the cleanly baked, centered leaderboard digit without the `#` prefix (e.g. `20` instead of `#20`) to display on the golden plaque.
+- **Hero Screen Progression Badges**: Overrode hero badge progression styling and asset definitions across `hero_badge.vcss_c`, `ui_dota_plus_hero_page_v2.vcss_c`, and `.PlusHeroBadgeIcon` styles. Small, tiny, and empty hero badge textures now seamlessly map to the chosen hero tier (e.g. Grandmaster level 30) on both hero inspect and loadout progression bars.
+- **Windows System Tray Icon Fix**: Added reliable fallbacks to `renderer/assets/icon.ico` and `renderer/assets/icon.png` in production packaged builds, ensuring the application icon displays correctly in the Windows system tray and taskbar notification area when minimizing to tray.
+- **Presets Spanish Localization**: Completely localized all Presets view controls, dialogs, summaries, and plural counters into Spanish (`renderer/i18n-locales.js`).
+
 ## 1.0.6
 
 ### Slot Expansion Beyond 90 Mods, Queue Modal Spanish Localization & Website Repository Sync

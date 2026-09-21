@@ -2,6 +2,28 @@
 
 Novedades de cada versión. La aplicación se actualiza de forma automática para que disfrutes de todas las mejoras sin necesidad de reinstalar.
 
+## 1.0.8
+
+### Aislamiento Estricto de Rango al Perfil, Dígitos de Placa sin Almohadilla, Insignias de Progreso de Héroe, Corrección de Bandeja del Sistema y Traducción de Presets
+
+Esta versión implementa el aislamiento completo del mod de rango en el perfil personal, limpia el número de clasificación Inmortal retirando el símbolo `#`, actualiza las insignias de progreso de héroe en la vista de equipamiento, corrige el icono de la bandeja de notificaciones en Windows y traduce por completo los Presets al español:
+
+- **Aislamiento Estricto de Rango en Perfil Propio**: Se aplicaron reglas de estilo exclusivas para `.ViewingSelf #HeaderNameContainer` en `dashboard_page_showcase.vcss_c` y `DOTAMiniShowcase:not(.ViewingOther)` en `mini_showcase.vcss_c`. La personalización ya no se filtra a otros jugadores en partidas, marcadores ni en la pestaña Ver, conservando todos los rivales y aliados sus medallas y rangos originales.
+- **Dígito de Placa Inmortal Limpio sin `#`**: Se ocultó la capa superpuesta `#RankLeaderboard` en el perfil local, mostrando exclusivamente el número metálico centrado en la placa dorada sin el prefijo `#` (ej. `20` en lugar de `#20`).
+- **Insignias de Progreso de Héroes**: Actualizadas las definiciones de estilos y texturas en `hero_badge.vcss_c`, `ui_dota_plus_hero_page_v2.vcss_c` y clases `.PlusHeroBadgeIcon`. El icono de nivel seleccionado (ej. Gran Maestro Lv 30) ahora se muestra en el bloque «Progreso de nivel» y encabezado del héroe.
+- **Icono en la Bandeja del Sistema de Windows**: Añadida la ruta `renderer/assets/icon.ico` para empaquetado, asegurando que el icono de Mod Assistant aparezca correctamente en la bandeja de notificación de Windows al minimizar la aplicación.
+- **Traducción Total de Presets al Español**: Traducida toda la interfaz de la pestaña Presets, incluidos diálogos de guardado, exportación de archivos `.d2mm` y contadores en español.
+
+## 1.0.6
+
+### Ampliación de Ranuras a más de 90 Mods, Cola de Instalación en Español y Sincronización del Sitio Web
+
+Esta versión amplía la capacidad de instalación de mods más allá del límite de 90, traduce la cola de instalación al español y sincroniza el repositorio oficial del sitio web:
+
+- **Instalación Más Allá de 90 Mods**: Resuelto el error `"No free pakNN slots left"`. El instalador utiliza ranuras prioritarias libres (`pak02` a `pak09`) y se extiende dinámicamente hasta `pak250_dir.vpk`.
+- **Cola de Instalación en Español**: Traducidos todos los paneles, botones y resúmenes de instalación por lotes al español.
+- **Repositorio Oficial del Sitio Web**: Sincronizado el sitio interactivo con `https://github.com/Dreftian/Dota2-Mods-Website`.
+
 ## 1.0.5
 
 ### Aislamiento de Perfil, Centrado de Dígitos de Placa, 100 Mods en Free, Bandeja de Sistema y Sitio Web Oficial

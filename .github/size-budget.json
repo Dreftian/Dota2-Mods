@@ -3,10 +3,10 @@
   "measured": "2026-09-21",
   "watchAt": 800,
   "files": {
-    "main.js": 1226,
+    "main.js": 1265,
     "renderer/views/catalog.js": 1740,
     "renderer/views/library.js": 1390,
-    "src/installer.js": 1346,
+    "src/installer.js": 1370,
     "src/vpk.js": 967
   }
 }

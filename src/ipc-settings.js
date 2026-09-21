@@ -18,6 +18,7 @@ function registerSettingsIpc({
   applyPresenceSetting, catalog, discordAuth, findDotaGamePath, library, moveLangFolder,
   presence, refreshPresence, remoteConfig, settings, settingsView, validateGamePath,
   langFolder, patchWatcher, setPresenceView, updater, win,
+  setupTray, destroyTray,
 }) {
   /* The beta channel, from the switch in settings and the list in the signed config.
    *
@@ -58,6 +59,10 @@ function registerSettingsIpc({
           args: ['--minimized'],
         });
       } catch { /* portable or dev mode */ }
+    }
+    if (key === 'minimizeToTray') {
+      if (value && setupTray) setupTray();
+      else if (!value && destroyTray && win() && !win().isDestroyed() && win().isVisible()) destroyTray();
     }
     return settingsView();
   });

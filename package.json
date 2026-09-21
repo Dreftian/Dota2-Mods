@@ -1,7 +1,7 @@
 {
   "name": "mod-assistant",
   "productName": "Mod Assistant",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "Mod Assistant for Dota 2 — browse, install, toggle and manage cosmetic mods",
   "main": "main.js",
   "scripts": {
@@ -57,6 +57,8 @@
       "preload-uninstall.js",
       "src/**/*",
       "renderer/**/*",
+      "build/icon.ico",
+      "build/icon.png",
       "package.json",
       "CHANGELOG.md",
       "CHANGELOG.ru.md",

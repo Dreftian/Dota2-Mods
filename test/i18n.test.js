@@ -18,3 +18,25 @@ test('every Russian string has an English twin', () => {
   // the failure message. Repeating it here in a nicer shape would only lose the line numbers.
   assert.equal(run.status, 0, `\n${run.stdout}${run.stderr}`);
 });
+
+test('src/i18n supports en, es and ru translations', () => {
+  const { setLang, getLang, t } = require('../src/i18n');
+  const original = getLang();
+
+  try {
+    setLang('es');
+    assert.equal(getLang(), 'es');
+    assert.equal(t('Открыть Mod Assistant'), 'Abrir Mod Assistant');
+
+    setLang('ru');
+    assert.equal(getLang(), 'ru');
+    assert.equal(t('Открыть Mod Assistant'), 'Открыть Mod Assistant');
+
+    setLang('en');
+    assert.equal(getLang(), 'en');
+    assert.equal(t('Открыть Mod Assistant'), 'Open Mod Assistant');
+  } finally {
+    setLang(original);
+  }
+});
+

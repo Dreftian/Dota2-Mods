@@ -126,11 +126,30 @@ let patchRepair = { state: 'idle' };
 let tray = null;
 let isQuitting = false;
 
+function getTrayIcon() {
+  const candidates = [
+    path.join(__dirname, 'renderer', 'assets', 'icon.ico'),
+    path.join(__dirname, 'renderer', 'assets', 'icon.png'),
+    path.join(__dirname, 'build', 'icon.ico'),
+    path.join(__dirname, 'build', 'icon.png'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+function showWindow() {
+  if (win && !win.isDestroyed()) {
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  }
+}
+
 function setupTray() {
-  if (tray) return;
-  const iconPath = path.join(__dirname, 'build', 'icon.ico');
-  const pngPath = path.join(__dirname, 'build', 'icon.png');
-  const actualIcon = fs.existsSync(iconPath) ? iconPath : (fs.existsSync(pngPath) ? pngPath : null);
+  if (tray && !tray.isDestroyed()) return;
+  const actualIcon = getTrayIcon();
   if (!actualIcon) return;
 
   try {
@@ -138,12 +157,7 @@ function setupTray() {
     const contextMenu = Menu.buildFromTemplate([
       {
         label: i18n.t('Открыть Mod Assistant') || 'Abrir Mod Assistant',
-        click: () => {
-          if (win && !win.isDestroyed()) {
-            win.show();
-            win.focus();
-          }
-        },
+        click: () => showWindow(),
       },
       { type: 'separator' },
       {
@@ -157,14 +171,19 @@ function setupTray() {
     ]);
     tray.setToolTip('Mod Assistant — Dota 2');
     tray.setContextMenu(contextMenu);
-    tray.on('double-click', () => {
-      if (win && !win.isDestroyed()) {
-        win.show();
-        win.focus();
-      }
-    });
+    tray.on('click', () => showWindow());
+    tray.on('double-click', () => showWindow());
   } catch (err) {
     diag('Tray setup error: ' + err.message);
+  }
+}
+
+function destroyTray() {
+  if (tray && !tray.isDestroyed()) {
+    try {
+      tray.destroy();
+    } catch {}
+    tray = null;
   }
 }
 let patchWatcher = null;
@@ -295,6 +314,13 @@ function createWindow() {
 
   win.on('maximize', () => win.webContents.send('win:maximized', true));
   win.on('unmaximize', () => win.webContents.send('win:maximized', false));
+  win.on('minimize', (event) => {
+    if (settings && settings.get('minimizeToTray')) {
+      event.preventDefault();
+      win.hide();
+      setupTray();
+    }
+  });
   win.on('close', (event) => {
     if (!isQuitting && settings && settings.get('minimizeToTray')) {
       event.preventDefault();
@@ -304,6 +330,10 @@ function createWindow() {
     }
     deactivateModsOnExit();
   });
+
+  if (settings && settings.get('minimizeToTray')) {
+    setupTray();
+  }
 
   if (process.argv.includes('--minimized')) {
     win.hide();
@@ -1141,6 +1171,8 @@ function registerIpc() {
     patchWatcher: () => patchWatcher,
     setPresenceView: (v) => { presenceView = v; },
     win: () => win,
+    setupTray,
+    destroyTray,
   });
 
   // One gate, handed to both of the modules that guard a channel with it. Two copies is how
