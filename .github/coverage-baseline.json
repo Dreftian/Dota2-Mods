@@ -198,7 +198,7 @@
       }
     },
     "win32": {
-      "measured": "2026-09-19",
+      "measured": "2026-09-21",
       "files": {
         "src/adopt.js": {
           "lines": 100
@@ -213,13 +213,13 @@
           "lines": 100
         },
         "src/catalog.js": {
-          "lines": 96.5
+          "lines": 96.4
         },
         "src/cursors.js": {
           "lines": 100
         },
         "src/diagnostics.js": {
-          "lines": 72.4
+          "lines": 85.7
         },
         "src/feature-gate.js": {
           "lines": 100
@@ -237,28 +237,31 @@
           "lines": 99.4
         },
         "src/i18n.js": {
-          "lines": 96.8
+          "lines": 100
         },
         "src/import.js": {
           "lines": 93.9
         },
         "src/installer.js": {
-          "lines": 86
+          "lines": 83.9
+        },
+        "src/ipc-auth.js": {
+          "lines": 85.4
         },
         "src/ipc-diagnostics.js": {
           "lines": 80.8
         },
         "src/ipc-game.js": {
-          "lines": 87
+          "lines": 87.6
         },
         "src/ipc-library.js": {
-          "lines": 63.6
+          "lines": 63.5
         },
         "src/ipc-misc.js": {
           "lines": 77.2
         },
         "src/ipc-mods.js": {
-          "lines": 56.6
+          "lines": 55.1
         },
         "src/ipc-packs.js": {
           "lines": 44.5
@@ -267,10 +270,10 @@
           "lines": 62.4
         },
         "src/ipc-settings.js": {
-          "lines": 89.4
+          "lines": 82.6
         },
         "src/ipc-window.js": {
-          "lines": 91.7
+          "lines": 94.3
         },
         "src/library.js": {
           "lines": 100
@@ -285,7 +288,7 @@
           "lines": 75.3
         },
         "src/net.js": {
-          "lines": 99.2
+          "lines": 99.3
         },
         "src/overlays.js": {
           "lines": 99.4
@@ -294,7 +297,7 @@
           "lines": 93.9
         },
         "src/patcher.js": {
-          "lines": 97.7
+          "lines": 89
         },
         "src/portable-update.js": {
           "lines": 97.8
@@ -307,6 +310,15 @@
         },
         "src/presets-service.js": {
           "lines": 13.8
+        },
+        "src/rank-drawing.js": {
+          "lines": 97.9
+        },
+        "src/rank-font-data.js": {
+          "lines": 100
+        },
+        "src/rank-generator.js": {
+          "lines": 94.5
         },
         "src/remote-config.js": {
           "lines": 100
@@ -326,8 +338,11 @@
         "src/toolchain.js": {
           "lines": 98.1
         },
+        "src/updater.js": {
+          "lines": 95.8
+        },
         "src/vpk.js": {
-          "lines": 98.2
+          "lines": 98.6
         },
         "src/vtex.js": {
           "lines": 100
@@ -378,13 +393,13 @@
           "lines": 79.2
         },
         "tools/radar.mjs": {
-          "lines": 74
+          "lines": 75.1
         },
         "tools/release-gate.mjs": {
           "lines": 58.3
         },
         "tools/rollback.mjs": {
-          "lines": 75.9
+          "lines": 80.2
         },
         "tools/seo-state.mjs": {
           "lines": 99

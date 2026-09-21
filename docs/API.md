@@ -45,6 +45,7 @@ the code, not in this page.
 | [`src/preset-share.js`](#srcpreset-sharejs) | Shareable preset files (.d2mm) — a zip holding preset.json plus the VPK of every mod |
 | [`src/presets-service.js`](#srcpresets-servicejs) | Presets, and the two ways one travels to somebody else. |
 | [`src/rank-drawing.js`](#srcrank-drawingjs) | Renders authentic Dota 2 rank and hero badge numbers directly onto textures |
+| [`src/rank-font-data.js`](#srcrank-font-datajs) |  |
 | [`src/rank-generator.js`](#srcrank-generatorjs) | Generates a native Dota 2 VPK mod that overrides rank medals, star pips and hero badges |
 | [`src/remote-config.js`](#srcremote-configjs) | The one thing the app can be told after it has shipped. |
 | [`src/safe-zip.js`](#srcsafe-zipjs) | The one door every foreign archive comes through. |
@@ -2319,11 +2320,12 @@ and patches Panorama CSS style sheets for in-game display.
 function renderRankPlaqueDigits(vtexBuffer, rankNumber)
 ```
 
-Renders immortal leaderboard digits onto a rank medal texture.
+Renders authentic Dota 2 immortal leaderboard digits onto a rank medal texture.
+Exactly matches in-game Radiance font typography, ivory fill, drop shadow and centering.
 
 ```
 @param {Buffer} vtexBuffer The original uncompressed RGBA .vtex_c buffer
-@param {string|number} rankNumber The leaderboard digit, e.g. 1, 20, 30
+@param {string|number} rankNumber The leaderboard digit, e.g. 1, 20, 250, 2045
 @returns {Buffer}
 ```
 
@@ -2356,6 +2358,10 @@ Automatically recalculates block offsets and total file length.
 @param {string} newSnippet Replacement substring
 @returns {Buffer}
 ```
+
+## src/rank-font-data.js
+
+_Exports nothing._
 
 ## src/rank-generator.js
 

@@ -6,7 +6,7 @@
  * warranty whatsoever. LICENSE holds the terms; NOTICE holds the additional terms this
  * repository adds under section 7 of that License, about credit and the program's name.
  */
-const { app, BrowserWindow, ipcMain, shell, net, screen, Menu, Tray } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, net, screen, Menu, Tray, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -127,14 +127,14 @@ let tray = null;
 let isQuitting = false;
 
 function getTrayIcon() {
-  const candidates = [
-    path.join(__dirname, 'renderer', 'assets', 'icon.ico'),
-    path.join(__dirname, 'renderer', 'assets', 'icon.png'),
-    path.join(__dirname, 'build', 'icon.ico'),
-    path.join(__dirname, 'build', 'icon.png'),
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
+  for (const f of ['renderer/assets/icon.ico', 'renderer/assets/icon.png', 'build/icon.ico', 'build/icon.png']) {
+    const p = path.join(__dirname, ...f.split('/'));
+    if (fs.existsSync(p)) {
+      try {
+        const img = nativeImage.createFromBuffer(fs.readFileSync(p));
+        if (!img.isEmpty()) return img;
+      } catch {}
+    }
   }
   return null;
 }
@@ -148,33 +148,23 @@ function showWindow() {
 }
 
 function setupTray() {
-  if (tray && !tray.isDestroyed()) return;
+  if (tray && !tray.isDestroyed()) return true;
   const actualIcon = getTrayIcon();
-  if (!actualIcon) return;
-
+  if (!actualIcon) return false;
   try {
     tray = new Tray(actualIcon);
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: i18n.t('Открыть Mod Assistant') || 'Abrir Mod Assistant',
-        click: () => showWindow(),
-      },
-      { type: 'separator' },
-      {
-        label: i18n.t('Выход') || 'Salir',
-        click: () => {
-          isQuitting = true;
-          deactivateModsOnExit();
-          app.quit();
-        },
-      },
-    ]);
     tray.setToolTip('Mod Assistant — Dota 2');
-    tray.setContextMenu(contextMenu);
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: i18n.t('Открыть Mod Assistant') || 'Abrir Mod Assistant', click: () => showWindow() },
+      { type: 'separator' },
+      { label: i18n.t('Выход') || 'Salir', click: () => { isQuitting = true; destroyTray(); deactivateModsOnExit(); app.quit(); } },
+    ]));
     tray.on('click', () => showWindow());
     tray.on('double-click', () => showWindow());
+    return true;
   } catch (err) {
     diag('Tray setup error: ' + err.message);
+    return false;
   }
 }
 
@@ -262,8 +252,10 @@ function deactivateModsOnExit() {
 }
 
 function createWindow() {
+  const appIcon = getTrayIcon();
   win = new BrowserWindow({
     ...windowFit(),
+    icon: appIcon || undefined,
     backgroundColor: '#050506',
     autoHideMenuBar: true,
     frame: false,
@@ -316,18 +308,23 @@ function createWindow() {
   win.on('unmaximize', () => win.webContents.send('win:maximized', false));
   win.on('minimize', (event) => {
     if (settings && settings.get('minimizeToTray')) {
-      event.preventDefault();
-      win.hide();
-      setupTray();
+      const ok = setupTray();
+      if (ok || (tray && !tray.isDestroyed())) {
+        event.preventDefault();
+        win.hide();
+      }
     }
   });
   win.on('close', (event) => {
     if (!isQuitting && settings && settings.get('minimizeToTray')) {
-      event.preventDefault();
-      win.hide();
-      setupTray();
-      return;
+      const ok = setupTray();
+      if (ok || (tray && !tray.isDestroyed())) {
+        event.preventDefault();
+        win.hide();
+        return;
+      }
     }
+    destroyTray();
     deactivateModsOnExit();
   });
 

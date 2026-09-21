@@ -2,6 +2,19 @@
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
 
+## 1.0.9
+
+### Authentic Radiance Digit Typography, Complete Rank Modal Isolation, Showcase Hero Badges & System Tray Fix
+
+This release introduces authentic in-game Valve Radiance font rendering for immortal leaderboard plaques, isolates profile ranks to prevent modal and player leaks, enables hero badges on showcase hero cards, translates hero tiers into Spanish, and fixes Windows system tray minimization:
+
+- **Official Valve Radiance Typography**: Extracted Valve's genuine `radiancem_bold.otf` font directly from Dota 2 game files and generated pixel-perfect, subpixel anti-aliased digits (0–9) tailored for 1-digit, 2-digit, 3-digit, and 4-digit numbers. Rendered in warm ivory (`#F4EBD8`), subtle vertical gradient, and dark drop shadow (`#100C08`), centered precisely on the bronze plaque plate without any `#` prefix.
+- **Rank Modal & Opponent Profile Isolation**: Scoped rank overrides strictly to `.ViewingSelf #ProfileContainer #Header .RankBadge #RankTier` and `.ViewingSelf #HeaderNameContainer .RankBadge #RankTier`. Fixed the issue where opening the "Rank Medals" modal replaced every single rank medal with the custom immortal texture. Opponents, allies, match scoreboards, and the in-game modal now display authentic rank badges without visual corruption.
+- **Showcase Hero Badges**: Added patched `showcase_item.vcss_c` to make `#HeroBadge.NoTier` visible on profile hero cards when `.ViewingSelf`, ensuring selected hero badges appear on showcased heroes.
+- **Spanish Hero Tiers & Clean Sublabels**: Fully translated hero tier progression names to Spanish (`Bronce`, `Plata`, `Oro`, `Platino`, `Maestro`, `Gran Maestro`) and replaced redundant English sublabels on rank cards with their corresponding MMR values.
+- **Windows System Tray & Taskbar Minimization**: Implemented in-memory `nativeImage.createFromBuffer` for tray icons inside packaged `app.asar`, explicitly set window icon on `BrowserWindow`, and added fallback protection during minimize/close events so the application never disappears.
+- **Website Authenticity**: Updated website interactive rank customizer with authentic Dota 2 medal graphics, pixel-perfect plaque digit placement, centered hero level numbers, and download links for v1.0.9.
+
 ## 1.0.8
 
 ### Strict Profile-Only Rank Isolation, Leaderboard Plaque Without Hash, Hero Progression Badges, System Tray Fix & Presets Spanish Localization

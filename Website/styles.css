@@ -1103,29 +1103,34 @@ body {
 /* Immortal Plaque Frame & Digit */
 .immortal-plaque-container {
   position: absolute;
-  bottom: 12px;
+  bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
+  pointer-events: none;
 }
 
 .plaque-frame {
-  background: linear-gradient(180deg, #3d2f14 0%, #1a1407 100%);
-  border: 2px solid #dfb158;
-  border-radius: 4px;
-  padding: 2px 14px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.95), inset 0 1px 1px rgba(255, 235, 170, 0.6);
-  min-width: 62px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  min-width: auto;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .plaque-digit {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-family: 'Radiance', 'Cinzel', system-ui, -apple-system, sans-serif;
+  font-size: 1.3rem;
   font-weight: 900;
-  color: #fff8dc;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(255, 215, 0, 0.6);
-  letter-spacing: 1px;
+  color: #F4EBD8;
+  text-shadow: 0 1px 2px #100C08, 0 2px 4px rgba(0, 0, 0, 0.95);
+  letter-spacing: 0.5px;
+  line-height: 1;
 }
 
 .rank-name-label {
@@ -1159,25 +1164,24 @@ body {
 }
 
 .preview-hero-tier-img {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
 }
 
 .hero-tier-lvl-badge {
   position: absolute;
-  top: -5px;
-  right: -6px;
-  background: linear-gradient(135deg, #f57f17, #d84315);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   color: #ffffff;
-  font-size: 11px;
+  font-family: 'Radiance', 'Cinzel', system-ui, sans-serif;
+  font-size: 14px;
   font-weight: 900;
-  padding: 1px 6px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
-  line-height: 1.2;
+  text-shadow: 0 0 3px #000, 0 0 6px #000, 0 1px 2px #000;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .hero-tier-title {

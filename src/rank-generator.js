@@ -154,7 +154,7 @@ function generateRankVpk({
     const patchedShowcase = patchCssResource(
       showcaseCss,
       '#HeaderNameContainer .RankBadge{width: 100px;height: 100px;margin-top: -10px;z-index: 2;}',
-      `#HeaderNameContainer .RankBadge{width: 100px;height: 100px;margin-top: -10px;z-index: 2;}.ViewingSelf #HeaderNameContainer .RankBadge #RankTier,.ViewingSelf #HeaderNameContainer #RankTier{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}.ViewingSelf #HeaderNameContainer #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRule}${heroBadgeProfileRule}`,
+      `#HeaderNameContainer .RankBadge{width: 100px;height: 100px;margin-top: -10px;z-index: 2;}.ViewingSelf #HeaderNameContainer .RankBadge #RankTier,.ViewingSelf #HeaderNameContainer #RankTier{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}.ViewingSelf #HeaderNameContainer #RankLeaderboard,.ViewingSelf #HeaderNameContainer .RankBadge #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRule}${heroBadgeProfileRule}`,
     );
     entries.push({
       ext: 'vcss_c',
@@ -188,20 +188,20 @@ function generateRankVpk({
     });
   }
 
-  // Legacy/fallback profile page
+  // Legacy/fallback profile page - scoped strictly to self header so it never leaks to other players or rank modal
   const profileCss = readAssetSafe('styles', 'dashboard_page_profile.vcss_c');
   if (profileCss) {
     let pipsRule = numStars > 0
-      ? '#ProfileContainer:not(.ViewingOther) #RankPips{visibility: visible !important;background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_pips_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}'
-      : '#ProfileContainer:not(.ViewingOther) #RankPips{visibility: collapse !important;}';
+      ? '.ViewingSelf #ProfileContainer #Header #RankPips,.ViewingSelf .HeaderNameContainer #RankPips{visibility: visible !important;background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_pips_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}'
+      : '.ViewingSelf #ProfileContainer #Header #RankPips,.ViewingSelf .HeaderNameContainer #RankPips{visibility: collapse !important;}';
     const heroBadgeProfileRule = (heroTier !== null && heroTier !== undefined)
-      ? `#ProfileContainer:not(.ViewingOther) DOTAHeroBadge #BadgeImage{background-image: url("s2r://panorama/images/hero_badges/hero_badge_rank_${Math.max(0, Math.min(5, Number(heroTier)))}_png.vtex") !important;}`
+      ? `.ViewingSelf #ProfileContainer #Header DOTAHeroBadge #BadgeImage,.ViewingSelf .HeaderNameContainer DOTAHeroBadge #BadgeImage{background-image: url("s2r://panorama/images/hero_badges/hero_badge_rank_${Math.max(0, Math.min(5, Number(heroTier)))}_png.vtex") !important;}`
       : '';
 
     const patchedProfile = patchCssResource(
       profileCss,
       '.RankTier0 #RankTier.RankTierImage{background-size: 150%;}',
-      `.RankTier0 #RankTier.RankTierImage{background-size: 150%;}#ProfileContainer:not(.ViewingOther) #RankTier{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}#ProfileContainer:not(.ViewingOther) #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRule}${heroBadgeProfileRule}`,
+      `.RankTier0 #RankTier.RankTierImage{background-size: 150%;}.ViewingSelf #ProfileContainer #Header .RankBadge #RankTier,.ViewingSelf .HeaderNameContainer #RankTier{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}.ViewingSelf #ProfileContainer #Header #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRule}${heroBadgeProfileRule}`,
     );
     entries.push({
       ext: 'vcss_c',
@@ -210,6 +210,24 @@ function generateRankVpk({
       crc: crc32(patchedProfile),
       preload: Buffer.alloc(0),
       data: patchedProfile,
+    });
+  }
+
+  // Showcase item: display hero badge on hero cards in showcase
+  const showcaseItemCss = readAssetSafe('styles', 'showcase_item.vcss_c');
+  if (showcaseItemCss) {
+    const patchedShowcaseItem = patchCssResource(
+      showcaseItemCss,
+      '#HeroBadge.NoTier{visibility: collapse;}',
+      `.ViewingSelf #HeroBadge.NoTier,.ViewingSelf .HeroModel #HeroBadge.NoTier{visibility: visible !important;}#HeroBadge.NoTier{visibility: collapse;}`,
+    );
+    entries.push({
+      ext: 'vcss_c',
+      folder: 'panorama/styles/showcase',
+      name: 'showcase_item',
+      crc: crc32(patchedShowcaseItem),
+      preload: Buffer.alloc(0),
+      data: patchedShowcaseItem,
     });
   }
 

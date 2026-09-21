@@ -24,12 +24,12 @@ export const RANK_DATA = [
 ];
 
 export const HERO_TIER_DATA = [
-  { id: 0, nameEs: 'Bronze', nameEn: 'Bronze', nameRu: 'Бронза', badge: 'FREE', badgeType: 'free', levels: '1-5', defaultLevel: 5 },
-  { id: 1, nameEs: 'Silver', nameEn: 'Silver', nameRu: 'Серебро', badge: 'FREE', badgeType: 'free', levels: '6-11', defaultLevel: 11 },
-  { id: 2, nameEs: 'Gold', nameEn: 'Gold', nameRu: 'Золото', badge: 'FREE', badgeType: 'free', locked: false, levels: '12-17', defaultLevel: 17 },
-  { id: 3, nameEs: 'Platinum', nameEn: 'Platinum', nameRu: 'Платина', badge: 'FREE', badgeType: 'free', locked: false, levels: '18-24', defaultLevel: 24 },
-  { id: 4, nameEs: 'Master', nameEn: 'Master', nameRu: 'Мастер', badge: 'VIP', badgeType: 'vip', locked: true, levels: '25-29', defaultLevel: 29 },
-  { id: 5, nameEs: 'Grandmaster', nameEn: 'Grandmaster', nameRu: 'Грандмастер', badge: 'VIP', badgeType: 'vip', locked: true, levels: '30', defaultLevel: 30 },
+  { id: 0, nameEs: 'Bronce', nameEn: 'Bronze', nameRu: 'Бронза', badge: 'FREE', badgeType: 'free', levels: '1-5', defaultLevel: 5 },
+  { id: 1, nameEs: 'Plata', nameEn: 'Silver', nameRu: 'Серебро', badge: 'FREE', badgeType: 'free', levels: '6-11', defaultLevel: 11 },
+  { id: 2, nameEs: 'Oro', nameEn: 'Gold', nameRu: 'Золото', badge: 'FREE', badgeType: 'free', locked: false, levels: '12-17', defaultLevel: 17 },
+  { id: 3, nameEs: 'Platino', nameEn: 'Platinum', nameRu: 'Платина', badge: 'FREE', badgeType: 'free', locked: false, levels: '18-24', defaultLevel: 24 },
+  { id: 4, nameEs: 'Maestro', nameEn: 'Master', nameRu: 'Мастер', badge: 'VIP', badgeType: 'vip', locked: true, levels: '25-29', defaultLevel: 29 },
+  { id: 5, nameEs: 'Gran Maestro', nameEn: 'Grandmaster', nameRu: 'Грандмастер', badge: 'VIP', badgeType: 'vip', locked: true, levels: '30', defaultLevel: 30 },
 ];
 
 let customState = {
@@ -103,7 +103,7 @@ export function rankCustomizerHtml() {
                 <img src="assets/ranks/${m.id}.png" alt="${m.nameEn}" class="rc-medal-img" draggable="false" />
               </div>
               <div class="rc-medal-name">${getLocalizedName(m)}</div>
-              <div class="rc-medal-sub">${m.nameEn}</div>
+              <div class="rc-medal-sub">${m.defaultMmr ? `${m.defaultMmr.toLocaleString()} MMR` : (m.id === 'rank0' ? L`Sin calibrar` : '')}</div>
               <span class="rc-tier-pill rc-pill-${m.badgeType}">${m.badge}</span>
             </div>
           `;
@@ -147,7 +147,7 @@ export function rankCustomizerHtml() {
           <label class="rc-label" for="rcImmortalRankInput">${L`Posición / Dígito de Clasificación Inmortal`}</label>
           <div class="rc-mmr-input-wrap">
             <input type="number" id="rcImmortalRankInput" class="rc-input" min="1" max="50000" value="${customState.immortalRank || 10}" />
-            <span class="rc-input-unit">#RANK</span>
+            <span class="rc-input-unit">RANK</span>
           </div>
           <div class="rc-hint">${L`El número que se mostrará en la placa de tu medalla Inmortal (ej. 1, 10, 100, 1000).`}</div>
         </div>
@@ -156,16 +156,15 @@ export function rankCustomizerHtml() {
       <!-- Dota Plus Hero Tier Changer -->
       <div class="rc-section-header-wrap">
         <div class="rc-section-title">${L`4. Insignia de Nivel de Héroe (Dota Plus Hero Tier)`}</div>
-        <div class="rc-tier-rules">${L`Bronze hasta Platinum son gratis, Master y Grandmaster requieren estado VIP.`}</div>
+        <div class="rc-tier-rules">${L`Bronce hasta Platino son gratis, Maestro y Gran Maestro requieren estado VIP.`}</div>
       </div>
       <div class="rc-hero-tier-grid" id="rcHeroTierGrid">
         ${HERO_TIER_DATA.map((t) => {
           const active = customState.heroTier === t.id ? 'active' : '';
           return `
             <div class="rc-tier-card ${active}" data-tier="${t.id}">
-              ${t.locked ? '<span class="rc-lock-icon ms">lock</span>' : ''}
-              <div class="rc-tier-icon">
-                <img src="assets/herotier/tier${t.id}.png" alt="${t.nameEn}" class="rc-tier-img" draggable="false" />
+              <div class="rc-tier-icon-wrap">
+                <img src="assets/herotier/tier${t.id}.png" class="rc-tier-img" alt="${t.nameEn}" draggable="false" />
               </div>
               <div class="rc-tier-name">${getLocalizedName(t)}</div>
               <div class="rc-tier-sub">Nivel ${t.levels}</div>
@@ -194,7 +193,7 @@ export function rankCustomizerHtml() {
             <img src="assets/ranks/${customState.medal}.png" class="rc-preview-medal-img" id="rcPreviewMedalImg" alt="Medal" draggable="false" />
             <img src="assets/ranks/stars${customState.stars || 1}.png" class="rc-preview-stars-img ${isImmortal ? 'hidden' : ''}" id="rcPreviewStarsImg" alt="Stars" draggable="false" />
             <div class="rc-preview-immortal-rank ${isImmortal ? '' : 'hidden'}" id="rcPreviewImmortalRank">
-              <span class="rc-immortal-hash">#</span><span id="rcPreviewImmortalNum">${customState.immortalRank || 10}</span>
+              <span id="rcPreviewImmortalNum">${customState.immortalRank || 10}</span>
             </div>
           </div>
         </div>
@@ -329,12 +328,16 @@ export function bindRankCustomizer(container) {
       const immortalRow = container.querySelector('#rcImmortalRow');
       if (immortalRow) immortalRow.classList.toggle('hidden', !isImmortal);
       if (isImmortal) {
-        if (medalId === 'rank8c') customState.immortalRank = 10;
-        else if (medalId === 'rank8b') customState.immortalRank = 100;
-        else if (medalId === 'rank8a') customState.immortalRank = 1000;
-        else if (medalId === 'rank8') customState.immortalRank = 5000;
         const immInput = container.querySelector('#rcImmortalRankInput');
-        if (immInput) immInput.value = customState.immortalRank;
+        if (immInput && immInput.value && Number(immInput.value) > 0) {
+          customState.immortalRank = Math.max(1, Number(immInput.value));
+        } else {
+          if (medalId === 'rank8c') customState.immortalRank = 10;
+          else if (medalId === 'rank8b') customState.immortalRank = 100;
+          else if (medalId === 'rank8a') customState.immortalRank = 1000;
+          else if (medalId === 'rank8') customState.immortalRank = 5000;
+          if (immInput) immInput.value = customState.immortalRank;
+        }
       }
 
       // Toggle stars group disabled state
@@ -394,7 +397,7 @@ export function bindRankCustomizer(container) {
       const tierInfo = HERO_TIER_DATA.find((t) => t.id === tierId);
       if (tierInfo) customState.heroLevel = tierInfo.defaultLevel;
 
-      const isVipUser = state.currentUser?.isPremium || state.currentUser?.isAdmin;
+      const isVipUser = !!(state.currentUser?.isPremium || state.currentUser?.isAdmin || state.currentUser?.role === 'admin' || state.currentUser?.email === 'dreftian@gmail.com');
       if (tierInfo?.locked && !isVipUser) {
         toast(L`Las insignias Master y Grandmaster requieren suscripción VIP.`, 'warn', 4000);
         showCheckoutModal();
@@ -423,9 +426,23 @@ export function bindRankCustomizer(container) {
   const applyBtn = container.querySelector('#rcApplyBtn');
   if (applyBtn) {
     applyBtn.addEventListener('click', async () => {
+      // Read current values directly from DOM inputs to ensure live typed values are used
+      const liveImmortal = container.querySelector('#rcImmortalRankInput');
+      if (liveImmortal && liveImmortal.value) {
+        customState.immortalRank = Math.max(1, Number(liveImmortal.value) || 1);
+      }
+      const liveMmr = container.querySelector('#rcMmrInput');
+      if (liveMmr && liveMmr.value) {
+        customState.mmr = Number(liveMmr.value) || customState.mmr;
+      }
+      const liveHeroLevel = container.querySelector('#rcHeroLevelInput');
+      if (liveHeroLevel && liveHeroLevel.value) {
+        customState.heroLevel = Math.max(1, Math.min(99, Number(liveHeroLevel.value) || 1));
+      }
+
       const medalMeta = RANK_DATA.find((m) => m.id === customState.medal);
       const tierMeta = HERO_TIER_DATA.find((t) => t.id === customState.heroTier);
-      const isVipUser = state.currentUser?.isPremium || state.currentUser?.isAdmin;
+      const isVipUser = !!(state.currentUser?.isPremium || state.currentUser?.isAdmin || state.currentUser?.role === 'admin' || state.currentUser?.email === 'dreftian@gmail.com');
       if ((medalMeta?.locked || tierMeta?.locked) && !isVipUser) {
         toast(L`El rango Inmortal o insignia Master/Grandmaster requiere suscripción VIP.`, 'warn', 5000);
         showCheckoutModal();

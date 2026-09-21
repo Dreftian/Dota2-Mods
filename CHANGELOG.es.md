@@ -2,6 +2,19 @@
 
 Novedades de cada versión. La aplicación se actualiza de forma automática para que disfrutes de todas las mejoras sin necesidad de reinstalar.
 
+## 1.0.9
+
+### Tipografía Radiance Original, Aislamiento Total de Ventana de Rangos, Insignias en Vitrina y Fix de Bandeja
+
+Esta versión incorpora la tipografía oficial Valve Radiance para las placas de Inmortal, aísla por completo las medallas del modal de rangos y perfiles ajenos, activa las insignias en las cartas de héroes de la vitrina, traduce los rangos de héroe al español y corrige la minimización a la bandeja de Windows:
+
+- **Tipografía Oficial Valve Radiance**: Se extrajo la fuente auténtica `radiancem_bold.otf` de los archivos de Dota 2 y se generaron glifos antialiased (0–9) para números de 1, 2, 3 y 4 dígitos. Se dibujan con color marfil cálido (`#F4EBD8`), degradado vertical y sombra oscura (`#100C08`), centrados en la placa de bronce sin ningún símbolo `#`.
+- **Aislamiento de Modal de Rangos y Jugadores**: Selectores CSS acotados estrictamente a `.ViewingSelf #ProfileContainer #Header .RankBadge #RankTier` y `.ViewingSelf #HeaderNameContainer .RankBadge #RankTier`. Se solucionó el problema donde abrir el menú de «Medallas de rango» sustituía todas las 15 medallas por la textura Inmortal. Los rivales, aliados, marcadores y el modal del juego mantienen sus medallas intactas.
+- **Insignias de Héroe en Vitrina**: Añadido el parche `showcase_item.vcss_c` para mostrar `#HeroBadge.NoTier` en las cartas de héroes del perfil con `.ViewingSelf`.
+- **Niveles de Héroe en Español y Subetiquetas Claras**: Traducidos los nombres de progresión al español (`Bronce`, `Plata`, `Oro`, `Platino`, `Maestro`, `Gran Maestro`) y sustituidas las etiquetas en inglés bajo cada medalla por su valor en MMR.
+- **Minimización a la Bandeja de Windows y Barra de Tareas**: Implementada la carga con `nativeImage.createFromBuffer` para el icono en `app.asar`, asignado el icono a `BrowserWindow` y añadida protección para evitar que la ventana desaparezca sin un icono de bandeja activo.
+- **Sitio Web Oficial**: Actualizado el personalizador interactivo del sitio web con medallas originales de Dota 2, tipografía de placa auténtica, insignias de héroe centradas y enlaces a v1.0.9.
+
 ## 1.0.8
 
 ### Aislamiento Estricto de Rango al Perfil, Dígitos de Placa sin Almohadilla, Insignias de Progreso de Héroe, Corrección de Bandeja del Sistema y Traducción de Presets
