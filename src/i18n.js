@@ -127,6 +127,7 @@ const EN = {
   'Курсор': 'Cursor',
 
   'Пустой VPK': 'Empty VPK',
+  'Не удалось сформировать VPK рангов: отсутствуют файлы ресурсов': 'Could not build rank VPK: resource files are missing',
 
   // ---- safe-zip.js (a foreign archive turned down) ----
   'архив': 'archive',

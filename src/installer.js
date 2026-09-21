@@ -553,12 +553,31 @@ class Installer {
     // mod with nowhere to go still cost the user a 300 MB download first and only then said
     // no. Tools are the exception: they live in the app's own folder and need no game.
     if (categoryId !== 'tools') this.requireGameFolder();
+    if (categoryId === 'ranks' || (fileRef && String(fileRef).startsWith('generator:')) || (modName && modName.includes('Hero Tier Changer'))) {
+      const { generateRankVpk } = require('./rank-generator');
+      const gen = generateRankVpk({ heroTier: 5, heroLevel: 30 });
+      return this.installDirectBuffer(gen.buffer, modName, categoryId);
+    }
     const local = await this.download(categoryId, fileRef, modName);
     this.onProgress({ type: 'stage', label: modName, stage: t('установка') });
     // A mod is rarely one file, and everything below writes into somebody else's game
     // folder. One transaction around the lot: a failure on the fourth file takes the first
     // three with it, instead of leaving paks nothing in the library points at.
     return FileTx.run((tx) => this.installInto(tx, { categoryId, modName, local }));
+  }
+
+  async installDirectBuffer(buffer, modName, categoryId = 'ranks') {
+    this.requireGameFolder();
+    this.onProgress({ type: 'stage', label: modName, stage: t('установка') });
+    return FileTx.run((tx) => {
+      const isPriority = PRIORITY_CATEGORIES.includes(categoryId);
+      const lang = this.langFolder();
+      this.ensureLangFolder();
+      const used = this.usedPakNames();
+      const pakName = this.allocatePak(used, isPriority);
+      this.writeInto(buffer, safeJoin(lang, pakName), tx);
+      return [{ root: 'lang', relPath: pakName }];
+    });
   }
 
   installInto(tx, { categoryId, modName, local }) {

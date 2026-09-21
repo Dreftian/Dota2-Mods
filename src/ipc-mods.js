@@ -223,6 +223,69 @@ function registerModsIpc({
     });
     return { installed: listed, external, slots, slotCeil: 98, verifyStuck: verifyStuck() };
   });
+
+  ipcMain.handle('ranks:getMetadata', async () => {
+    const { RANK_MEDALS, HERO_TIERS } = require('./rank-generator');
+    return { medals: RANK_MEDALS, tiers: HERO_TIERS };
+  });
+
+  ipcMain.handle('ranks:getCustom', async () => {
+    const active = library.all().find((r) => r.categoryId === 'ranks' || r.customRank);
+    if (!active) return { active: false };
+    return { active: true, record: active, settings: active.rankSettings || null };
+  });
+
+  ipcMain.handle('ranks:applyCustom', async (e, payload) => {
+    const stop = blocked('install');
+    if (stop) return stop;
+    try {
+      const { generateRankVpk } = require('./rank-generator');
+      const gen = generateRankVpk(payload);
+
+      // Remove any prior rank mod to avoid pak slot conflicts
+      const oldList = library.all().filter((r) => r.categoryId === 'ranks' || r.customRank);
+      for (const old of oldList) {
+        try {
+          installer.removeMod(old);
+          library.remove(old.id);
+        } catch { /* proceed */ }
+      }
+
+      const files = await installer.installDirectBuffer(gen.buffer, gen.name, 'ranks');
+      const rec = library.add({
+        categoryId: 'ranks',
+        name: gen.name,
+        styleLabel: null,
+        fileRef: 'custom_rank.vpk',
+        customRank: true,
+        rankSettings: {
+          medal: payload.medal,
+          stars: gen.stars,
+          mmr: gen.mmr,
+          heroTier: payload.heroTier,
+          heroLevel: payload.heroLevel,
+        },
+        files,
+      });
+
+      sendProgress({ type: 'done', label: gen.name });
+      return { ok: true, record: rec, name: gen.name };
+    } catch (err) {
+      sendProgress({ type: 'error', label: 'Rank Changer', message: String(err.message || err) });
+      return { error: String(err.message || err) };
+    }
+  });
+
+  ipcMain.handle('ranks:removeCustom', async () => {
+    const oldList = library.all().filter((r) => r.categoryId === 'ranks' || r.customRank);
+    for (const old of oldList) {
+      try {
+        installer.removeMod(old);
+        library.remove(old.id);
+      } catch { /* proceed */ }
+    }
+    return { ok: true };
+  });
 }
 
 module.exports = { registerModsIpc };

@@ -27,6 +27,7 @@ import { isQueued, toggleQueued, dropFromQueue, useInstaller } from '../ui/queue
 import { refreshSidebarStatus } from '../ui/statusbar.js';
 import { modGuidesHtml, bindGuides } from '../ui/guide.js';
 import { refreshNotices, noticeBannerHtml, bindNotice } from '../ui/notice.js';
+import { initRankCustomizer, rankCustomizerHtml, bindRankCustomizer } from '../ui/rank-customizer.js';
 
 const viewRoot = pane('catalog');
 
@@ -179,7 +180,7 @@ function buildModIndex() {
 function installTarget(mod) {
   const f = mod.file;
   if (!f) return null;
-  if (/\.(vpk|zip)$/i.test(f)) return f;
+  if (/\.(vpk|zip)$/i.test(f) || String(f).startsWith('generator:')) return f;
   return null;
 }
 
@@ -220,7 +221,7 @@ function isInstalled(categoryId, m) {
 
 // can this mod ever carry the "Установлен" badge? (guides/sites are link-only)
 function canBeInstalled(m) {
-  return !!installTarget(m) || (m.styles || []).some((s) => s.file && /\.(vpk|zip)$/i.test(s.file));
+  return !!installTarget(m) || (m.styles || []).some((s) => s.file && /(\.(vpk|zip)$|^generator:)/i.test(s.file));
 }
 
 // ---------- filtering / sorting ----------
@@ -655,13 +656,20 @@ async function renderCategory(categoryId) {
     gridHtml = mods.map((m, i) => cardHtml(m, i)).join('');
   }
 
+  const isRanks = categoryId === 'ranks';
+  if (isRanks) {
+    await initRankCustomizer();
+  }
+
   await paint(() => { viewRoot.innerHTML = `
     <div class="view-header">
       <h1 class="view-title">${esc(catName(categoryId))}</h1>
     </div>
+    ${isRanks ? rankCustomizerHtml() : ''}
     ${toolbarHtml(mods.length, { tags, slots, groups, heroes, categoryId, installable })}
     <div class="grid" id="modGrid">${gridHtml}</div>
   `; });
+  if (isRanks) bindRankCustomizer(viewRoot);
   bindToolbar();
   bindCards(viewRoot, mods);
 }

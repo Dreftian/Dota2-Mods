@@ -144,6 +144,42 @@ const DOTA2CHANGER_MODS = [
     ],
   },
   {
+    categoryId: 'hero-items',
+    group: 'rubick',
+    groupName: 'Rubick',
+    name: 'Rubick Magus Cypher Crimson & Golden Apex',
+    file: 'Rubick Magus Cypher Crimson.zip',
+    tags: { effects: true, weapon: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'hero-items',
+    group: 'faceless-void',
+    groupName: 'Faceless Void',
+    name: 'Faceless Void Claszian Apostasy & Mace of Aeons',
+    file: 'FV Claszian Apostasy Aeons.zip',
+    tags: { effects: true, weapon: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'hero-items',
+    group: 'crystal-maiden',
+    groupName: 'Crystal Maiden',
+    name: 'Crystal Maiden Conduit of Blueheart Wolf Persona',
+    file: 'CM Conduit Blueheart Wolf.zip',
+    tags: { effects: true, persona: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
     categoryId: 'terrains',
     name: 'Immortal Gardens 2026 Enhanced HD',
     file: 'Immortal Gardens 2026 HD.zip',
@@ -166,8 +202,18 @@ const DOTA2CHANGER_MODS = [
   {
     categoryId: 'ranks',
     name: 'Dota Plus Hero Tier Changer (Grandmaster Lv 30)',
-    file: 'Dota Plus Grandmaster Badge Lv30.zip',
+    file: 'generator:ranks',
     tags: { effects: true, interface: true, dota_plus: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'ranks',
+    name: 'Rank Medal & MMR Changer (Immortal Top 10 · 12,620 MMR)',
+    file: 'generator:ranks',
+    tags: { interface: true, dota_plus: true },
     meta: { date: Math.floor(Date.now() / 1000), changer: true },
     links: [
       { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },

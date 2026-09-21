@@ -52,6 +52,12 @@ contextBridge.exposeInMainWorld('api', {
     adoptFont: (name, preview) => ipcRenderer.invoke('mods:adoptFont', name, preview),
     pathForFile: (file) => webUtils.getPathForFile(file),
   },
+  ranks: {
+    getMetadata: () => ipcRenderer.invoke('ranks:getMetadata'),
+    getCustom: () => ipcRenderer.invoke('ranks:getCustom'),
+    applyCustom: (payload) => ipcRenderer.invoke('ranks:applyCustom', payload),
+    removeCustom: () => ipcRenderer.invoke('ranks:removeCustom'),
+  },
   // item schema: the search-path patch, the built schema, and the free cosmetics it enables
   patch: {
     state: () => ipcRenderer.invoke('patch:state'),

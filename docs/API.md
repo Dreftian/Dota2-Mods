@@ -44,6 +44,7 @@ the code, not in this page.
 | [`src/preset-link.js`](#srcpreset-linkjs) | Presets as a link: "d2mm://preset/<code>", where <code> is the whole preset squeezed |
 | [`src/preset-share.js`](#srcpreset-sharejs) | Shareable preset files (.d2mm) — a zip holding preset.json plus the VPK of every mod |
 | [`src/presets-service.js`](#srcpresets-servicejs) | Presets, and the two ways one travels to somebody else. |
+| [`src/rank-generator.js`](#srcrank-generatorjs) | Generates a native Dota 2 VPK mod that overrides rank medals, star pips and hero badges |
 | [`src/remote-config.js`](#srcremote-configjs) | The one thing the app can be told after it has shipped. |
 | [`src/safe-zip.js`](#srcsafe-zipjs) | The one door every foreign archive comes through. |
 | [`src/schema-service.js`](#srcschema-servicejs) | Orchestration around the item schema: what goes into it, when it is rebuilt, and how a |
@@ -2305,6 +2306,46 @@ function touchesSchema(rec)
 ```
 
 Does changing this record mean the item table has to be rebuilt?
+
+## src/rank-generator.js
+
+Generates a native Dota 2 VPK mod that overrides rank medals, star pips and hero badges
+without requiring any external download. Uses original compiled .vtex_c assets.
+
+### `RANK_MEDALS`
+
+```js
+const RANK_MEDALS = [
+```
+
+Official Dota 2 rank medals with tier boundaries and star MMR values.
+
+### `HERO_TIERS`
+
+```js
+const HERO_TIERS = [
+```
+
+Dota Plus Hero Tier progression badges and level ranges.
+
+### `generateRankVpk`
+
+```js
+function generateRankVpk({ medal = 'rank8c', stars = 5, mmr = 12620, heroTier = 5, heroLevel = 30, } = {})
+```
+
+Generates a self-contained single-file VPK buffer overriding rank icons,
+star pips, and Dota Plus hero badges.
+
+```
+@param {object} opts
+@param {string} [opts.medal] e.g. 'rank8c', 'rank3'
+@param {number} [opts.stars] e.g. 1 to 5 (0 for none)
+@param {number} [opts.mmr] e.g. 12620
+@param {number} [opts.heroTier] 0 to 5, or null to keep original
+@param {number} [opts.heroLevel] 1 to 99
+@returns {{ buffer: Buffer, name: string, medalInfo: object }}
+```
 
 ## src/remote-config.js
 
