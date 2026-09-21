@@ -749,7 +749,11 @@ if (!app.requestSingleInstanceLock()) {
  * @returns {string|null} markdown, or null when this version has no section
  */
 function releaseNotes(version, lang) {
-  const files = lang === 'ru' ? ['CHANGELOG.ru.md', 'CHANGELOG.md'] : ['CHANGELOG.md'];
+  const files = lang === 'es'
+    ? ['CHANGELOG.es.md', 'CHANGELOG.md']
+    : lang === 'ru'
+      ? ['CHANGELOG.ru.md', 'CHANGELOG.md']
+      : ['CHANGELOG.md'];
   const head = new RegExp(`^## ${version.replace(/\./g, '\\.')}(?:[^0-9.].*)?$`, 'm');
   for (const name of files) {
     let text;

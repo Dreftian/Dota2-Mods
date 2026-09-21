@@ -428,8 +428,10 @@ window.api.patch.onRepair((st) => {
   // Initialize auth state
   try {
     const authStatus = await window.api.auth.status();
-    if (authStatus && authStatus.authenticated && authStatus.user) {
+    if (authStatus && authStatus.user) {
       state.currentUser = authStatus.user;
+    } else if (authStatus && authStatus.email) {
+      state.currentUser = authStatus;
     } else {
       state.currentUser = null;
     }

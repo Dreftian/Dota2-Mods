@@ -34,6 +34,7 @@ let customState = {
   medal: 'rank8c',
   stars: 5,
   mmr: 12620,
+  immortalRank: 10,
   heroTier: 5,
   heroLevel: 30,
   activeInstalled: null,
@@ -56,6 +57,7 @@ export async function initRankCustomizer() {
       if (cur.settings.medal) customState.medal = cur.settings.medal;
       if (cur.settings.stars !== undefined) customState.stars = cur.settings.stars;
       if (cur.settings.mmr !== undefined) customState.mmr = cur.settings.mmr;
+      if (cur.settings.immortalRank !== undefined) customState.immortalRank = cur.settings.immortalRank;
       if (cur.settings.heroTier !== undefined) customState.heroTier = cur.settings.heroTier;
       if (cur.settings.heroLevel !== undefined) customState.heroLevel = cur.settings.heroLevel;
     }
@@ -107,6 +109,7 @@ export function rankCustomizerHtml() {
       </div>
 
       <!-- Stars and MMR Controls -->
+      <!-- Stars, MMR and Immortal Leaderboard Controls -->
       <div class="rc-controls-row">
         <!-- Stars Picker -->
         <div class="rc-control-group rc-stars-group ${isImmortal ? 'disabled' : ''}">
@@ -136,6 +139,18 @@ export function rankCustomizerHtml() {
         </div>
       </div>
 
+      <!-- Immortal Rank Leaderboard Digit (Visible when Immortal is selected) -->
+      <div class="rc-controls-row ${isImmortal ? '' : 'hidden'}" id="rcImmortalRow" style="margin-top: -6px; margin-bottom: 18px;">
+        <div class="rc-control-group rc-immortal-group" style="max-width: 360px;">
+          <label class="rc-label" for="rcImmortalRankInput">${L`Posición / Dígito de Clasificación Inmortal`}</label>
+          <div class="rc-mmr-input-wrap">
+            <input type="number" id="rcImmortalRankInput" class="rc-input" min="1" max="50000" value="${customState.immortalRank || 10}" />
+            <span class="rc-input-unit">#RANK</span>
+          </div>
+          <div class="rc-hint">${L`El número que se mostrará en la placa de tu medalla Inmortal (ej. 1, 10, 100, 1000).`}</div>
+        </div>
+      </div>
+
       <!-- Dota Plus Hero Tier Changer -->
       <div class="rc-section-header-wrap">
         <div class="rc-section-title">${L`4. Insignia de Nivel de Héroe (Dota Plus Hero Tier)`}</div>
@@ -158,22 +173,40 @@ export function rankCustomizerHtml() {
         }).join('')}
       </div>
 
+      <!-- Hero Tier Level Digit Picker -->
+      <div class="rc-controls-row" style="margin-top: -6px; margin-bottom: 18px;">
+        <div class="rc-control-group rc-hero-level-group" style="max-width: 360px;">
+          <label class="rc-label" for="rcHeroLevelInput">${L`Dígito de Nivel de Insignia de Héroe (Dota Plus)`}</label>
+          <div class="rc-mmr-input-wrap">
+            <input type="number" id="rcHeroLevelInput" class="rc-input" min="1" max="99" value="${customState.heroLevel || 30}" />
+            <span class="rc-input-unit">LVL</span>
+          </div>
+          <div class="rc-hint">${L`Nivel del héroe que se mostrará en las insignias de héroes (ej. 30 para Gran Maestro).`}</div>
+        </div>
+      </div>
+
       <!-- Live Preview Card -->
       <div class="rc-preview-box" id="rcPreviewBox">
         <div class="rc-preview-badge-col">
           <div class="rc-preview-medal-wrap" id="rcPreviewMedalWrap">
             <img src="assets/ranks/${customState.medal}.png" class="rc-preview-medal-img" id="rcPreviewMedalImg" alt="Medal" draggable="false" />
             <img src="assets/ranks/stars${customState.stars || 1}.png" class="rc-preview-stars-img ${isImmortal ? 'hidden' : ''}" id="rcPreviewStarsImg" alt="Stars" draggable="false" />
+            <div class="rc-preview-immortal-rank ${isImmortal ? '' : 'hidden'}" id="rcPreviewImmortalRank">
+              <span class="rc-immortal-hash">#</span><span id="rcPreviewImmortalNum">${customState.immortalRank || 10}</span>
+            </div>
           </div>
         </div>
         <div class="rc-preview-info-col">
           <div class="rc-preview-title" id="rcPreviewTitle">${getLocalizedName(currentMedal)}</div>
           <div class="rc-preview-mmr" id="rcPreviewMmr">${customState.mmr.toLocaleString()} MMR</div>
           <div class="rc-preview-hero-badge" id="rcPreviewHeroBadge">
-            <img src="assets/herotier/tier${customState.heroTier}.png" class="rc-preview-hero-img" id="rcPreviewHeroImg" alt="Hero Tier" draggable="false" />
+            <div class="rc-preview-hero-icon-wrap">
+              <img src="assets/herotier/tier${customState.heroTier}.png" class="rc-preview-hero-img" id="rcPreviewHeroImg" alt="Hero Tier" draggable="false" />
+              <span class="rc-preview-hero-lvl-badge" id="rcPreviewHeroLvlBadge">${customState.heroLevel || 30}</span>
+            </div>
             <div class="rc-preview-hero-text">
               <span class="rc-preview-hero-title" id="rcPreviewHeroTitle">${getLocalizedName(currentTier)}</span>
-              <span class="rc-preview-hero-sub">${L`Insignia de Héroe Dota Plus`} (Nivel ${customState.heroLevel})</span>
+              <span class="rc-preview-hero-sub">${L`Insignia de Héroe Dota Plus`} (Nivel <span id="rcPreviewHeroSubLvl">${customState.heroLevel || 30}</span>)</span>
             </div>
           </div>
         </div>
@@ -234,6 +267,11 @@ function updatePreview() {
     }
   }
 
+  const previewImmortalRank = $('#rcPreviewImmortalRank');
+  const previewImmortalNum = $('#rcPreviewImmortalNum');
+  if (previewImmortalRank) previewImmortalRank.classList.toggle('hidden', !isImmortal);
+  if (previewImmortalNum) previewImmortalNum.textContent = customState.immortalRank || 10;
+
   const previewTitleEl = $('#rcPreviewTitle');
   if (previewTitleEl) previewTitleEl.textContent = getLocalizedName(currentMedal);
 
@@ -243,6 +281,12 @@ function updatePreview() {
   const tier = HERO_TIER_DATA[customState.heroTier] || HERO_TIER_DATA[5];
   const previewHeroImg = $('#rcPreviewHeroImg');
   if (previewHeroImg) previewHeroImg.src = `assets/herotier/tier${tier.id}.png`;
+
+  const previewHeroLvlBadge = $('#rcPreviewHeroLvlBadge');
+  if (previewHeroLvlBadge) previewHeroLvlBadge.textContent = customState.heroLevel || 30;
+
+  const previewHeroSubLvl = $('#rcPreviewHeroSubLvl');
+  if (previewHeroSubLvl) previewHeroSubLvl.textContent = customState.heroLevel || 30;
 
   const previewHeroTitle = $('#rcPreviewHeroTitle');
   if (previewHeroTitle) previewHeroTitle.textContent = getLocalizedName(tier);
@@ -263,7 +307,7 @@ export function bindRankCustomizer(container) {
       const meta = RANK_DATA.find((m) => m.id === medalId);
       const isImmortal = medalId.startsWith('rank8');
 
-      // Update MMR
+      // Update MMR and default immortal rank
       if (meta) {
         if (!isImmortal && meta.stars && meta.stars[customState.stars - 1] !== undefined) {
           customState.mmr = meta.stars[customState.stars - 1];
@@ -272,6 +316,18 @@ export function bindRankCustomizer(container) {
         }
         const mmrInput = $('#rcMmrInput');
         if (mmrInput) mmrInput.value = customState.mmr;
+      }
+
+      // Toggle immortal rank input row
+      const immortalRow = container.querySelector('#rcImmortalRow');
+      if (immortalRow) immortalRow.classList.toggle('hidden', !isImmortal);
+      if (isImmortal) {
+        if (medalId === 'rank8c') customState.immortalRank = 10;
+        else if (medalId === 'rank8b') customState.immortalRank = 100;
+        else if (medalId === 'rank8a') customState.immortalRank = 1000;
+        else if (medalId === 'rank8') customState.immortalRank = 5000;
+        const immInput = container.querySelector('#rcImmortalRankInput');
+        if (immInput) immInput.value = customState.immortalRank;
       }
 
       // Toggle stars group disabled state
@@ -314,6 +370,15 @@ export function bindRankCustomizer(container) {
     });
   }
 
+  // 3b. Immortal Rank Input
+  const immortalInput = container.querySelector('#rcImmortalRankInput');
+  if (immortalInput) {
+    immortalInput.addEventListener('input', () => {
+      customState.immortalRank = Math.max(1, Number(immortalInput.value) || 1);
+      updatePreview();
+    });
+  }
+
   // 4. Hero Tier Selection
   container.querySelectorAll('.rc-tier-card').forEach((card) => {
     card.addEventListener('click', () => {
@@ -322,12 +387,24 @@ export function bindRankCustomizer(container) {
       const tierInfo = HERO_TIER_DATA.find((t) => t.id === tierId);
       if (tierInfo) customState.heroLevel = tierInfo.defaultLevel;
 
+      const heroLvlInput = container.querySelector('#rcHeroLevelInput');
+      if (heroLvlInput) heroLvlInput.value = customState.heroLevel;
+
       container.querySelectorAll('.rc-tier-card').forEach((c) => c.classList.remove('active'));
       card.classList.add('active');
 
       updatePreview();
     });
   });
+
+  // 4b. Hero Level Input
+  const heroLevelInput = container.querySelector('#rcHeroLevelInput');
+  if (heroLevelInput) {
+    heroLevelInput.addEventListener('input', () => {
+      customState.heroLevel = Math.max(1, Math.min(99, Number(heroLevelInput.value) || 1));
+      updatePreview();
+    });
+  }
 
   // 5. Apply Button
   const applyBtn = container.querySelector('#rcApplyBtn');
@@ -341,6 +418,7 @@ export function bindRankCustomizer(container) {
           medal: customState.medal,
           stars: customState.stars,
           mmr: customState.mmr,
+          immortalRank: customState.immortalRank,
           heroTier: customState.heroTier,
           heroLevel: customState.heroLevel,
         });

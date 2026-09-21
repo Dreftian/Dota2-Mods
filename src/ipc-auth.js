@@ -4,7 +4,8 @@ const { ipcMain } = require('electron');
 
 function registerAuthIpc({ auth }) {
   ipcMain.handle('auth:status', async () => {
-    return auth.current();
+    const user = auth.current();
+    return { authenticated: !!user, user };
   });
 
   ipcMain.handle('auth:login', async (event, { email, password }) => {

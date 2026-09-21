@@ -2331,7 +2331,7 @@ Dota Plus Hero Tier progression badges and level ranges.
 ### `generateRankVpk`
 
 ```js
-function generateRankVpk({ medal = 'rank8c', stars = 5, mmr = 12620, heroTier = 5, heroLevel = 30, } = {})
+function generateRankVpk({ medal = 'rank8c', stars = 5, mmr = 12620, immortalRank = 10, heroTier = 5, heroLevel = 30, } = {})
 ```
 
 Generates a self-contained single-file VPK buffer overriding rank icons,

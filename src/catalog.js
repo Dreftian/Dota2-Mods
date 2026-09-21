@@ -259,6 +259,246 @@ const DOTA2CHANGER_MODS = [
       { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
     ],
   },
+  {
+    categoryId: 'announcers',
+    name: 'Gabe Newell Announcer Pack & Mega-Kills',
+    file: 'Gabe Newell Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Rick and Morty Announcer Pack & Mega-Kills',
+    file: 'Rick and Morty Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Snoop Dogg Voice & Announcer Pack',
+    file: 'Snoop Dogg Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'GLaDOS Announcer Pack & Mega-Kills (Portal)',
+    file: 'GLaDOS Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'The Stanley Parable Announcer Pack',
+    file: 'The Stanley Parable Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Darkest Dungeon Announcer Pack',
+    file: 'Darkest Dungeon Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Bastion Announcer Pack & Mega-Kills',
+    file: 'Bastion Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Deus Ex Adam Jensen Announcer Pack',
+    file: 'Deus Ex Adam Jensen Announcer.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Fallout 4 Mister Handy Announcer Pack',
+    file: 'Fallout 4 Mister Handy Announcer.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Voice of The International (John Patrick Lowrie)',
+    file: 'Voice of The International Announcer.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Locutor Oficial en Español Latino (Spanish Caster Pack)',
+    file: 'Spanish Caster Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Meepo Announcer Pack & Mega-Kills',
+    file: 'Meepo Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Dark Willow Announcer Pack',
+    file: 'Dark Willow Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Crystal Maiden Announcer Pack',
+    file: 'Crystal Maiden Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Lina Announcer Pack',
+    file: 'Lina Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Kunkka & Tidehunter Announcer Pack',
+    file: 'Kunkka and Tidehunter Announcer.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Axe Announcer & Mega-Kills Pack',
+    file: 'Axe Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Storm Spirit Announcer Pack',
+    file: 'Storm Spirit Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Bristleback Announcer Pack',
+    file: 'Bristleback Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Tusk Announcer Pack',
+    file: 'Tusk Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Clockwerk Announcer Pack',
+    file: 'Clockwerk Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Trine Announcer Pack',
+    file: 'Trine Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Pyrion Flax Announcer Pack & Mega-Kills',
+    file: 'Pyrion Flax Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
+  {
+    categoryId: 'announcers',
+    name: 'Techies Announcer Pack & Mega-Kills',
+    file: 'Techies Announcer Pack.zip',
+    tags: { audio: true, announcer: true },
+    meta: { date: Math.floor(Date.now() / 1000), changer: true },
+    links: [
+      { type: 'preview', url: 'https://es.dota2changer.com/profile/?v=1789867182', name: 'Dota2Changer Profile' },
+    ],
+  },
 ];
 
 /**

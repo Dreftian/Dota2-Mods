@@ -2,6 +2,19 @@
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
 
+## 1.0.2
+
+### GitHub Auto-Updates, Immortal Leaderboard Rank Digits, and Expanded Announcers
+
+This release refines mod customization and ensures seamless updates from GitHub:
+
+- GitHub updates are now fetched directly from `Dreftian/Dota2-Mods` for both installer and portable builds
+- Persistent authentication session: logging in once keeps you signed in across app restarts until explicit sign out
+- Localized What's New modal in Spanish with matching action button
+- Custom Immortal rank leaderboard number: set your exact rank digit (Top 1, 10, 100, 1000 or custom) on your medal
+- Custom Dota Plus hero level badge: set your hero badge level digit (e.g. Level 30 Grandmaster) across all hero cards
+- Expanded Announcer Catalog with 24 popular packs including Gabe Newell, Rick & Morty, Snoop Dogg, and Spanish Caster
+
 ## 1.0.1
 
 ### Authentic Dota 2 Rank Medals, MMR and Hero Tier Customizer

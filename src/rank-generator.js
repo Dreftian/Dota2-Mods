@@ -61,10 +61,23 @@ function generateRankVpk({
   medal = 'rank8c',
   stars = 5,
   mmr = 12620,
+  immortalRank = 10,
   heroTier = 5,
   heroLevel = 30,
 } = {}) {
-  const medalMeta = RANK_MEDALS.find((m) => m.id === medal) || RANK_MEDALS[RANK_MEDALS.length - 1];
+  let targetMedalId = medal;
+  const isImmortal = targetMedalId.startsWith('rank8');
+  const numImmortalRank = isImmortal ? Math.max(1, Number(immortalRank) || 10) : null;
+
+  // If Immortal and an immortalRank is specified, select the best matching medal tier
+  if (isImmortal && numImmortalRank !== null) {
+    if (numImmortalRank <= 10) targetMedalId = 'rank8c';
+    else if (numImmortalRank <= 100) targetMedalId = 'rank8b';
+    else if (numImmortalRank <= 1000) targetMedalId = 'rank8a';
+    else targetMedalId = 'rank8a';
+  }
+
+  const medalMeta = RANK_MEDALS.find((m) => m.id === targetMedalId) || RANK_MEDALS[RANK_MEDALS.length - 1];
   const entries = [];
 
   // 1. Rank Medals: Map every rank slot to the selected medal's .vtex_c data
@@ -106,7 +119,6 @@ function generateRankVpk({
   }
 
   // 2. Star Pips: If stars > 0 and medal tier < 8 (Immortal has no stars), map all pips to the chosen count
-  const isImmortal = medalMeta.id.startsWith('rank8');
   const numStars = isImmortal ? 0 : Math.max(0, Math.min(5, Number(stars) || 0));
 
   if (numStars > 0) {
@@ -165,6 +177,38 @@ function generateRankVpk({
           data: badgeTiny,
         });
       }
+
+      // Also override empty/unranked badges so unleveled heroes show the selected tier
+      for (const slotName of ['hero_badge_rank_empty_psd', 'hero_badge_rank_empty_png']) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/hero_badges',
+          name: slotName,
+          crc: bCrc,
+          preload: Buffer.alloc(0),
+          data: badgeNormal,
+        });
+      }
+      for (const slotName of ['hero_badge_rank_empty_small_psd', 'hero_badge_rank_empty_small_png']) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/hero_badges',
+          name: slotName,
+          crc: sCrc,
+          preload: Buffer.alloc(0),
+          data: badgeSmall,
+        });
+      }
+      for (const slotName of ['hero_badge_rank_empty_tiny_psd', 'hero_badge_rank_empty_tiny_png']) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/hero_badges',
+          name: slotName,
+          crc: tCrc,
+          preload: Buffer.alloc(0),
+          data: badgeTiny,
+        });
+      }
     }
   }
 
@@ -173,9 +217,11 @@ function generateRankVpk({
   }
 
   const buffer = buildVpk(entries);
-  const starsLabel = numStars > 0 ? `${numStars}★` : (isImmortal ? 'Top Rank' : '');
+  const starsLabel = numStars > 0
+    ? `${numStars}★`
+    : (isImmortal ? `#${numImmortalRank || 10}` : '');
   const tierInfo = HERO_TIERS.find((t) => t.id === heroTier);
-  const tierLabel = tierInfo ? tierInfo.nameEn : '';
+  const tierLabel = tierInfo ? `${tierInfo.nameEn} Lv ${heroLevel}` : '';
   const modTitle = `Rank Changer (${medalMeta.nameEn} ${starsLabel} · ${mmr} MMR · ${tierLabel})`;
 
   return {
@@ -184,6 +230,7 @@ function generateRankVpk({
     medalInfo: medalMeta,
     stars: numStars,
     mmr: Number(mmr) || medalMeta.defaultMmr,
+    immortalRank: numImmortalRank,
     heroTier,
     heroLevel: Number(heroLevel) || 30,
   };

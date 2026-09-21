@@ -262,6 +262,7 @@ function registerModsIpc({
           medal: payload.medal,
           stars: gen.stars,
           mmr: gen.mmr,
+          immortalRank: gen.immortalRank,
           heroTier: payload.heroTier,
           heroLevel: payload.heroLevel,
         },

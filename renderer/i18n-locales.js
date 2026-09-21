@@ -118,10 +118,29 @@ const ES = {
   'Update ': 'Actualización ',
   ' is ready to install': ' está lista para instalar',
   'Restart and update': 'Reiniciar y actualizar',
-  'Later': 'Más tarde',
   'Language switched to English': 'Idioma cambiado a Inglés',
   'Language switched to Russian': 'Idioma cambiado a Ruso',
   'on': 'activado',
+  'Got it': 'Entendido',
+  'Понятно': 'Entendido',
+  'Что нового': 'Novedades',
+  'version {0}': 'versión {0}',
+  'версия {0}': 'versión {0}',
+  'Elección de Rango y MMR de Dota 2': 'Elección de Rango y MMR de Dota 2',
+  'Posición / Dígito de Clasificación Inmortal': 'Posición / Dígito de Clasificación Inmortal',
+  'El número que se mostrará en la placa de tu medalla Inmortal (ej. 1, 10, 100, 1000).': 'El número que se mostrará en la placa de tu medalla Inmortal (ej. 1, 10, 100, 1000).',
+  'Dígito de Nivel de Insignia de Héroe (Dota Plus)': 'Dígito de Nivel de Insignia de Héroe (Dota Plus)',
+  'Nivel del héroe que se mostrará en las insignias de héroes (ej. 30 para Gran Maestro).': 'Nivel del héroe que se mostrará en las insignias de héroes (ej. 30 para Gran Maestro).',
+  '¡Rango y nivel de héroe actualizados e instalados con éxito!': '¡Rango y nivel de héroe actualizados e instalados con éxito!',
+  'Las medallas Inmortal muestran puesto en el ranking en vez de estrellas.': 'Las medallas Inmortal muestran puesto en el ranking en vez de estrellas.',
+  'El MMR se autocompleta con el rango pero puedes escribir cualquier número que desees.': 'El MMR se autocompleta con el rango pero puedes escribir cualquier número que desees.',
+  'Mod de Rango Activo en el Juego': 'Mod de Rango Activo en el Juego',
+  '1. Selecciona tu Medalla de Rango': '1. Selecciona tu Medalla de Rango',
+  '2. Estrellas de Rango': '2. Estrellas de Rango',
+  '3. MMR del Perfil (Hasta 15,000)': '3. MMR del Perfil (Hasta 15,000)',
+  '4. Insignia de Nivel de Héroe (Dota Plus Hero Tier)': '4. Insignia de Nivel de Héroe (Dota Plus Hero Tier)',
+  'Aplicar e Instalar Rango': 'Aplicar e Instalar Rango',
+  'Restablecer Medalla Original': 'Restablecer Medalla Original',
 };
 
 const JA = {
@@ -167,6 +186,10 @@ const JA = {
   'Resolve conflict': '競合を解決',
   'Conflict resolved successfully': '競合を解決しました',
   'on': '有効',
+  'Got it': '了解',
+  'Понятно': '了解',
+  "What's new": '更新情報',
+  'Что нового': '更新情報',
 };
 
 const ZH = {
@@ -212,6 +235,10 @@ const ZH = {
   'Resolve conflict': '解决冲突',
   'Conflict resolved successfully': '已成功解决冲突',
   'on': '开启',
+  'Got it': '知道了',
+  'Понятно': '知道了',
+  "What's new": '更新说明',
+  'Что нового': '更新说明',
 };
 
 window.LOCALES = { ES, JA, ZH };

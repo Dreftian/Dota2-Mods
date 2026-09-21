@@ -22,7 +22,7 @@ const fs = require('fs');
 const path = require('path');
 const { fetchText, downloadFile } = require('./net');
 
-const REPO = 'TheFleece/dota2-mod-manager';
+const REPO = 'Dreftian/Dota2-Mods';
 const MANIFEST = 'portable.yml';
 
 const releaseUrl = (version, file) =>
