@@ -2,6 +2,19 @@
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
 
+## 1.0.5
+
+### Local Profile Isolation, Plaque Digit Centering, 100-Mod Free Capacity, System Tray & Official Website
+
+This release brings local profile isolation for rank changer mods, centered plaque digits without the `#` prefix, 100-mod capacity for Free accounts with Spanish translations, Windows system settings, and an official interactive website:
+
+- **Local Profile Isolation**: Medal and hero badge modifications now strictly isolate to your own local profile card and hero picker grid via targeted Panorama CSS patching (`#ProfileContainer #RankTier`, `hero_grid_new.vcss_c`, `hero_badge.vcss_c`). Allies and opponents in match HUD, scoreboards, and top bars keep their authentic, untouched medals and badges.
+- **Immortal Plaque Digit Centering & Clean Formatting**: Removed the `#` prefix from the Immortal plaque digit (e.g. `30` instead of `#30`), perfectly centered horizontally and vertically with crisp, authentic metallic Dota 2 gradients.
+- **100-Mod Free Capacity & Unlimited VIP Space**: Free tier now supports up to 100 simultaneous mods with smart pack combining prompts, while VIP tier enjoys unlimited mod capacity with no warnings.
+- **Full Spanish Localization**: All slot indicators, capacity warnings, combination banners, and system settings are completely translated to Spanish.
+- **Windows System Settings**: Added toggles in Settings to launch Mod Assistant on Windows startup (`autoStart`) and minimize to the system notification tray when closing the window (`minimizeToTray`).
+- **Official Interactive Website (`Website/`)**: Added a modern, animated dark Dota 2 themed website with live interactive Rank and Hero Badge changer preview, feature showcase, tier comparison, and direct download links exclusively branded for Dreftian Devs.
+
 ## 1.0.4
 
 ### In-Game Immortal Digit Baking, Hero Level 30 Injection, Tier Realignment and InsForge Profiles

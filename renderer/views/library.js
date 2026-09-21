@@ -899,9 +899,10 @@ async function renderLibrary() {
   }
 
   const enabledCount = installedAll.filter((m) => m.enabled).length;
+  const isPremiumUser = !!(state.currentUser?.isPremium || state.currentUser?.isAdmin || state.currentUser?.role === 'admin' || state.currentUser?.email === 'dreftian@gmail.com');
   const slots = res.slots || 0;
-  const slotCeil = res.slotCeil || 98;
-  const nearLimit = slots >= 90;
+  const slotCeil = isPremiumUser ? 9999 : (res.slotCeil ? Math.max(100, res.slotCeil) : 100);
+  const nearLimit = !isPremiumUser && slots >= 90;
   const external = externalAll;
   libExternal = externalAll;
   const matchedCount = installedAll.filter((r) => r.match).length + externalAll.filter((f) => f.match && !f.duplicateOf).length;
@@ -914,7 +915,10 @@ async function renderLibrary() {
   ordered.forEach((r, i) => { r.slot = slotOf(r); r.slotIndex = i; });
 
   await paint(() => { viewRoot.innerHTML = `
-    <div class="view-header"><h1 class="view-title">${L`Мои моды`}</h1></div>
+    <div class="view-header" style="display:flex;align-items:center;">
+      <h1 class="view-title">${L`Мои моды`}</h1>
+      ${isPremiumUser ? `<span class="badge badge-vip" style="margin-left: 12px; font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.3); font-weight: 600;">VIP: ${L`Неограниченное место`}</span>` : ''}
+    </div>
     ${noticeBannerHtml()}
     ${masterOff ? `
       <div class="banner off">

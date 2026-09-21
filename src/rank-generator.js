@@ -38,11 +38,6 @@ const HERO_TIERS = [
   { id: 5, nameRu: 'Грандмастер (Ур. 30)', nameEn: 'Grandmaster (Lv 30)', nameEs: 'Gran Maestro (Lv 30)', minLevel: 30, maxLevel: 30, defaultLevel: 30 },
 ];
 
-const ALL_RANK_SLOTS = [
-  'rank0_psd', 'rank1_psd', 'rank2_psd', 'rank3_psd', 'rank4_psd',
-  'rank5_psd', 'rank6_psd', 'rank7_psd', 'rank8_psd', 'rank8a_psd',
-  'rank8b_psd', 'rank8c_psd',
-];
 
 function readAssetSafe(subfolder, fileName) {
   const p = path.join(ASSETS_ROOT, subfolder, fileName);
@@ -85,7 +80,9 @@ function generateRankVpk({
   const medalMeta = RANK_MEDALS.find((m) => m.id === targetMedalId) || RANK_MEDALS[RANK_MEDALS.length - 1];
   const entries = [];
 
-  // 1. Rank Medals: Map every rank slot to the selected medal's .vtex_c data
+  // 1. Rank Medals: Generate custom profile rank texture and patch profile CSS.
+  // Crucial: Do NOT clobber ALL_RANK_SLOTS globally, so that other players in matches,
+  // scoreboards, and top bars keep their authentic, original rank medals!
   const medalAssetFile = `${medalMeta.id}_psd.vtex_c`;
   let medalBuf = readAssetSafe('ranks', medalAssetFile);
   if (!medalBuf) {
@@ -98,16 +95,16 @@ function generateRankVpk({
       medalBuf = renderRankPlaqueDigits(medalBuf, numImmortalRank);
     }
     const medalCrc = crc32(medalBuf);
-    for (const slot of ALL_RANK_SLOTS) {
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/rank_tier_icons',
-        name: slot,
-        crc: medalCrc,
-        preload: Buffer.alloc(0),
-        data: medalBuf,
-      });
-    }
+
+    // Save as dedicated custom profile rank texture
+    entries.push({
+      ext: 'vtex_c',
+      folder: 'panorama/images/rank_tier_icons',
+      name: 'custom_profile_rank_psd',
+      crc: medalCrc,
+      preload: Buffer.alloc(0),
+      data: medalBuf,
+    });
 
     // Also map mini medal icons if present
     let miniAsset = readAssetSafe('ranks', `${medalMeta.id}_mini_psd.vtex_c`)
@@ -116,189 +113,144 @@ function generateRankVpk({
     if (isImmortal && numImmortalRank && miniAsset) {
       miniAsset = renderRankPlaqueDigits(miniAsset, numImmortalRank);
     }
-    const miniCrc = crc32(miniAsset);
-    for (const slot of ALL_RANK_SLOTS) {
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/rank_tier_icons/mini',
-        name: slot,
-        crc: miniCrc,
-        preload: Buffer.alloc(0),
-        data: miniAsset,
-      });
-    }
-
-    // For immortal ranks, patch ui_rank_badge.vcss_c so empty server text does not cover plaque
-    if (isImmortal) {
-      const uiRankCss = readAssetSafe('styles', 'ui_rank_badge.vcss_c');
-      if (uiRankCss) {
-        const patchedUiRank = patchCssResource(
-          uiRankCss,
-          '#RankLeaderboard{color: #F7E5c3;letter-spacing: 1px;font-size: 14px;',
-          '#RankLeaderboard{visibility: collapse !important;font-size: 0px !important;color: transparent !important;',
-        );
-        entries.push({
-          ext: 'vcss_c',
-          folder: 'panorama/styles',
-          name: 'ui_rank_badge',
-          crc: crc32(patchedUiRank),
-          preload: Buffer.alloc(0),
-          data: patchedUiRank,
-        });
-      }
-    }
+    entries.push({
+      ext: 'vtex_c',
+      folder: 'panorama/images/rank_tier_icons/mini',
+      name: 'custom_profile_rank_mini_psd',
+      crc: crc32(miniAsset),
+      preload: Buffer.alloc(0),
+      data: miniAsset,
+    });
   }
 
-  // 2. Star Pips: If stars > 0 and medal tier < 8 (Immortal has no stars), map all pips to the chosen count
+  // 2. Star Pips: If stars > 0 and medal tier < 8 (Immortal has no stars)
   const numStars = isImmortal ? 0 : Math.max(0, Math.min(5, Number(stars) || 0));
-
   if (numStars > 0) {
     const pipAssetFile = `pip${numStars}_psd.vtex_c`;
     const pipBuf = readAssetSafe('ranks', pipAssetFile);
     if (pipBuf) {
-      const pipCrc = crc32(pipBuf);
-      for (let i = 1; i <= 7; i++) {
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/rank_tier_icons',
-          name: `pip${i}_psd`,
-          crc: pipCrc,
-          preload: Buffer.alloc(0),
-          data: pipBuf,
-        });
-      }
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/rank_tier_icons',
+        name: 'custom_profile_pips_psd',
+        crc: crc32(pipBuf),
+        preload: Buffer.alloc(0),
+        data: pipBuf,
+      });
     }
   }
 
-  // 3. Dota Plus Hero Badges: Map tier 0..5 to the chosen heroTier
+  // 3. Patch dashboard_page_profile.vcss_c and ui_rank_badge.vcss_c for profile isolation
+  const profileCss = readAssetSafe('styles', 'dashboard_page_profile.vcss_c');
+  if (profileCss) {
+    let pipsRule = '';
+    if (numStars > 0) {
+      pipsRule = '#ProfileContainer #RankPips,.RankBadge #RankPips{visibility: visible !important;background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_pips_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}';
+    } else {
+      pipsRule = '#ProfileContainer #RankPips,.RankBadge #RankPips{visibility: collapse !important;}';
+    }
+    const leaderRule = isImmortal
+      ? '#ProfileContainer #RankLeaderboard,.RankBadge #RankLeaderboard{visibility: collapse !important;font-size: 0px !important;color: transparent !important;}'
+      : '';
+    const heroBadgeProfileRule = (heroTier !== null && heroTier !== undefined)
+      ? `#ProfileContainer DOTAHeroBadge #BadgeImage,.ProfileHeroBadge #BadgeImage{background-image: url("s2r://panorama/images/hero_badges/hero_badge_rank_${Math.max(0, Math.min(5, Number(heroTier)))}_png.vtex") !important;}`
+      : '';
+
+    const patchedProfile = patchCssResource(
+      profileCss,
+      '.RankTier0 #RankTier.RankTierImage{background-size: 150%;}',
+      `#ProfileContainer #RankTier,.RankBadge #RankTier{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}${pipsRule}${leaderRule}${heroBadgeProfileRule}`,
+    );
+
+    entries.push({
+      ext: 'vcss_c',
+      folder: 'panorama/styles',
+      name: 'dashboard_page_profile',
+      crc: crc32(patchedProfile),
+      preload: Buffer.alloc(0),
+      data: patchedProfile,
+    });
+  }
+
+  // For immortal ranks, patch ui_rank_badge.vcss_c so empty server text does not cover plaque
+  if (isImmortal) {
+    const uiRankCss = readAssetSafe('styles', 'ui_rank_badge.vcss_c');
+    if (uiRankCss) {
+      const patchedUiRank = patchCssResource(
+        uiRankCss,
+        '#RankLeaderboard{color: #F7E5c3;letter-spacing: 1px;font-size: 14px;',
+        '#RankLeaderboard{visibility: collapse !important;font-size: 0px !important;color: transparent !important;',
+      );
+      entries.push({
+        ext: 'vcss_c',
+        folder: 'panorama/styles',
+        name: 'ui_rank_badge',
+        crc: crc32(patchedUiRank),
+        preload: Buffer.alloc(0),
+        data: patchedUiRank,
+      });
+    }
+  }
+
+  // 4. Dota Plus Hero Badges:
+  // Generate custom level digit texture for hero cards and badge views
   if (heroTier !== null && heroTier !== undefined) {
-    const tierNum = Math.max(0, Math.min(5, Number(heroTier)));
-    const badgeNormal = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_png.vtex_c`);
-    const badgeSmall = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_small_png.vtex_c`) || badgeNormal;
-    const badgeTiny = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_tiny_png.vtex_c`) || badgeSmall;
+    const baseTinyPath = path.join(ASSETS_ROOT, 'hero_badges', 'hero_badge_rank_0_tiny_png.vtex_c');
+    if (fs.existsSync(baseTinyPath)) {
+      const levelVtex = createHeroLevelVtex(heroLevel, baseTinyPath);
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/hero_badges',
+        name: 'custom_hero_level_png',
+        crc: crc32(levelVtex),
+        preload: Buffer.alloc(0),
+        data: levelVtex,
+      });
 
-    if (badgeNormal) {
-      const bCrc = crc32(badgeNormal);
-      const sCrc = crc32(badgeSmall);
-      const tCrc = crc32(badgeTiny);
-
-      for (let i = 0; i <= 5; i++) {
+      // Patch hero_grid_new.vcss_c to render the custom level texture in hero picker grid
+      const heroGridCss = readAssetSafe('styles', 'hero_grid_new.vcss_c');
+      if (heroGridCss) {
+        let patchedGrid = patchCssResource(
+          heroGridCss,
+          '#HeroBadgeLevel{font-size: 12px;color: white;font-weight: bold;text-align: center;text-shadow: 0px 0px 4px 2.0 black;',
+          '#HeroBadgeLevel{color: transparent !important;text-shadow: none !important;background-image: url("s2r://panorama/images/hero_badges/custom_hero_level_png.vtex");background-size: contain;background-position: center;background-repeat: no-repeat;',
+        );
+        patchedGrid = patchCssResource(
+          patchedGrid,
+          '.NoTier #HeroBadgeStatus{visibility: collapse;}',
+          '.NoTier #HeroBadgeStatus{visibility: visible;}',
+        );
         entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: `hero_badge_rank_${i}_png`,
-          crc: bCrc,
+          ext: 'vcss_c',
+          folder: 'panorama/styles',
+          name: 'hero_grid_new',
+          crc: crc32(patchedGrid),
           preload: Buffer.alloc(0),
-          data: badgeNormal,
-        });
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: `hero_badge_rank_${i}_small_png`,
-          crc: sCrc,
-          preload: Buffer.alloc(0),
-          data: badgeSmall,
-        });
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: `hero_badge_rank_${i}_tiny_png`,
-          crc: tCrc,
-          preload: Buffer.alloc(0),
-          data: badgeTiny,
+          data: patchedGrid,
         });
       }
 
-      // Also override empty/unranked badges so unleveled heroes show the selected tier
-      for (const slotName of ['hero_badge_rank_empty_psd', 'hero_badge_rank_empty_png']) {
+      // Patch hero_badge.vcss_c to render the custom level texture on hero profile and loadout
+      const heroBadgeCss = readAssetSafe('styles', 'hero_badge.vcss_c');
+      if (heroBadgeCss) {
+        let patchedBadge = patchCssResource(
+          heroBadgeCss,
+          'DOTAHeroBadge.LevelStyle > Label{vertical-align: middle;horizontal-align: center;font-size: 29px;color: white;font-weight: bold;text-shadow: 0px 0px 6px 6.0 black;',
+          'DOTAHeroBadge.LevelStyle > Label{color: transparent !important;text-shadow: none !important;background-image: url("s2r://panorama/images/hero_badges/custom_hero_level_png.vtex");background-size: contain;background-position: center;background-repeat: no-repeat;',
+        );
+        patchedBadge = patchCssResource(
+          patchedBadge,
+          'DOTAHeroBadge.ModelStyle > Label{vertical-align: middle;horizontal-align: center;font-size: 29px;color: white;font-weight: bold;',
+          'DOTAHeroBadge.ModelStyle > Label{color: transparent !important;text-shadow: none !important;background-image: url("s2r://panorama/images/hero_badges/custom_hero_level_png.vtex");background-size: contain;background-position: center;background-repeat: no-repeat;',
+        );
         entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: slotName,
-          crc: bCrc,
+          ext: 'vcss_c',
+          folder: 'panorama/styles',
+          name: 'hero_badge',
+          crc: crc32(patchedBadge),
           preload: Buffer.alloc(0),
-          data: badgeNormal,
+          data: patchedBadge,
         });
-      }
-      for (const slotName of ['hero_badge_rank_empty_small_psd', 'hero_badge_rank_empty_small_png']) {
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: slotName,
-          crc: sCrc,
-          preload: Buffer.alloc(0),
-          data: badgeSmall,
-        });
-      }
-      for (const slotName of ['hero_badge_rank_empty_tiny_psd', 'hero_badge_rank_empty_tiny_png']) {
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: slotName,
-          crc: tCrc,
-          preload: Buffer.alloc(0),
-          data: badgeTiny,
-        });
-      }
-
-      // Generate custom level digit texture for hero cards and badge views
-      const baseTinyPath = path.join(ASSETS_ROOT, 'hero_badges', 'hero_badge_rank_0_tiny_png.vtex_c');
-      if (fs.existsSync(baseTinyPath)) {
-        const levelVtex = createHeroLevelVtex(heroLevel, baseTinyPath);
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: 'custom_hero_level_png',
-          crc: crc32(levelVtex),
-          preload: Buffer.alloc(0),
-          data: levelVtex,
-        });
-
-        // Patch hero_grid_new.vcss_c to render the custom level texture in hero picker grid
-        const heroGridCss = readAssetSafe('styles', 'hero_grid_new.vcss_c');
-        if (heroGridCss) {
-          let patchedGrid = patchCssResource(
-            heroGridCss,
-            '#HeroBadgeLevel{font-size: 12px;color: white;font-weight: bold;text-align: center;text-shadow: 0px 0px 4px 2.0 black;',
-            '#HeroBadgeLevel{color: transparent !important;text-shadow: none !important;background-image: url("s2r://panorama/images/hero_badges/custom_hero_level_png.vtex");background-size: contain;background-position: center;background-repeat: no-repeat;',
-          );
-          patchedGrid = patchCssResource(
-            patchedGrid,
-            '.NoTier #HeroBadgeStatus{visibility: collapse;}',
-            '.NoTier #HeroBadgeStatus{visibility: visible;}',
-          );
-          entries.push({
-            ext: 'vcss_c',
-            folder: 'panorama/styles',
-            name: 'hero_grid_new',
-            crc: crc32(patchedGrid),
-            preload: Buffer.alloc(0),
-            data: patchedGrid,
-          });
-        }
-
-        // Patch hero_badge.vcss_c to render the custom level texture on hero profile and loadout
-        const heroBadgeCss = readAssetSafe('styles', 'hero_badge.vcss_c');
-        if (heroBadgeCss) {
-          let patchedBadge = patchCssResource(
-            heroBadgeCss,
-            'DOTAHeroBadge.LevelStyle > Label{vertical-align: middle;horizontal-align: center;font-size: 29px;color: white;font-weight: bold;text-shadow: 0px 0px 6px 6.0 black;',
-            'DOTAHeroBadge.LevelStyle > Label{color: transparent !important;text-shadow: none !important;background-image: url("s2r://panorama/images/hero_badges/custom_hero_level_png.vtex");background-size: contain;background-position: center;background-repeat: no-repeat;',
-          );
-          patchedBadge = patchCssResource(
-            patchedBadge,
-            'DOTAHeroBadge.ModelStyle > Label{vertical-align: middle;horizontal-align: center;font-size: 29px;color: white;font-weight: bold;',
-            'DOTAHeroBadge.ModelStyle > Label{color: transparent !important;text-shadow: none !important;background-image: url("s2r://panorama/images/hero_badges/custom_hero_level_png.vtex");background-size: contain;background-position: center;background-repeat: no-repeat;',
-          );
-          entries.push({
-            ext: 'vcss_c',
-            folder: 'panorama/styles',
-            name: 'hero_badge',
-            crc: crc32(patchedBadge),
-            preload: Buffer.alloc(0),
-            data: patchedBadge,
-          });
-        }
       }
     }
   }

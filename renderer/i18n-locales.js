@@ -91,6 +91,38 @@ const ES = {
   'Path saved': 'Ruta guardada',
   'Cache cleared': 'Caché limpiada',
 
+  // Slots, capacity & Library
+  'Занято': 'Usado',
+  'Used': 'Usado',
+  ' из {0} слотов. Игра не грузит больше ~99 отдельных паков — объедини моды в один, чтобы уместить больше.':
+    ' de {0} espacios. El juego no cargará más de 100 paquetes separados — combina mods en uno para añadir más.',
+  ' of {0} slots. The game won’t load more than ~99 separate paks — combine mods into one to fit more.':
+    ' de {0} espacios. El juego no cargará más de 100 paquetes separados — combina mods en uno para añadir más.',
+  'Объединить': 'Combinar',
+  'Combine': 'Combinar',
+  'Неограниченное место': 'Espacio ilimitado',
+  'Unlimited space': 'Espacio ilimitado',
+  'Достигнут лимит в 100 модов для бесплатного тарифа. Перейди на Premium для неограниченного места.':
+    'Has alcanzado el límite de 100 mods del plan Free. Actualiza a Premium para espacio de mods ilimitado.',
+  'Reached the 100 mods limit for the Free plan. Upgrade to Premium for unlimited space.':
+    'Has alcanzado el límite de 100 mods del plan Free. Actualiza a Premium para espacio de mods ilimitado.',
+
+  // System settings
+  'Система': 'Sistema',
+  'System': 'Sistema',
+  'Запуск вместе с Windows': 'Iniciar con Windows',
+  'Start with Windows': 'Iniciar con Windows',
+  'Запускать Mod Assistant автоматически при включении компьютера.':
+    'Abrir Mod Assistant automáticamente al iniciar el ordenador.',
+  'Launch Mod Assistant automatically when starting the computer.':
+    'Abrir Mod Assistant automáticamente al iniciar el ordenador.',
+  'Сворачивать в трей при закрытии': 'Minimizar a la bandeja al cerrar',
+  'Minimize to tray on close': 'Minimizar a la bandeja al cerrar',
+  'При нажатии на крестик окно сворачивается в область уведомлений вместо закрытия программы.':
+    'Al hacer clic en cerrar, la ventana se minimiza en la bandeja del sistema en lugar de cerrarse.',
+  'Clicking close minimizes the window to the system notification area instead of exiting.':
+    'Al hacer clic en cerrar, la ventana se minimiza en la bandeja del sistema en lugar de cerrarse.',
+
   // Banners & Patch
   'gameinfo already lists another patcher': 'En gameinfo ya está registrado otro parcheador',
   '. Two patchers in one file get along badly: turn ours on only if you no longer use that one.':

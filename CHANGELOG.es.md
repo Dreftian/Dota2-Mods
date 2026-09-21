@@ -2,6 +2,19 @@
 
 Novedades de cada versión. La aplicación se actualiza de forma automática para que disfrutes de todas las mejoras sin necesidad de reinstalar.
 
+## 1.0.5
+
+### Aislamiento de Perfil, Centrado de Dígitos de Placa, 100 Mods en Free, Bandeja de Sistema y Sitio Web Oficial
+
+Esta versión introduce el aislamiento local de modificaciones de rango, centrado de dígitos en la placa Inmortal sin el símbolo `#`, capacidad de 100 mods para cuentas Free con traducción total al español, opciones de bandeja de sistema en Windows y el nuevo sitio web oficial interactivo:
+
+- **Aislamiento de Perfil Local**: Las modificaciones de medallas e insignias de héroe ahora se aíslan exclusivamente a tu propia tarjeta de perfil y cuadrícula de selección de héroes mediante parches de Panorama CSS (`#ProfileContainer #RankTier`, `hero_grid_new.vcss_c`, `hero_badge.vcss_c`). Los aliados y oponentes en partidas, marcadores y barra superior conservan intactas sus medallas y niveles reales originales.
+- **Centrado de Dígitos de Placa Inmortal y Formato Limpio**: Eliminado el prefijo `#` del número de clasificación Inmortal (ej. `30` en lugar de `#30`), centrado con precisión milimétrica horizontal y verticalmente con degradados metálicos dorados nítidos estilo Dota 2.
+- **Capacidad de 100 Mods en Free y Espacio Ilimitado en VIP**: El plan Free ahora admite hasta 100 mods simultáneos con avisos inteligentes para combinar paquetes, mientras que los usuarios VIP disfrutan de espacio de mods ilimitado sin restricciones.
+- **Traducción Total al Español**: Todos los avisos de ranuras, advertencias de límite, botones de combinación y ajustes del sistema están traducidos al español.
+- **Ajustes de Sistema en Windows**: Nuevas opciones en Configuración para iniciar Mod Assistant automáticamente con Windows (`autoStart`) y minimizar en la bandeja del sistema al hacer clic en cerrar (`minimizeToTray`).
+- **Sitio Web Oficial Interactivo (`Website/`)**: Creado el sitio web oficial en la carpeta `Website/`, con diseño moderno oscuro temático de Dota 2, personalizador interactivo de rangos e insignias en vivo, comparativa de planes y descarga directa oficial de Dreftian Devs.
+
 ## 1.0.4
 
 ### Dígitos de Rango Inmortal en Juego, Nivel 30 de Héroes, Nuevos Niveles Free/VIP y Perfiles InsForge

@@ -49,6 +49,16 @@ function registerSettingsIpc({
     settings.set(key, value);
     // the status text is localized, so a language change has to redraw it too
     if (key === 'discordPresence' || key === 'uiLang') applyPresenceSetting();
+    if (key === 'autoStart') {
+      try {
+        const { app } = require('electron');
+        app.setLoginItemSettings({
+          openAtLogin: !!value,
+          path: process.execPath,
+          args: ['--minimized'],
+        });
+      } catch { /* portable or dev mode */ }
+    }
     return settingsView();
   });
 

@@ -1419,6 +1419,13 @@ async function doInstall(categoryId, mod, styleLabel, fileRef, preview, { batch 
       if (!go) return { cancelled: true };
     }
   }
+  const isPremiumUser = !!(state.currentUser?.isPremium || state.currentUser?.isAdmin || state.currentUser?.role === 'admin' || state.currentUser?.email === 'dreftian@gmail.com');
+  const currentModCount = state.installedIndex ? state.installedIndex.size : 0;
+  if (!isPremiumUser && currentModCount >= 100) {
+    toast(L`Достигнут лимит в 100 модов для бесплатного тарифа. Перейди на Premium для неограниченного места.`, 'warn', 7000);
+    return { cancelled: true };
+  }
+
   installing.add(k);
   if (modalState) drawModal();
   /* A channel can reject rather than answer, and then this line used to throw: `installing`

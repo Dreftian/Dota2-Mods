@@ -1,7 +1,7 @@
 {
   "name": "mod-assistant",
   "productName": "Mod Assistant",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Mod Assistant for Dota 2 — browse, install, toggle and manage cosmetic mods",
   "main": "main.js",
   "scripts": {

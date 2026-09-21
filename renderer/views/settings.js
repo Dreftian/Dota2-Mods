@@ -106,6 +106,22 @@ export async function renderSettings() {
     </div>
 
     <div class="settings-block" style="--i:2">
+      <h3>${L`Система`}</h3>
+      <div class="settings-row">
+        <span class="settings-label">${L`Запуск вместе с Windows`}</span>
+        <button class="toggle ${s.autoStart ? 'on' : ''}" id="autoStartToggle" role="switch"
+                aria-checked="${!!s.autoStart}" aria-label="${L`Запуск вместе с Windows`}"></button>
+      </div>
+      <div class="settings-hint">${L`Запускать Mod Assistant автоматически при включении компьютера.`}</div>
+      <div class="settings-row spaced">
+        <span class="settings-label">${L`Сворачивать в трей при закрытии`}</span>
+        <button class="toggle ${s.minimizeToTray ? 'on' : ''}" id="trayToggle" role="switch"
+                aria-checked="${!!s.minimizeToTray}" aria-label="${L`Сворачивать в трей при закрытии`}"></button>
+      </div>
+      <div class="settings-hint">${L`При нажатии на крестик окно сворачивается в область уведомлений вместо закрытия программы.`}</div>
+    </div>
+
+    <div class="settings-block" style="--i:2">
       <h3>${L`Путь к Dota 2`}</h3>
       <div class="settings-row">
         <span class="mono grow">${esc(s.dotaGamePath || L`не найден`)}</span>
@@ -266,6 +282,18 @@ export async function renderSettings() {
     e.currentTarget.setAttribute('aria-checked', String(on));
     const now = await window.api.beta.set(on);
     toast(now.on ? L`Бета-версии включены` : L`Бета-версии выключены`);
+  });
+  $('#autoStartToggle')?.addEventListener('click', async (e) => {
+    const on = !e.currentTarget.classList.contains('on');
+    e.currentTarget.classList.toggle('on', on);
+    e.currentTarget.setAttribute('aria-checked', String(on));
+    state.settings = await window.api.settings.set('autoStart', on);
+  });
+  $('#trayToggle')?.addEventListener('click', async (e) => {
+    const on = !e.currentTarget.classList.contains('on');
+    e.currentTarget.classList.toggle('on', on);
+    e.currentTarget.setAttribute('aria-checked', String(on));
+    state.settings = await window.api.settings.set('minimizeToTray', on);
   });
   $('#clearCacheBtn').addEventListener('click', async () => {
     await window.api.misc.clearCache();

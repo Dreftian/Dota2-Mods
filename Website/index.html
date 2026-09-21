@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mod Assistant | El Gestor de Mods y Rank Changer Definitivo para Dota 2</title>
+  <meta name="description" content="Personaliza tus skins, terrenos, efectos, medallas de rango e insignias de Dota Plus con Mod Assistant de Dreftian Devs. 100% seguro contra VAC, rápido y con aislamiento de perfil local.">
+  <link rel="icon" type="image/png" href="assets/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Canvas Particles Background -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- Ambient Glow Orbs -->
+  <div class="ambient-glow glow-red"></div>
+  <div class="ambient-glow glow-gold"></div>
+  <div class="ambient-glow glow-cyan"></div>
+
+  <!-- Header / Navigation -->
+  <header class="site-header">
+    <div class="container header-content">
+      <a href="#" class="brand-logo">
+        <img src="assets/icon.png" alt="Mod Assistant Icon" class="logo-img">
+        <div class="logo-text">
+          <span class="logo-title">MOD ASSISTANT</span>
+          <span class="logo-badge">by Dreftian Devs</span>
+        </div>
+      </a>
+      <nav class="nav-links">
+        <a href="#features">Características</a>
+        <a href="#rank-changer">Rank Changer</a>
+        <a href="#pricing">Planes</a>
+        <a href="#faq">Preguntas</a>
+      </nav>
+      <div class="header-actions">
+        <a href="#download" class="btn btn-primary btn-sm glow-btn">
+          <svg class="btn-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+          </svg>
+          Descargar v1.0.5
+        </a>
+      </div>
+      <button class="mobile-menu-btn" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container hero-grid">
+        <div class="hero-content">
+          <div class="hero-tag">
+            <span class="pulse-dot"></span>
+            <span>MOD ASSISTANT v1.0.5 · DREFTIAN DEVS</span>
+          </div>
+          <h1 class="hero-title">
+            El Gestor de Mods & <span class="gradient-text">Rank Changer</span> Definitivo para Dota 2
+          </h1>
+          <p class="hero-desc">
+            Instala skins de héroes, mapas, terrenos, climas y personaliza tu medalla de rango e insignias de héroe en tiempo real. 100% seguro contra VAC, con aislamiento exclusivo de tu perfil local y arquitectura nativa Source 2.
+          </p>
+          <div class="hero-cta-group">
+            <a href="https://github.com/Dreftian/Dota2-Mods/releases/download/v1.0.5/Dota2-Mod-Setup.exe" class="btn btn-primary btn-lg glow-btn" id="mainDownloadBtn">
+              <svg class="btn-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+              </svg>
+              <span>Descargar Instalador (.exe)</span>
+            </a>
+            <a href="https://github.com/Dreftian/Dota2-Mods/releases/download/v1.0.5/Dota2-Mod-v1.0.5-win.zip" class="btn btn-secondary btn-lg">
+              <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
+              </svg>
+              <span>Versión Portable (.zip)</span>
+            </a>
+          </div>
+          <div class="hero-badges">
+            <div class="trust-badge">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="#00e676"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+              <span>100% Anti-VAC Safe</span>
+            </div>
+            <div class="trust-badge">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="#ffd700"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span>Perfil Aislado Local</span>
+            </div>
+            <div class="trust-badge">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="#00e5ff"><path d="M13 2.05v3.03c3.39.49 6 3.39 6 6.92 0 .9-.18 1.75-.48 2.54l2.6 1.53c.56-1.24.88-2.62.88-4.07 0-5.18-3.95-9.45-9-9.95zM12 19c-3.87 0-7-3.13-7-7 0-3.53 2.61-6.43 6-6.92V2.05c-5.06.5-9 4.76-9 9.95 0 5.52 4.47 10 9.99 10 3.31 0 6.24-1.61 8.01-4.09l-2.45-1.43c-1.3 1.96-3.48 3.27-5.55 3.27z"/></svg>
+              <span>Windows 10 / 11 64-bit</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Interactive Graphic Showcase -->
+        <div class="hero-showcase">
+          <div class="app-mockup-frame">
+            <div class="mockup-header">
+              <div class="window-dots">
+                <span class="dot dot-close"></span>
+                <span class="dot dot-min"></span>
+                <span class="dot dot-max"></span>
+              </div>
+              <div class="mockup-title">Mod Assistant v1.0.5 · Dreftian Devs</div>
+              <div class="mockup-pill">Dota 2 Conectado</div>
+            </div>
+            <div class="mockup-body">
+              <div class="mockup-sidebar">
+                <div class="mock-nav active">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+                  <span>Biblioteca</span>
+                </div>
+                <div class="mock-nav">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  <span>Rank Changer</span>
+                </div>
+                <div class="mock-nav">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                  <span>Configuración</span>
+                </div>
+              </div>
+              <div class="mockup-view">
+                <div class="mock-stats-banner">
+                  <div class="stat-pill"><span class="stat-num">48</span> / 100 Mods Activos</div>
+                  <div class="stat-pill vip-pill">Plan VIP: Ranuras Ilimitadas</div>
+                  <div class="stat-pill status-pill">VAC Seguro</div>
+                </div>
+                <div class="mock-cards-grid">
+                  <div class="mock-item-card">
+                    <div class="mock-thumb arcana"></div>
+                    <div class="mock-info">
+                      <div class="mock-name">Manifold Paradox (Phantom Assassin)</div>
+                      <div class="mock-badge">Arcana</div>
+                    </div>
+                    <div class="mock-toggle on"></div>
+                  </div>
+                  <div class="mock-item-card">
+                    <div class="mock-thumb terrain"></div>
+                    <div class="mock-info">
+                      <div class="mock-name">Reef's Edge (Terreno Sumergido)</div>
+                      <div class="mock-badge">Terreno Exclusivo</div>
+                    </div>
+                    <div class="mock-toggle on"></div>
+                  </div>
+                  <div class="mock-item-card">
+                    <div class="mock-thumb weather"></div>
+                    <div class="mock-info">
+                      <div class="mock-name">Weather Aurora (Clima)</div>
+                      <div class="mock-badge">Efecto de Clima</div>
+                    </div>
+                    <div class="mock-toggle on"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Rank & Hero Badge Changer Section -->
+    <section id="rank-changer" class="rank-changer-section">
+      <div class="container">
+        <div class="section-header text-center">
+          <span class="sub-badge">DEMO INTERACTIVA EN VIVO</span>
+          <h2 class="section-title">Personalizador de <span class="gradient-text">Rango e Insignias</span></h2>
+          <p class="section-subtitle">
+            Prueba cómo se verá tu perfil en Dota 2. Elige tu medalla, ajusta las estrellas o escribe tu número de ranking Inmortal, y selecciona tu nivel de insignia Dota Plus.
+          </p>
+        </div>
+
+        <div class="rank-changer-interactive-box">
+          <!-- Control Panel -->
+          <div class="rc-controls-panel">
+            <div class="rc-tab-header">
+              <button class="rc-tab-btn active" data-tab="rank-tab">Medalla de Rango</button>
+              <button class="rc-tab-btn" data-tab="hero-tab">Insignia Dota Plus</button>
+            </div>
+
+            <!-- Tab 1: Rank Medals -->
+            <div class="rc-tab-content active" id="rank-tab">
+              <div class="control-group">
+                <label class="control-label">Selecciona Medalla:</label>
+                <div class="medals-grid" id="medalsGrid">
+                  <!-- Generated by JS -->
+                </div>
+              </div>
+
+              <!-- Stars Selector (for Herald - Divine) -->
+              <div class="control-group" id="starsGroup">
+                <label class="control-label">Estrellas: <span id="starsValText">5</span></label>
+                <div class="stars-selector" id="starsSelector">
+                  <button class="star-btn" data-star="1">★ 1</button>
+                  <button class="star-btn" data-star="2">★ 2</button>
+                  <button class="star-btn" data-star="3">★ 3</button>
+                  <button class="star-btn" data-star="4">★ 4</button>
+                  <button class="star-btn active" data-star="5">★ 5</button>
+                </div>
+              </div>
+
+              <!-- Immortal Leaderboard Rank Input (for Immortal / Top) -->
+              <div class="control-group" id="immortalRankGroup" style="display: none;">
+                <label class="control-label">Número de Top Inmortal (sin #):</label>
+                <div class="input-with-presets">
+                  <input type="number" id="immortalRankInput" min="1" max="99999" value="30" class="rc-input">
+                  <div class="preset-pills">
+                    <button class="pill-btn" data-rank="1">Top 1</button>
+                    <button class="pill-btn" data-rank="10">Top 10</button>
+                    <button class="pill-btn" data-rank="30">Top 30</button>
+                    <button class="pill-btn" data-rank="100">Top 100</button>
+                  </div>
+                </div>
+                <div class="field-hint">En el juego se muestra centrado y limpio en la placa dorada.</div>
+              </div>
+
+              <div class="tier-access-notice" id="rankTierNotice">
+                <span class="access-tag free-tag" id="rankAccessTag">PLAN FREE</span>
+                <span class="access-desc" id="rankAccessDesc">Disponible para todos los usuarios de Mod Assistant</span>
+              </div>
+            </div>
+
+            <!-- Tab 2: Hero Badges -->
+            <div class="rc-tab-content" id="hero-tab">
+              <div class="control-group">
+                <label class="control-label">Nivel de Insignia de Héroe:</label>
+                <div class="badges-grid" id="badgesGrid">
+                  <!-- Generated by JS -->
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label class="control-label">Nivel Específico de Héroe: <span id="heroLevelDisplay" class="highlight-num">30</span></label>
+                <div class="range-slider-wrap">
+                  <input type="range" id="heroLevelSlider" min="1" max="30" value="30" class="rc-slider">
+                  <div class="slider-marks">
+                    <span>1</span>
+                    <span>5</span>
+                    <span>11</span>
+                    <span>17</span>
+                    <span>24</span>
+                    <span>30</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tier-access-notice" id="heroTierNotice">
+                <span class="access-tag vip-tag" id="heroAccessTag">VIP EXCLUSIVO</span>
+                <span class="access-desc" id="heroAccessDesc">Requiere suscripción VIP (Nivel Maestro 25-29 y Gran Maestro 30)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Profile Card Preview -->
+          <div class="rc-preview-panel">
+            <div class="preview-header-bar">
+              <span class="live-indicator"><span class="dot-live"></span> VISTA PREVIA DEL PERFIL EN DOTA 2</span>
+              <span class="isolation-badge">Solo visible en tu pantalla</span>
+            </div>
+
+            <div class="dota-profile-card">
+              <div class="dota-card-bg"></div>
+              
+              <div class="player-header">
+                <div class="player-avatar-wrap">
+                  <div class="avatar-ring"></div>
+                  <img src="assets/icon.png" alt="Avatar" class="player-avatar">
+                </div>
+                <div class="player-details">
+                  <div class="player-name">Dreftian <span class="dota-plus-icon">✦</span></div>
+                  <div class="player-guild">[DREFS] Dreftian Elite</div>
+                  <div class="player-mmr-badge">
+                    <span class="mmr-label">MMR ESTIMADO:</span>
+                    <span class="mmr-val" id="previewMmr">8,200 MMR</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Main Rank Badge Presentation -->
+              <div class="rank-presentation">
+                <div class="rank-medal-container">
+                  <!-- SVG Dynamic Medal Emblem -->
+                  <div class="medal-graphic" id="medalGraphic">
+                    <!-- SVG drawn by JS -->
+                  </div>
+                  <!-- Stars Container -->
+                  <div class="medal-stars-container" id="previewStarsContainer">
+                    <!-- Dynamic Stars -->
+                  </div>
+                  <!-- Immortal Plaque Digit -->
+                  <div class="immortal-plaque-container" id="immortalPlaqueWrap" style="display: none;">
+                    <div class="plaque-frame">
+                      <span class="plaque-digit" id="previewPlaqueDigit">30</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="rank-name-label" id="previewRankName">Inmortal (Top 30)</div>
+              </div>
+
+              <!-- Hero Showcase Bar -->
+              <div class="profile-hero-showcase">
+                <div class="hero-tier-icon-wrap" id="previewHeroBadgeWrap">
+                  <div class="hero-badge-emblem" id="previewBadgeEmblem">
+                    <span class="badge-gem">◆</span>
+                    <span class="badge-number" id="previewHeroBadgeNum">30</span>
+                  </div>
+                </div>
+                <div class="hero-tier-info">
+                  <div class="hero-tier-title" id="previewHeroTierTitle">Gran Maestro Dota Plus</div>
+                  <div class="hero-tier-sub">Insignia en el selector y perfil local</div>
+                </div>
+              </div>
+
+              <div class="profile-card-footer">
+                <div class="protection-notice">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="#00e676"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                  <span>Perfil Aislado: Los demás jugadores ven tu medalla real. Cero conflictos.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview-cta">
+              <a href="#download" class="btn btn-primary btn-block glow-btn">
+                Aplicar esta Medalla en Mod Assistant
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+      <div class="container">
+        <div class="section-header text-center">
+          <span class="sub-badge">VENTAJAS EXCLUSIVAS</span>
+          <h2 class="section-title">¿Por Qué Elegir <span class="gradient-text">Mod Assistant</span>?</h2>
+          <p class="section-subtitle">
+            Diseñado desde cero pensando en la seguridad, estabilidad y rendimiento para todos los jugadores de Dota 2.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon-box cyan-glow">
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">100% Inmune a VAC</h3>
+            <p class="feature-desc">
+              Mod Assistant no inyecta DLLs, no modifica ejecutables ni altera la memoria RAM del juego. Funciona aprovechando la arquitectura nativa de búsqueda de archivos VPK de Source 2.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon-box gold-glow">
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Aislamiento de Perfil</h3>
+            <p class="feature-desc">
+              Las medallas personalizadas e insignias de Dota Plus solo modifican tu vista local de perfil y el selector de héroes. Tus aliados y rivales conservan intactas sus medallas originales en partidas.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon-box purple-glow">
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Hasta 100 Mods en Free</h3>
+            <p class="feature-desc">
+              Instala hasta 100 mods totalmente gratis. Combina automáticamente tus mods en paquetes consolidados para superar cualquier limitación del motor del juego. Usuarios VIP disfrutan de espacio ilimitado.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon-box red-glow">
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Rank Changer de Alta Precisión</h3>
+            <p class="feature-desc">
+              Genera VPKs de rangos con texturas compiladas de alta definición. Las placas doradas Inmortal renderizan tus dígitos centrados y brillantes, sin el antiestético símbolo "#".
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon-box green-glow">
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+                <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Skins, Terrenos y Climas</h3>
+            <p class="feature-desc">
+              Accede a un catálogo completo de ítems inmortales, arcanas, mapas temáticos, música y paquetes de locutor. Activa o desactiva cualquier ítem en menos de un segundo.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon-box orange-glow">
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Integración con Windows</h3>
+            <p class="feature-desc">
+              Opciones de configuración para iniciar con Windows y minimizar directamente en la bandeja del sistema al cerrar, manteniendo tus mods activos sin estorbar tu escritorio.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison / Pricing Table -->
+    <section id="pricing" class="pricing-section">
+      <div class="container">
+        <div class="section-header text-center">
+          <span class="sub-badge">PLANES Y MEMBRESÍA</span>
+          <h2 class="section-title">Elige el Nivel que <span class="gradient-text">Mejor se Adapte a Ti</span></h2>
+          <p class="section-subtitle">Disfruta de Mod Assistant de forma gratuita o desbloquea todo el potencial con el Plan VIP.</p>
+        </div>
+
+        <div class="pricing-grid">
+          <!-- Free Plan -->
+          <div class="pricing-card free-card">
+            <div class="pricing-header">
+              <span class="plan-badge">PLAN GRATUITO</span>
+              <h3 class="plan-name">Free Tier</h3>
+              <div class="plan-price">$0 <span class="price-period">para siempre</span></div>
+              <p class="plan-tagline">Ideal para jugadores casuales que buscan personalizar sus partidas.</p>
+            </div>
+            <ul class="plan-features">
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#00e676"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Hasta <strong>100 mods</strong> simultáneos</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#00e676"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Medallas desde <strong>Sin Calibrar hasta Divino</strong></span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#00e676"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Insignias de Héroe de <strong>Bronce a Platino</strong></span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#00e676"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Gestor automático de colisiones pak</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#00e676"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Soporte para Skins, Terrenos y Climas</span>
+              </li>
+              <li class="disabled">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#666"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                <span>Medallas Inmortal y Top 100/10/1</span>
+              </li>
+              <li class="disabled">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#666"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                <span>Insignias Maestro y Gran Maestro Nivel 30</span>
+              </li>
+            </ul>
+            <div class="pricing-cta">
+              <a href="#download" class="btn btn-secondary btn-block">Descargar Gratis</a>
+            </div>
+          </div>
+
+          <!-- VIP Plan -->
+          <div class="pricing-card vip-card popular-glow">
+            <div class="popular-ribbon">MÁS POPULAR</div>
+            <div class="pricing-header">
+              <span class="plan-badge vip-badge-style">SUSCRIPCIÓN VIP</span>
+              <h3 class="plan-name">VIP Pro</h3>
+              <div class="plan-price">Acceso Total <span class="price-period">sin restricciones</span></div>
+              <p class="plan-tagline">Para jugadores apasionados que quieren la experiencia definitiva.</p>
+            </div>
+            <ul class="plan-features">
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#ffd700"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span><strong>Mods ILIMITADOS</strong> sin restricciones de espacio</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#ffd700"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span><strong>Inmortal, Top 100, Top 10 y Top 1</strong> con dígitos personalizados</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#ffd700"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Insignias <strong>Maestro (25-29) y Gran Maestro Nivel 30</strong></span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#ffd700"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Sin advertencias de ranura en la biblioteca</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#ffd700"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Actualizaciones prioritarias y soporte exclusivo</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#ffd700"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Gestión de cuenta protegida y activación inmediata</span>
+              </li>
+            </ul>
+            <div class="pricing-cta">
+              <a href="#download" class="btn btn-primary btn-block glow-btn">
+                Obtener Mod Assistant VIP
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq-section">
+      <div class="container">
+        <div class="section-header text-center">
+          <span class="sub-badge">RESOLVEMOS TUS DUDAS</span>
+          <h2 class="section-title">Preguntas <span class="gradient-text">Frecuentes</span></h2>
+          <p class="section-subtitle">Todo lo que necesitas saber sobre Mod Assistant, compatibilidad y seguridad.</p>
+        </div>
+
+        <div class="faq-accordion" id="faqAccordion">
+          <div class="faq-item active">
+            <button class="faq-question">
+              <span>¿Es seguro contra el sistema antitrampas VAC de Valve?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                <strong>Sí, es 100% seguro.</strong> Mod Assistant nunca inyecta código en el proceso del juego, no lee ni modifica la memoria de Dota 2 ni utiliza librerías DLL modificadas. Todo el funcionamiento se basa en la directiva oficial de búsqueda de recursos de Source 2 de Valve (a través de archivos de parámetros y paquetes VPK montados limpiamente), por lo que Valve nunca lo considera una trampa.
+              </p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>¿Otros jugadores en la partida pueden ver mi medalla o mis skins?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                No. Todos los cambios cosméticos, incluidas las skins, terrenos, efectos de clima, medallas e insignias de Dota Plus, se procesan exclusivamente en tu cliente local. Además, en Mod Assistant hemos diseñado un sistema de aislamiento de perfil para que tu medalla personalizada solo se aplique a tu propia tarjeta de perfil y selector de héroes, sin alterar las medallas reales de tus compañeros ni oponentes en el marcador ni en la barra superior.
+              </p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>¿Cómo funciona el límite de 100 mods en el modo gratuito?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                El plan Free te permite instalar hasta 100 mods de forma simultánea. Si alcanzas esta cifra, la aplicación te ofrece una herramienta integrada para <em>combinar paquetes</em>, lo que consolida varios mods en un único archivo VPK optimizado para ahorrar espacio. Con el plan VIP, no tienes restricciones de espacio y disfrutas de capacidad ilimitada.
+              </p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>¿Qué ocurre si cierro la aplicación? ¿Siguen funcionando los mods?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                Los mods se mantienen instalados en la estructura de Dota 2 mientras los dejes activos. Además, en la versión v1.0.5 cuentas con la opción de <strong>Minimizar en la bandeja del sistema</strong> al pulsar cerrar, lo que mantiene la app discretamente activa en el área de notificaciones de Windows para una sincronización instantánea y gestión continua.
+              </p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>¿Cómo se actualiza Mod Assistant cuando Dota 2 recibe un parche?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                Mod Assistant cuenta con un sistema de verificación automática de archivos del juego y auto-actualizador integrado. Si Valve lanza un parche mayor, la aplicación te notificará inmediatamente y adaptará los esquemas de instalación sin que tengas que volver a descargar tus mods.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download Banner CTA -->
+    <section id="download" class="download-cta-section">
+      <div class="container text-center">
+        <div class="cta-box">
+          <h2 class="cta-title">¿Listo para Dominar Dota 2 con Estilo?</h2>
+          <p class="cta-desc">
+            Descarga la última versión oficial de Mod Assistant v1.0.5 y transforma tu experiencia de juego en segundos.
+          </p>
+          <div class="cta-buttons">
+            <a href="https://github.com/Dreftian/Dota2-Mods/releases/download/v1.0.5/Dota2-Mod-Setup.exe" class="btn btn-primary btn-lg glow-btn">
+              <svg class="btn-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+              </svg>
+              Descargar Mod Assistant v1.0.5 (.exe)
+            </a>
+            <a href="https://github.com/Dreftian/Dota2-Mods/releases/download/v1.0.5/Dota2-Mod-v1.0.5-win.zip" class="btn btn-secondary btn-lg">
+              Descargar Versión Portable (.zip)
+            </a>
+          </div>
+          <div class="cta-system-req">
+            Compatible con Windows 10 y Windows 11 (64-bit) · Requiere Dota 2 instalado a través de Steam
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-content">
+      <div class="footer-brand">
+        <div class="brand-logo">
+          <img src="assets/icon.png" alt="Mod Assistant Icon" class="logo-img">
+          <div class="logo-text">
+            <span class="logo-title">MOD ASSISTANT</span>
+            <span class="logo-badge">Dreftian Devs</span>
+          </div>
+        </div>
+        <p class="footer-tagline">
+          Herramienta de personalización y gestión de modificaciones desarrollada por Dreftian Devs para la comunidad de Dota 2.
+        </p>
+      </div>
+
+      <div class="footer-links-col">
+        <h4>Navegación</h4>
+        <a href="#features">Características</a>
+        <a href="#rank-changer">Rank Changer</a>
+        <a href="#pricing">Planes</a>
+        <a href="#faq">Preguntas</a>
+      </div>
+
+      <div class="footer-links-col">
+        <h4>Descarga</h4>
+        <a href="https://github.com/Dreftian/Dota2-Mods/releases/download/v1.0.5/Dota2-Mod-Setup.exe">Instalador Windows</a>
+        <a href="https://github.com/Dreftian/Dota2-Mods/releases/download/v1.0.5/Dota2-Mod-v1.0.5-win.zip">Versión Portable</a>
+        <a href="#">Notas de Versión v1.0.5</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container bottom-content">
+        <p>© 2026 Dreftian Devs. Todos los derechos reservados.</p>
+        <p class="disclaimer">
+          Dota 2 y el logotipo de Dota 2 son marcas comerciales registradas de Valve Corporation. Mod Assistant no está afiliado ni respaldado por Valve Corporation.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

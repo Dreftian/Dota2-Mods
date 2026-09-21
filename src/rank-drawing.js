@@ -339,26 +339,28 @@ function renderTextOnRgba(pixels, width, height, text, centerX, centerY, scale =
  * Renders immortal leaderboard digits onto a rank medal texture.
  *
  * @param {Buffer} vtexBuffer The original uncompressed RGBA .vtex_c buffer
- * @param {string|number} rankNumber The leaderboard digit, e.g. 30, '#30'
+ * @param {string|number} rankNumber The leaderboard digit, e.g. 1, 20, 30
  * @returns {Buffer}
  */
 function renderRankPlaqueDigits(vtexBuffer, rankNumber) {
-  if (!vtexBuffer || !rankNumber) return vtexBuffer;
-  const text = rankNumber.toString().startsWith('#') ? rankNumber.toString() : `#${rankNumber}`;
+  if (!vtexBuffer || rankNumber === undefined || rankNumber === null) return vtexBuffer;
+  // Remove any '#' prefix so digits render clean as requested (e.g. '1', '20', '30')
+  const text = rankNumber.toString().replace(/^#/, '').trim();
+  if (!text) return vtexBuffer;
 
   const copy = Buffer.from(vtexBuffer);
   const headerSize = copy.readUInt32LE(0);
   const pixels = copy.subarray(headerSize);
 
-  // Check if standard 256x256 medal (262144 bytes)
+  // Check if standard 256x256 medal (262144 bytes) - plaque center at (128, 215)
   if (pixels.length === 256 * 256 * 4) {
-    renderTextOnRgba(pixels, 256, 256, text, 128, 214, 1, [255, 235, 195, 255]);
+    renderTextOnRgba(pixels, 256, 256, text, 128, 215, 1, [255, 252, 242, 255]);
     return copy;
   }
 
-  // Check if mini 128x64 plaque (32768 bytes)
+  // Check if mini 128x64 plaque (32768 bytes) - plaque center at (64, 36)
   if (pixels.length === 128 * 64 * 4) {
-    renderTextOnRgba(pixels, 128, 64, text, 64, 36, 1, [255, 235, 195, 255]);
+    renderTextOnRgba(pixels, 128, 64, text, 64, 36, 1, [255, 252, 242, 255]);
     return copy;
   }
 

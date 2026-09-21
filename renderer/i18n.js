@@ -310,6 +310,16 @@ const EN = {
   'Занято': 'Used',
   ' из {0} слотов. Игра не грузит больше ~99 отдельных паков — объедини моды в один, чтобы уместить больше.':
     ' of {0} slots. The game won’t load more than ~99 separate paks — combine mods into one to fit more.',
+  'Неограниченное место': 'Unlimited space',
+  'Достигнут лимит в 100 модов для бесплатного тарифа. Перейди на Premium для неограниченного места.':
+    'Reached the 100 mods limit for the Free plan. Upgrade to Premium for unlimited space.',
+  'Система': 'System',
+  'Запуск вместе с Windows': 'Start with Windows',
+  'Запускать Mod Assistant автоматически при включении компьютера.':
+    'Launch Mod Assistant automatically when starting the computer.',
+  'Сворачивать в трей при закрытии': 'Minimize to tray on close',
+  'При нажатии на крестик окно сворачивается в область уведомлений вместо закрытия программы.':
+    'Clicking close minimizes the window to the system notification area instead of exiting.',
   'Поиск в библиотеке…': 'Search the library…',
   'Импорт VPK': 'Import VPK',
   'Выбрать всё': 'Select all',

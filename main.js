@@ -6,7 +6,7 @@
  * warranty whatsoever. LICENSE holds the terms; NOTICE holds the additional terms this
  * repository adds under section 7 of that License, about credit and the program's name.
  */
-const { app, BrowserWindow, ipcMain, shell, net, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, net, screen, Menu, Tray } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -123,6 +123,50 @@ let verifyStuck = [];
 // what the app did about the last Dota patch, shown as a banner in My mods:
 // { state: 'idle' | 'waiting' | 'done' | 'failed', healed: string[], error?, at }
 let patchRepair = { state: 'idle' };
+let tray = null;
+let isQuitting = false;
+
+function setupTray() {
+  if (tray) return;
+  const iconPath = path.join(__dirname, 'build', 'icon.ico');
+  const pngPath = path.join(__dirname, 'build', 'icon.png');
+  const actualIcon = fs.existsSync(iconPath) ? iconPath : (fs.existsSync(pngPath) ? pngPath : null);
+  if (!actualIcon) return;
+
+  try {
+    tray = new Tray(actualIcon);
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: i18n.t('Открыть Mod Assistant') || 'Abrir Mod Assistant',
+        click: () => {
+          if (win && !win.isDestroyed()) {
+            win.show();
+            win.focus();
+          }
+        },
+      },
+      { type: 'separator' },
+      {
+        label: i18n.t('Выход') || 'Salir',
+        click: () => {
+          isQuitting = true;
+          deactivateModsOnExit();
+          app.quit();
+        },
+      },
+    ]);
+    tray.setToolTip('Mod Assistant — Dota 2');
+    tray.setContextMenu(contextMenu);
+    tray.on('double-click', () => {
+      if (win && !win.isDestroyed()) {
+        win.show();
+        win.focus();
+      }
+    });
+  } catch (err) {
+    diag('Tray setup error: ' + err.message);
+  }
+}
 let patchWatcher = null;
 let repairTimer = null;
 
@@ -251,7 +295,20 @@ function createWindow() {
 
   win.on('maximize', () => win.webContents.send('win:maximized', true));
   win.on('unmaximize', () => win.webContents.send('win:maximized', false));
-  win.on('close', () => deactivateModsOnExit());
+  win.on('close', (event) => {
+    if (!isQuitting && settings && settings.get('minimizeToTray')) {
+      event.preventDefault();
+      win.hide();
+      setupTray();
+      return;
+    }
+    deactivateModsOnExit();
+  });
+
+  if (process.argv.includes('--minimized')) {
+    win.hide();
+    setupTray();
+  }
 
   // Ctrl +/-/0 scale the content. Handled here rather than in the renderer because
   // preventDefault() at this point also swallows Electron's built-in zoom accelerators —
@@ -1153,8 +1210,14 @@ function registerIpc() {
   });
 }
 
-app.on('before-quit', () => deactivateModsOnExit());
-app.on('will-quit', () => deactivateModsOnExit());
+app.on('before-quit', () => {
+  isQuitting = true;
+  deactivateModsOnExit();
+});
+app.on('will-quit', () => {
+  isQuitting = true;
+  deactivateModsOnExit();
+});
 app.on('window-all-closed', () => {
   deactivateModsOnExit();
   app.quit();

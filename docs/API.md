@@ -2323,7 +2323,7 @@ Renders immortal leaderboard digits onto a rank medal texture.
 
 ```
 @param {Buffer} vtexBuffer The original uncompressed RGBA .vtex_c buffer
-@param {string|number} rankNumber The leaderboard digit, e.g. 30, '#30'
+@param {string|number} rankNumber The leaderboard digit, e.g. 1, 20, 30
 @returns {Buffer}
 ```
 
