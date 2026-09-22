@@ -1,6 +1,16 @@
 # Changelog
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
+## 1.0.11
+
+### Native Rank Mod Architecture & Layout Fatal Error Fix
+
+This release resolves the fatal layout error when launching Dota 2 with custom rank medals or hero badges, converting the rank changer into a 100% native, crash-proof texture mod:
+
+- **Fatal Layout Error Resolved**: Removed experimental Panorama stylesheet patching (`mini_showcase.vcss_c`, `dashboard_page_showcase.vcss_c`, `ui_rank_badge.vcss_c`) that previously triggered `FATAL ERROR: Unable to load layout file 'file://{resources}/layout/showcase/mini_showcase.xml'`.
+- **Pure Native Texture Mod Architecture**: Rank medals and Dota Plus hero badges now function exclusively as aesthetic `.vtex_c` texture overrides in the exact same manner as all other cosmetic mods in the application.
+- **Universal Medal Overrides**: Cleanly replaces all official medal tiers (`rank0_psd` through `rank8c_psd`) and mini medal tiers in `panorama/images/rank_tier_icons/` with the chosen medal (including subpixel Radiance font plaque digits for Immortal tiers) without modifying or corrupting engine layout files.
+- **Star Pips & Hero Progression**: Provides pixel-perfect star pips (`pip1`–`pip7`) and hero tier badges across all UI elements while maintaining 100% game client stability.
 
 ## 1.0.10
 

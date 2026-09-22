@@ -212,77 +212,8 @@ function createHeroLevelVtex(level, baseVtexPath) {
   return Buffer.concat([header, pixels]);
 }
 
-/**
- * Patches a substring inside the DATA block of a RED2 CSS resource file.
- * Automatically recalculates block offsets and total file length.
- *
- * @param {Buffer} buffer Original RED2 .vcss_c buffer
- * @param {string} oldSnippet Substring to find in the CSS
- * @param {string} newSnippet Replacement substring
- * @returns {Buffer}
- */
-function patchCssResource(buffer, oldSnippet, newSnippet) {
-  const buf = Buffer.from(buffer);
-  const blockCount = buf.readUInt32LE(12);
-
-  let dataEntryOffset = -1;
-  let dataBlockIndex = -1;
-  let offset = 16;
-  for (let i = 0; i < blockCount; i++) {
-    const name = buf.subarray(offset, offset + 4).toString('ascii');
-    if (name === 'DATA') {
-      dataEntryOffset = offset;
-      dataBlockIndex = i;
-      break;
-    }
-    offset += 12;
-  }
-
-  if (dataEntryOffset === -1) {
-    return buffer;
-  }
-
-  const dataRelOffset = buf.readUInt32LE(dataEntryOffset + 4);
-  const dataSize = buf.readUInt32LE(dataEntryOffset + 8);
-  const dataAbsOffset = dataEntryOffset + 4 + dataRelOffset;
-
-  const dataSlice = buf.subarray(dataAbsOffset, dataAbsOffset + dataSize);
-  const dataStr = dataSlice.toString('latin1');
-  const targetIdx = dataStr.indexOf(oldSnippet);
-  if (targetIdx === -1) {
-    return buffer;
-  }
-
-  const newDataStr = dataStr.replace(oldSnippet, newSnippet);
-  const newDataBuf = Buffer.from(newDataStr, 'latin1');
-  const delta = newDataBuf.length - dataSlice.length;
-
-  const beforeData = buf.subarray(0, dataAbsOffset);
-  const afterData = buf.subarray(dataAbsOffset + dataSize);
-
-  const newBuf = Buffer.concat([beforeData, newDataBuf, afterData]);
-
-  // Update total file size
-  newBuf.writeUInt32LE(newBuf.length, 0);
-
-  // Update DATA block size
-  newBuf.writeUInt32LE(newDataBuf.length, dataEntryOffset + 8);
-
-  // Shift subsequent block relative offsets
-  offset = 16;
-  for (let i = 0; i < blockCount; i++) {
-    if (i > dataBlockIndex) {
-      const curRelOffset = newBuf.readUInt32LE(offset + 4);
-      newBuf.writeUInt32LE(curRelOffset + delta, offset + 4);
-    }
-    offset += 12;
-  }
-
-  return newBuf;
-}
-
 module.exports = {
   renderRankPlaqueDigits,
   createHeroLevelVtex,
-  patchCssResource,
 };
+

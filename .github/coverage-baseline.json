@@ -198,7 +198,7 @@
       }
     },
     "win32": {
-      "measured": "2026-09-21",
+      "measured": "2026-09-22",
       "files": {
         "src/adopt.js": {
           "lines": 100
@@ -243,7 +243,7 @@
           "lines": 93.9
         },
         "src/installer.js": {
-          "lines": 83.9
+          "lines": 83.7
         },
         "src/ipc-auth.js": {
           "lines": 85.4
@@ -312,13 +312,13 @@
           "lines": 13.8
         },
         "src/rank-drawing.js": {
-          "lines": 97.9
+          "lines": 99.1
         },
         "src/rank-font-data.js": {
           "lines": 100
         },
         "src/rank-generator.js": {
-          "lines": 94.5
+          "lines": 97
         },
         "src/remote-config.js": {
           "lines": 100
@@ -335,14 +335,11 @@
         "src/steam.js": {
           "lines": 53.2
         },
-        "src/toolchain.js": {
-          "lines": 98.1
-        },
         "src/updater.js": {
           "lines": 95.8
         },
         "src/vpk.js": {
-          "lines": 98.6
+          "lines": 98.2
         },
         "src/vtex.js": {
           "lines": 100

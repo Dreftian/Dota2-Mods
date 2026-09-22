@@ -418,9 +418,9 @@ test('a cursor set another program put in the game is found, folders and all, un
   assert.deepEqual(s.installer.externalFiles([{ root: 'cursor', relPath: 'cursor_default.bmp' }]).filter((x) => x.kind === 'cursor'), []);
 });
 
-test('generateRankVpk produces self-contained VPK with all required rank assets and styles', () => {
+test('generateRankVpk produces self-contained VPK with pure native textures and no crashing stylesheets', () => {
   const { generateRankVpk } = require('../src/rank-generator.js');
-  const { listVpkPaths, readVpkEntries } = require('../src/vpk.js');
+  const { listVpkPaths } = require('../src/vpk.js');
   const result = generateRankVpk({
     medal: 'rank8c',
     immortalRank: 8,
@@ -435,22 +435,16 @@ test('generateRankVpk produces self-contained VPK with all required rank assets 
   assert.equal(result.heroLevel, 30);
 
   const paths = listVpkPaths(result.buffer);
-  assert.ok(paths.includes('panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex_c'), 'profile rank vtex must exist');
-  assert.ok(paths.includes('panorama/images/rank_tier_icons/mini/custom_profile_rank_mini_psd.vtex_c'), 'mini rank vtex must exist');
+  assert.ok(paths.includes('panorama/images/rank_tier_icons/rank0_psd.vtex_c'), 'uncalibrated rank0 must exist');
+  assert.ok(paths.includes('panorama/images/rank_tier_icons/rank8c_psd.vtex_c'), 'immortal rank8c must exist');
+  assert.ok(paths.includes('panorama/images/rank_tier_icons/mini/rank0_psd.vtex_c'), 'mini rank0 must exist');
+  assert.ok(paths.includes('panorama/images/rank_tier_icons/mini/rank8c_psd.vtex_c'), 'mini rank8c must exist');
+  assert.ok(paths.includes('panorama/images/rank_tier_icons/pip1_psd.vtex_c'), 'star pip1 must exist');
+  assert.ok(paths.includes('panorama/images/hero_badges/hero_badge_rank_5_png.vtex_c'), 'grandmaster hero badge must exist');
+  assert.ok(paths.includes('panorama/images/hero_badges/hero_badge_rank_0_png.vtex_c'), 'base hero badge override must exist');
   assert.ok(paths.includes('panorama/images/hero_badges/custom_hero_level_png.vtex_c'), 'hero level vtex must exist');
-  assert.ok(paths.includes('panorama/styles/showcase/dashboard_page_showcase.vcss_c'), 'showcase styles must exist');
-  assert.ok(paths.includes('panorama/styles/showcase/mini_showcase.vcss_c'), 'mini showcase styles must exist');
-  assert.ok(paths.includes('panorama/styles/dashboard_page_profile.vcss_c'), 'profile styles must exist');
-  assert.ok(paths.includes('panorama/styles/ui_rank_badge.vcss_c'), 'ui_rank_badge styles must exist');
 
-  const entries = readVpkEntries(result.buffer);
-  const badgeEntry = entries.find((e) => e.name === 'ui_rank_badge');
-  assert.ok(badgeEntry, 'ui_rank_badge entry must be present in VPK');
-  const badgeStr = badgeEntry.data.toString('latin1');
-  assert.ok(badgeStr.includes('.ViewingSelf'), 'must target .ViewingSelf');
-  assert.ok(badgeStr.includes('DOTAMiniShowcase:not(.ViewingOther)'), 'must target DOTAMiniShowcase:not(.ViewingOther)');
-  assert.ok(badgeStr.includes('.RankTier0'), 'must override .RankTier0 uncalibrated state');
-  assert.ok(badgeStr.includes('custom_profile_rank_psd.vtex'), 'must reference custom_profile_rank_psd');
-  assert.ok(badgeStr.includes('#RankLeaderboard'), 'must collapse leaderboard for self');
+  // Strict check: NO .vcss_c stylesheets to prevent Dota 2 layout fatal crashes (e.g. mini_showcase.xml)
+  assert.ok(!paths.some((p) => p.endsWith('.vcss_c')), 'must NOT contain any .vcss_c stylesheets to prevent Dota 2 layout fatal errors');
 });
 

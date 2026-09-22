@@ -1,6 +1,16 @@
 # Historial de Cambios
 
 Novedades de cada versión. La aplicación se actualiza de forma automática para que disfrutes de todas las mejoras sin necesidad de reinstalar.
+## 1.0.11
+
+### Corrección de Error Fatal de Layout y Arquitectura de Mod Nativo
+
+Esta versión soluciona el error fatal de layout al iniciar Dota 2 con medallas o insignias personalizadas, transformando el rank changer en un mod de texturas 100% nativo y libre de errores:
+
+- **Error Fatal de Layout Solucionado**: Se eliminaron las modificaciones a hojas de estilo Panorama (`mini_showcase.vcss_c`, `dashboard_page_showcase.vcss_c`, etc.) que provocaban el error `FATAL ERROR: Unable to load layout file 'file://{resources}/layout/showcase/mini_showcase.xml'`.
+- **Arquitectura de Mod Nativo de Texturas**: Las medallas de rango e insignias de Dota Plus ahora funcionan exclusivamente como reemplazos estéticos de texturas `.vtex_c`, con el mismo contexto y comportamiento que los demás mods cosméticos del gestor.
+- **Reemplazo Universal de Medallas**: Sobrescribe limpiamente los casilleros de medallas oficiales (`rank0_psd` a `rank8c_psd`) y mini medallas en `panorama/images/rank_tier_icons/` con la medalla seleccionada (incluyendo los dígitos Radiance sobre la placa Inmortal) sin alterar archivos de diseño global del juego.
+- **Estrellas e Insignias de Héroe**: Gestiona las estrellas de rango e insignias de nivel de héroe (Dota Plus) con total estabilidad y compatibilidad con el cliente de Dota 2.
 
 ## 1.0.10
 

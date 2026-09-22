@@ -7,7 +7,6 @@ const { t } = require('./i18n');
 const {
   renderRankPlaqueDigits,
   createHeroLevelVtex,
-  patchCssResource,
 } = require('./rank-drawing');
 
 const ASSETS_ROOT = path.join(__dirname, 'assets', 'ranks');
@@ -80,13 +79,51 @@ function generateRankVpk({
   const medalMeta = RANK_MEDALS.find((m) => m.id === targetMedalId) || RANK_MEDALS[RANK_MEDALS.length - 1];
   const entries = [];
 
-  // 1. Rank Medals: Generate custom profile rank texture and patch profile CSS.
-  // Crucial: Do NOT clobber ALL_RANK_SLOTS globally, so that other players in matches,
-  // scoreboards, and top bars keep their authentic, original rank medals!
+  // Official rank medal texture identifiers in Dota 2 Panorama
+  const ALL_RANK_SLOTS = [
+    'rank0_psd',
+    'rank1_psd',
+    'rank2_psd',
+    'rank3_psd',
+    'rank4_psd',
+    'rank5_psd',
+    'rank6_psd',
+    'rank7_psd',
+    'rank8_psd',
+    'rank8a_psd',
+    'rank8b_psd',
+    'rank8c_psd',
+  ];
+
+  const ALL_MINI_RANK_SLOTS = [
+    'rank0_psd',
+    'rank1_psd',
+    'rank2_psd',
+    'rank3_psd',
+    'rank4_psd',
+    'rank5_psd',
+    'rank6_psd',
+    'rank7_psd',
+    'rank8_psd',
+    'rank8a_psd',
+    'rank8b_psd',
+    'rank8c_psd',
+  ];
+
+  const ALL_PIP_SLOTS = [
+    'pip1_psd',
+    'pip2_psd',
+    'pip3_psd',
+    'pip4_psd',
+    'pip5_psd',
+    'pip6_psd',
+    'pip7_psd',
+  ];
+
+  // 1. Rank Medals: Generate full-size rank textures with baked plaque digits
   const medalAssetFile = `${medalMeta.id}_psd.vtex_c`;
   let medalBuf = readAssetSafe('ranks', medalAssetFile);
   if (!medalBuf) {
-    // fallback to highest available immortal if missing
     medalBuf = readAssetSafe('ranks', 'rank8c_psd.vtex_c') || readAssetSafe('ranks', 'rank0_psd.vtex_c');
   }
 
@@ -96,7 +133,17 @@ function generateRankVpk({
     }
     const medalCrc = crc32(medalBuf);
 
-    // Save as dedicated custom profile rank texture
+    for (const slot of ALL_RANK_SLOTS) {
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/rank_tier_icons',
+        name: slot,
+        crc: medalCrc,
+        preload: Buffer.alloc(0),
+        data: medalBuf,
+      });
+    }
+
     entries.push({
       ext: 'vtex_c',
       folder: 'panorama/images/rank_tier_icons',
@@ -106,161 +153,140 @@ function generateRankVpk({
       data: medalBuf,
     });
 
-    // Also map mini medal icons if present
+    // Mini medal icons
     let miniAsset = readAssetSafe('ranks', `${medalMeta.id}_mini_psd.vtex_c`)
       || readAssetSafe('mini', `${medalMeta.id}_psd.vtex_c`)
       || medalBuf;
     if (isImmortal && numImmortalRank && miniAsset) {
       miniAsset = renderRankPlaqueDigits(miniAsset, numImmortalRank);
     }
+    const miniCrc = crc32(miniAsset);
+
+    for (const slot of ALL_MINI_RANK_SLOTS) {
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/rank_tier_icons/mini',
+        name: slot,
+        crc: miniCrc,
+        preload: Buffer.alloc(0),
+        data: miniAsset,
+      });
+    }
+
+    for (const suffix of ['8', '8a', '8b', '8c']) {
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/rank_tier_icons',
+        name: `rank${suffix}_mini_psd`,
+        crc: miniCrc,
+        preload: Buffer.alloc(0),
+        data: miniAsset,
+      });
+    }
+
     entries.push({
       ext: 'vtex_c',
       folder: 'panorama/images/rank_tier_icons/mini',
       name: 'custom_profile_rank_mini_psd',
-      crc: crc32(miniAsset),
+      crc: miniCrc,
       preload: Buffer.alloc(0),
       data: miniAsset,
     });
   }
 
-  // 2. Star Pips: If stars > 0 and medal tier < 8 (Immortal has no stars)
+  // 2. Star Pips: If stars > 0 render matching pips; if Immortal or 0 stars, render transparent pips
   const numStars = isImmortal ? 0 : Math.max(0, Math.min(5, Number(stars) || 0));
+  let pipBuf = null;
   if (numStars > 0) {
-    const pipAssetFile = `pip${numStars}_psd.vtex_c`;
-    const pipBuf = readAssetSafe('ranks', pipAssetFile);
-    if (pipBuf) {
+    pipBuf = readAssetSafe('ranks', `pip${numStars}_psd.vtex_c`);
+  }
+  if (!pipBuf) {
+    const basePip = readAssetSafe('ranks', 'pip1_psd.vtex_c');
+    if (basePip) {
+      const headerSize = basePip.readUInt32LE(0);
+      pipBuf = Buffer.concat([basePip.subarray(0, headerSize), Buffer.alloc(262144, 0)]);
+    }
+  }
+
+  if (pipBuf) {
+    const pipCrc = crc32(pipBuf);
+    for (const slot of ALL_PIP_SLOTS) {
       entries.push({
         ext: 'vtex_c',
         folder: 'panorama/images/rank_tier_icons',
-        name: 'custom_profile_pips_psd',
-        crc: crc32(pipBuf),
+        name: slot,
+        crc: pipCrc,
         preload: Buffer.alloc(0),
         data: pipBuf,
       });
     }
-  }
-
-  // 3. Patch dashboard_page_showcase.vcss_c and mini_showcase.vcss_c for modern profile isolation
-  // This guarantees that opponents, allies, and players in the Watch tab keep their authentic medals.
-  const showcaseCss = readAssetSafe('styles', 'dashboard_page_showcase.vcss_c');
-  if (showcaseCss) {
-    let pipsRule = numStars > 0
-      ? '.ViewingSelf #HeaderNameContainer #RankPips{visibility: visible !important;background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_pips_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}'
-      : '.ViewingSelf #HeaderNameContainer #RankPips{visibility: collapse !important;}';
-    const heroBadgeProfileRule = (heroTier !== null && heroTier !== undefined)
-      ? `.ViewingSelf #HeaderNameContainer DOTAHeroBadge #BadgeImage,.ViewingSelf .ProfileHeroBadge #BadgeImage{background-image: url("s2r://panorama/images/hero_badges/hero_badge_rank_${Math.max(0, Math.min(5, Number(heroTier)))}_png.vtex") !important;}`
-      : '';
-
-    const patchedShowcase = patchCssResource(
-      showcaseCss,
-      '#HeaderNameContainer .RankBadge{width: 100px;height: 100px;margin-top: -10px;z-index: 2;}',
-      `#HeaderNameContainer .RankBadge{width: 100px;height: 100px;margin-top: -10px;z-index: 2;}.ViewingSelf #HeaderNameContainer .RankBadge #RankTier,.ViewingSelf #HeaderNameContainer #RankBadge #RankTier,.ViewingSelf #HeaderNameContainer DOTARankBadge #RankTier,.ViewingSelf #HeaderNameContainer #RankTier,.ViewingSelf #HeaderNameContainer .RankTierImage,.ViewingSelf DOTARankBadge #RankTier,.ViewingSelf #RankTier,.ViewingSelf .RankTierImage,.ViewingSelf.RankTier0 #RankTier,.ViewingSelf .RankTier0 .RankTierImage{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;visibility: visible !important;}.ViewingSelf #HeaderNameContainer #RankLeaderboard,.ViewingSelf #HeaderNameContainer .RankBadge #RankLeaderboard,.ViewingSelf #RankLeaderboard,.ViewingSelf DOTARankBadge #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRule}${heroBadgeProfileRule}`,
-    );
     entries.push({
-      ext: 'vcss_c',
-      folder: 'panorama/styles/showcase',
-      name: 'dashboard_page_showcase',
-      crc: crc32(patchedShowcase),
+      ext: 'vtex_c',
+      folder: 'panorama/images/rank_tier_icons',
+      name: 'custom_profile_pips_psd',
+      crc: pipCrc,
       preload: Buffer.alloc(0),
-      data: patchedShowcase,
+      data: pipBuf,
     });
   }
 
-  // Mini showcase (top bar mini profile in main menu dashboard)
-  const miniCss = readAssetSafe('styles', 'mini_showcase.vcss_c');
-  if (miniCss) {
-    let pipsRuleMini = numStars > 0
-      ? 'DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankBadge #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankPips{visibility: visible !important;background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_pips_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;}'
-      : 'DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankBadge #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankPips{visibility: collapse !important;}';
-
-    const patchedMini = patchCssResource(
-      miniCss,
-      '#RankTierContainer{horizontal-align: right;vertical-align: center;margin-right: 5px;width: 100px;height: 100px;tooltip-position: bottom;tooltip-body-position: 50% 10%;ui-scale: 72%;}',
-      `#RankTierContainer{horizontal-align: right;vertical-align: center;margin-right: 5px;width: 100px;height: 100px;tooltip-position: bottom;tooltip-body-position: 50% 10%;ui-scale: 72%;}DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankTier,DOTAMiniShowcase:not(.ViewingOther) #RankBadge #RankTier,DOTAMiniShowcase:not(.ViewingOther) .RankBadge #RankTier,DOTAMiniShowcase:not(.ViewingOther) DOTARankBadge #RankTier,DOTAMiniShowcase:not(.ViewingOther) #RankTier,DOTAMiniShowcase:not(.ViewingOther) .RankTierImage,DOTAMiniShowcase:not(.ViewingOther).RankTier0 #RankTier,DOTAMiniShowcase:not(.ViewingOther) .RankTier0 .RankTierImage{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_mini_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;visibility: visible !important;}DOTAMiniShowcase:not(.ViewingOther) #RankTierContainer #RankLeaderboard,DOTAMiniShowcase:not(.ViewingOther) #RankBadge #RankLeaderboard,DOTAMiniShowcase:not(.ViewingOther) #RankLeaderboard,DOTAMiniShowcase:not(.ViewingOther) DOTARankBadge #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRuleMini}`,
-    );
-    entries.push({
-      ext: 'vcss_c',
-      folder: 'panorama/styles/showcase',
-      name: 'mini_showcase',
-      crc: crc32(patchedMini),
-      preload: Buffer.alloc(0),
-      data: patchedMini,
-    });
-  }
-
-  // Legacy/fallback profile page - scoped strictly to self header so it never leaks to other players or rank modal
-  const profileCss = readAssetSafe('styles', 'dashboard_page_profile.vcss_c');
-  if (profileCss) {
-    let pipsRule = numStars > 0
-      ? '.ViewingSelf #ProfileContainer #Header #RankPips,.ViewingSelf .HeaderNameContainer #RankPips{visibility: visible !important;background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_pips_psd.vtex") !important;background-size: contain;background-position: center;background-repeat: no-repeat;}'
-      : '.ViewingSelf #ProfileContainer #Header #RankPips,.ViewingSelf .HeaderNameContainer #RankPips{visibility: collapse !important;}';
-    const heroBadgeProfileRule = (heroTier !== null && heroTier !== undefined)
-      ? `.ViewingSelf #ProfileContainer #Header DOTAHeroBadge #BadgeImage,.ViewingSelf .HeaderNameContainer DOTAHeroBadge #BadgeImage{background-image: url("s2r://panorama/images/hero_badges/hero_badge_rank_${Math.max(0, Math.min(5, Number(heroTier)))}_png.vtex") !important;}`
-      : '';
-
-    const patchedProfile = patchCssResource(
-      profileCss,
-      '.RankTier0 #RankTier.RankTierImage{background-size: 150%;}',
-      `.RankTier0 #RankTier.RankTierImage{background-size: 150%;}.ViewingSelf #ProfileContainer #Header .RankBadge #RankTier,.ViewingSelf #ProfileContainer #Header #RankBadge #RankTier,.ViewingSelf #ProfileContainer #Header DOTARankBadge #RankTier,.ViewingSelf #ProfileContainer #Header #RankTier,.ViewingSelf #ProfileContainer #Header .RankTierImage,.ViewingSelf .HeaderNameContainer #RankTier,.ViewingSelf .HeaderNameContainer .RankTierImage,.ViewingSelf #RankTier{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;visibility: visible !important;}.ViewingSelf #ProfileContainer #Header #RankLeaderboard,.ViewingSelf .HeaderNameContainer #RankLeaderboard,.ViewingSelf #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRule}${heroBadgeProfileRule}`,
-    );
-    entries.push({
-      ext: 'vcss_c',
-      folder: 'panorama/styles',
-      name: 'dashboard_page_profile',
-      crc: crc32(patchedProfile),
-      preload: Buffer.alloc(0),
-      data: patchedProfile,
-    });
-  }
-
-  // Global DOTARankBadge stylesheet: applies to all avatar rank badges across panorama
-  const rankBadgeCss = readAssetSafe('styles', 'ui_rank_badge.vcss_c');
-  if (rankBadgeCss) {
-    let pipsRuleBadge = numStars > 0
-      ? '.ViewingSelf #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankPips{visibility: visible !important;background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_pips_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;}'
-      : '.ViewingSelf #RankPips,DOTAMiniShowcase:not(.ViewingOther) #RankPips{visibility: collapse !important;}';
-
-    let eliteFxRule = (targetMedalId === 'rank8c' || (isImmortal && numImmortalRank && numImmortalRank <= 10))
-      ? '.ViewingSelf #EliteFX,DOTAMiniShowcase:not(.ViewingOther) #EliteFX{visibility: visible !important;}'
-      : '';
-
-    const patchedBadge = patchCssResource(
-      rankBadgeCss,
-      'DOTARankBadge{tooltip-position: bottom;tooltip-body-position: 50% 10%;background-size: 100%;}',
-      `DOTARankBadge{tooltip-position: bottom;tooltip-body-position: 50% 10%;background-size: 100%;}.ViewingSelf #RankTier,.ViewingSelf .RankTierImage,.ViewingSelf.RankTier0 #RankTier,.ViewingSelf .RankTier0 .RankTierImage,DOTAMiniShowcase:not(.ViewingOther) #RankTier,DOTAMiniShowcase:not(.ViewingOther) .RankTierImage,DOTAMiniShowcase:not(.ViewingOther).RankTier0 #RankTier,DOTAMiniShowcase:not(.ViewingOther) .RankTier0 .RankTierImage{background-image: url("s2r://panorama/images/rank_tier_icons/custom_profile_rank_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;visibility: visible !important;}DOTAMiniShowcase:not(.ViewingOther) #RankTier.Minimal,DOTAMiniShowcase:not(.ViewingOther) .RankTierImage.Minimal{background-image: url("s2r://panorama/images/rank_tier_icons/mini/custom_profile_rank_mini_psd.vtex") !important;background-size: contain !important;background-position: center !important;background-repeat: no-repeat !important;}.ViewingSelf #RankLeaderboard,DOTAMiniShowcase:not(.ViewingOther) #RankLeaderboard{visibility: collapse !important;opacity: 0 !important;font-size: 0px !important;color: transparent !important;}${pipsRuleBadge}${eliteFxRule}`,
-    );
-    entries.push({
-      ext: 'vcss_c',
-      folder: 'panorama/styles',
-      name: 'ui_rank_badge',
-      crc: crc32(patchedBadge),
-      preload: Buffer.alloc(0),
-      data: patchedBadge,
-    });
-  }
-
-  // Showcase item: display hero badge on hero cards in showcase
-  const showcaseItemCss = readAssetSafe('styles', 'showcase_item.vcss_c');
-  if (showcaseItemCss) {
-    const patchedShowcaseItem = patchCssResource(
-      showcaseItemCss,
-      '#HeroBadge.NoTier{visibility: collapse;}',
-      `.ViewingSelf #HeroBadge.NoTier,.ViewingSelf .HeroModel #HeroBadge.NoTier{visibility: visible !important;}#HeroBadge.NoTier{visibility: collapse;}`,
-    );
-    entries.push({
-      ext: 'vcss_c',
-      folder: 'panorama/styles/showcase',
-      name: 'showcase_item',
-      crc: crc32(patchedShowcaseItem),
-      preload: Buffer.alloc(0),
-      data: patchedShowcaseItem,
-    });
-  }
-
-  // 4. Dota Plus Hero Badges:
-  // Generate custom level digit texture for hero cards, loadout badges, and progress headers
+  // 3. Dota Plus Hero Badges: Pure texture replacements for all badge sizes and tiers
   if (heroTier !== null && heroTier !== undefined) {
     const tierNum = Math.max(0, Math.min(5, Number(heroTier)));
+    const tierAssetBuf = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_png.vtex_c`);
+    const tierAssetSmall = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_small_png.vtex_c`);
+    const tierAssetTiny = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_tiny_png.vtex_c`);
+
+    if (tierAssetBuf) {
+      const bufCrc = crc32(tierAssetBuf);
+      for (let i = 0; i <= 5; i++) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/hero_badges',
+          name: `hero_badge_rank_${i}_png`,
+          crc: bufCrc,
+          preload: Buffer.alloc(0),
+          data: tierAssetBuf,
+        });
+      }
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/hero_badges',
+        name: 'hero_badge_rank_empty_psd',
+        crc: bufCrc,
+        preload: Buffer.alloc(0),
+        data: tierAssetBuf,
+      });
+    }
+
+    if (tierAssetSmall) {
+      const smallCrc = crc32(tierAssetSmall);
+      for (let i = 0; i <= 5; i++) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/hero_badges',
+          name: `hero_badge_rank_${i}_small_png`,
+          crc: smallCrc,
+          preload: Buffer.alloc(0),
+          data: tierAssetSmall,
+        });
+      }
+    }
+
+    if (tierAssetTiny) {
+      const tinyCrc = crc32(tierAssetTiny);
+      for (let i = 0; i <= 5; i++) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/hero_badges',
+          name: `hero_badge_rank_${i}_tiny_png`,
+          crc: tinyCrc,
+          preload: Buffer.alloc(0),
+          data: tierAssetTiny,
+        });
+      }
+    }
+
     const baseTinyPath = path.join(ASSETS_ROOT, 'hero_badges', 'hero_badge_rank_0_tiny_png.vtex_c');
     if (fs.existsSync(baseTinyPath)) {
       const levelVtex = createHeroLevelVtex(heroLevel, baseTinyPath);
@@ -272,125 +298,6 @@ function generateRankVpk({
         preload: Buffer.alloc(0),
         data: levelVtex,
       });
-
-      // Provide direct texture replacements for rank 0 and empty badges so un-styled panels display the selected tier
-      const tierAssetBuf = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_png.vtex_c`);
-      if (tierAssetBuf) {
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: 'hero_badge_rank_0_png',
-          crc: crc32(tierAssetBuf),
-          preload: Buffer.alloc(0),
-          data: tierAssetBuf,
-        });
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: 'hero_badge_rank_empty_psd',
-          crc: crc32(tierAssetBuf),
-          preload: Buffer.alloc(0),
-          data: tierAssetBuf,
-        });
-      }
-
-      const tierAssetSmall = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_small_png.vtex_c`);
-      if (tierAssetSmall) {
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: 'hero_badge_rank_0_small_png',
-          crc: crc32(tierAssetSmall),
-          preload: Buffer.alloc(0),
-          data: tierAssetSmall,
-        });
-      }
-
-      const tierAssetTiny = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_tiny_png.vtex_c`);
-      if (tierAssetTiny) {
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: 'hero_badge_rank_0_tiny_png',
-          crc: crc32(tierAssetTiny),
-          preload: Buffer.alloc(0),
-          data: tierAssetTiny,
-        });
-      }
-
-      // Patch hero_grid_new.vcss_c to render the custom level texture in hero picker grid
-      const heroGridCss = readAssetSafe('styles', 'hero_grid_new.vcss_c');
-      if (heroGridCss) {
-        let patchedGrid = patchCssResource(
-          heroGridCss,
-          '#HeroBadgeLevel{font-size: 12px;color: white;font-weight: bold;text-align: center;text-shadow: 0px 0px 4px 2.0 black;',
-          '#HeroBadgeLevel{color: transparent !important;text-shadow: none !important;background-image: url("s2r://panorama/images/hero_badges/custom_hero_level_png.vtex");background-size: contain;background-position: center;background-repeat: no-repeat;',
-        );
-        patchedGrid = patchCssResource(
-          patchedGrid,
-          '.NoTier #HeroBadgeStatus{visibility: collapse;}',
-          '.NoTier #HeroBadgeStatus{visibility: visible;}',
-        );
-        entries.push({
-          ext: 'vcss_c',
-          folder: 'panorama/styles',
-          name: 'hero_grid_new',
-          crc: crc32(patchedGrid),
-          preload: Buffer.alloc(0),
-          data: patchedGrid,
-        });
-      }
-
-      // Patch hero_badge.vcss_c to render custom badges on hero loadout and inspect screens
-      const heroBadgeCss = readAssetSafe('styles', 'hero_badge.vcss_c');
-      if (heroBadgeCss) {
-        let patchedBadge = patchCssResource(
-          heroBadgeCss,
-          'DOTAHeroBadge.IconStyle{width: 48px;height: 48px;background-size: contain;background-repeat: no-repeat;background-position: center;}',
-          `DOTAHeroBadge.IconStyle{width: 48px;height: 48px;background-size: contain;background-repeat: no-repeat;background-position: center;}DOTAHeroBadge.IconStyle,DOTAHeroBadge.IconStyle.NoTier,DOTAHeroBadge.IconStyle.BronzeTier,DOTAHeroBadge.IconStyle.SilverTier,DOTAHeroBadge.IconStyle.GoldTier,DOTAHeroBadge.IconStyle.PlatinumTier,DOTAHeroBadge.IconStyle.MasterTier{background-image: url("s2r://panorama/images/hero_badges/hero_badge_rank_${tierNum}_png.vtex") !important;}DOTAHeroBadge.LevelStyle,DOTAHeroBadge.LevelStyle.NoTier,DOTAHeroBadge.LevelStyle.BronzeTier,DOTAHeroBadge.LevelStyle.SilverTier,DOTAHeroBadge.LevelStyle.GoldTier,DOTAHeroBadge.LevelStyle.PlatinumTier,DOTAHeroBadge.LevelStyle.MasterTier{background-image: url("s2r://panorama/images/hero_badges/hero_badge_rank_${tierNum}_png.vtex") !important;}#HeroBadgeProgression,#HeroBadgeProgression.NoTier,#HeroBadgeProgression #BadgeImage,.HeroBadge,.PlusHeroBadgeIcon,.PlusHeroBadgeIconSmall,.PlusHeroBadgeIconTiny,.BronzeTier .PlusHeroBadgeIcon,.BronzeTier.PlusHeroBadgeIcon{background-image: url("s2r://panorama/images/hero_badges/hero_badge_rank_${tierNum}_png.vtex") !important;}.NoTier #HeroBadgeProgression{visibility: visible !important;}DOTAHeroBadge.LevelStyle.NoTier > Label{visibility: visible !important;}DOTAHeroBadge.ModelStyle.NoTier > Label{visibility: visible !important;}`,
-        );
-        patchedBadge = patchCssResource(
-          patchedBadge,
-          'DOTAHeroBadge.LevelStyle > Label{vertical-align: middle;horizontal-align: center;font-size: 29px;color: white;font-weight: bold;text-shadow: 0px 0px 6px 6.0 black;',
-          'DOTAHeroBadge.LevelStyle > Label{color: transparent !important;text-shadow: none !important;background-image: url("s2r://panorama/images/hero_badges/custom_hero_level_png.vtex");background-size: contain;background-position: center;background-repeat: no-repeat;',
-        );
-        patchedBadge = patchCssResource(
-          patchedBadge,
-          'DOTAHeroBadge.ModelStyle > Label{vertical-align: middle;horizontal-align: center;font-size: 29px;color: white;font-weight: bold;',
-          'DOTAHeroBadge.ModelStyle > Label{color: transparent !important;text-shadow: none !important;background-image: url("s2r://panorama/images/hero_badges/custom_hero_level_png.vtex");background-size: contain;background-position: center;background-repeat: no-repeat;',
-        );
-        entries.push({
-          ext: 'vcss_c',
-          folder: 'panorama/styles',
-          name: 'hero_badge',
-          crc: crc32(patchedBadge),
-          preload: Buffer.alloc(0),
-          data: patchedBadge,
-        });
-      }
-
-      // Patch ui_dota_plus_hero_page_v2.vcss_c for the Hero Level Progress badge on hero page
-      const plusV2Css = readAssetSafe('styles', 'ui_dota_plus_hero_page_v2.vcss_c');
-      if (plusV2Css) {
-        let patchedPlusV2 = patchCssResource(
-          plusV2Css,
-          '#HeroBadgeProgression{margin-top: -224px;margin-left: -210px;margin-bottom: -210px;margin-right: -180px;overflow: noclip;}',
-          `#HeroBadgeProgression{margin-top: -224px;margin-left: -210px;margin-bottom: -210px;margin-right: -180px;overflow: noclip;background-image: url("s2r://panorama/images/hero_badges/hero_badge_rank_${tierNum}_png.vtex") !important;visibility: visible !important;}`,
-        );
-        patchedPlusV2 = patchCssResource(
-          patchedPlusV2,
-          '.NoTier #HeroBadgeProgression{visibility: collapse;}',
-          `.NoTier #HeroBadgeProgression{visibility: visible !important;background-image: url("s2r://panorama/images/hero_badges/hero_badge_rank_${tierNum}_png.vtex") !important;}`,
-        );
-        entries.push({
-          ext: 'vcss_c',
-          folder: 'panorama/styles',
-          name: 'ui_dota_plus_hero_page_v2',
-          crc: crc32(patchedPlusV2),
-          preload: Buffer.alloc(0),
-          data: patchedPlusV2,
-        });
-      }
     }
   }
 

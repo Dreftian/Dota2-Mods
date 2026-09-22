@@ -2343,22 +2343,6 @@ Generates a 32x32 transparent .vtex_c containing the level digit in white with b
 @returns {Buffer}
 ```
 
-### `patchCssResource`
-
-```js
-function patchCssResource(buffer, oldSnippet, newSnippet)
-```
-
-Patches a substring inside the DATA block of a RED2 CSS resource file.
-Automatically recalculates block offsets and total file length.
-
-```
-@param {Buffer} buffer Original RED2 .vcss_c buffer
-@param {string} oldSnippet Substring to find in the CSS
-@param {string} newSnippet Replacement substring
-@returns {Buffer}
-```
-
 ## src/rank-font-data.js
 
 _Exports nothing._
