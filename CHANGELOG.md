@@ -2,6 +2,16 @@
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
 
+## 1.0.10
+
+### Uncalibrated Profile Rank Injection, 2-Digit Pak Priority Allocation & Immortal Elite Effects
+
+This release fixes rank medal display on uncalibrated player accounts, enforces 2-digit pak slot allocation to comply with Dota 2's engine limits, and activates EliteFX particles on Immortal Top 10 badges:
+
+- **Uncalibrated Profile Support (`RankTier0`)**: Added comprehensive style overrides in `ui_rank_badge.vcss_c`, `mini_showcase.vcss_c`, `dashboard_page_showcase.vcss_c`, and `dashboard_page_profile.vcss_c` with `!important` flags for `.ViewingSelf` and `DOTAMiniShowcase:not(.ViewingOther)`. Accounts with uncalibrated status (`RankTier0`) now reliably render the custom rank medal across both full profile showcases and the main menu top bar mini profile without leaking to opponents or the rank medals preview modal.
+- **2-Digit Pak Slot Priority Allocation**: Identified that Dota 2's filesystem engine (`filesystem_stdio.dll`) strictly validates pak filenames with a 13-character length check (`pakNN_dir.vpk`) and parses exactly two digits (`pak01` to `pak99`). Files beyond `pak99` (`pak100+`) are silently ignored by the game engine. Added `ranks` to `PRIORITY_CATEGORIES` and ensured rank changer mods always claim a valid priority slot (`pak02` to `pak09`) that Dota 2 mounts on startup.
+- **Immortal EliteFX Particles**: Enabled `#EliteFX` visibility for Immortal Top 10 medals inside the player's profile and mini showcase, displaying the authentic glowing particle aura on top rank tiers.
+
 ## 1.0.9
 
 ### Authentic Radiance Digit Typography, Complete Rank Modal Isolation, Showcase Hero Badges & System Tray Fix

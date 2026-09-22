@@ -2,6 +2,16 @@
 
 Novedades de cada versión. La aplicación se actualiza de forma automática para que disfrutes de todas las mejoras sin necesidad de reinstalar.
 
+## 1.0.10
+
+### Inyección de Rango en Perfiles Sin Calibrar, Ranuras VPK de 2 Dígitos y Efectos Inmortal EliteFX
+
+Esta versión soluciona la visualización de medallas de rango en cuentas sin calibrar, garantiza ranuras pak de dos dígitos compatibles con el motor de Dota 2 y activa las partículas EliteFX para Inmortal Top 10:
+
+- **Soporte para Cuentas Sin Calibrar (`RankTier0`)**: Se agregaron reglas de estilo exhaustivas en `ui_rank_badge.vcss_c`, `mini_showcase.vcss_c`, `dashboard_page_showcase.vcss_c` y `dashboard_page_profile.vcss_c` con `!important` para `.ViewingSelf` y `DOTAMiniShowcase:not(.ViewingOther)`. Las cuentas sin rango (`RankTier0`) ahora muestran con total fidelidad la medalla personalizada tanto en el encabezado del perfil como en el mini perfil del menú superior sin alterar rivales ni el modal de medallas.
+- **Asignación Prioritaria de Ranuras VPK (2 Dígitos)**: Se descubrió que el motor Source 2 (`filesystem_stdio.dll`) comprueba estrictamente nombres de 13 caracteres (`pakNN_dir.vpk`) y lee únicamente dos dígitos (`pak01` a `pak99`). Los archivos `pak100+` son descartados silenciosamente por el juego. Se añadió `ranks` a `PRIORITY_CATEGORIES` para asignarle siempre una ranura prioritaria (`pak02` a `pak09`) que Dota 2 carga al iniciar.
+- **Partículas EliteFX de Inmortal**: Se activó `#EliteFX` para las medallas Inmortal Top 10 en el perfil del jugador y en el mini showcase, mostrando el aura dorada y luminosa original.
+
 ## 1.0.9
 
 ### Tipografía Radiance Original, Aislamiento Total de Ventana de Rangos, Insignias en Vitrina y Fix de Bandeja
