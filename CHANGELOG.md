@@ -1,6 +1,17 @@
 # Changelog
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
+
+## 1.0.14
+
+### Authentic Valve Immortal Medal Textures, In-Game Active Mod Persistence & Plaque Digit Refinements
+
+This release fixes the issue where custom ranks did not appear in Dota 2 after closing the application, replaces rank textures with 100% authentic Valve assets extracted directly from the game files, and refines leaderboard plaque typography:
+
+- **Persistent Active Mods on App Exit**: Fixed an issue where closing Mod Assistant inadvertently deactivated installed mods in the game language folder. Installed mods, custom ranks, and hero badges now stay persistently active as `.vpk` files in Dota 2 across app launches and system restarts.
+- **Authentic Valve Immortal Rank Textures**: Extracted and restored genuine Valve high-resolution textures directly from Dota 2's `pak01_dir.vpk`: Top 10 (`rank8c`) with authentic fiery gold wings and dark metal plaque, Top 100 (`rank8b`) with copper/crimson wings and copper plaque, Top 1000 (`rank8a`) with silver wings and bronze plaque, and General Immortal (`rank8`).
+- **Leaderboard Plaque Digit Centering & Radiance Typography**: Leaderboard digits now render in solid, opaque ivory (#FFF8E7) centered at Y=212 on the dark plaque cutout, matching Valve's official tournament and profile leaderboard presentation.
+
 ## 1.0.13
 
 ### Authentic Valve Immortal Ranks, Strict Tier Digit Bounds, All-Hero Badge Progression & Priority Quick Fix

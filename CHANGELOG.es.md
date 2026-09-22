@@ -1,6 +1,17 @@
 # Historial de Cambios
 
 Novedades de cada versión. La aplicación se actualiza de forma automática para que disfrutes de todas las mejoras sin necesidad de reinstalar.
+
+## 1.0.14
+
+### Medallas Inmortal Oficiales de Valve, Persistencia de Mods en el Juego y Perfeccionamiento de Dígitos
+
+Esta versión soluciona el problema por el cual el mod de rango no aparecía en Dota 2 al cerrar el gestor, reemplaza las texturas por las genuinas de Valve extraídas directamente del juego y perfecciona la tipografía de la placa de clasificación:
+
+- **Persistencia de Mods al Salir de la App**: Se eliminó la desactivación automática al cerrar la aplicación. Los mods instalados, rangos personalizados e insignias de héroe ahora permanecen activos de forma permanente en la carpeta del juego como archivos `.vpk`.
+- **Texturas Inmortal 100% Auténticas de Valve**: Extraídas directamente de los archivos oficiales `pak01_dir.vpk`: Top 10 (`rank8c`) con alas doradas de fuego y placa oscura, Top 100 (`rank8b`) con alas cobrizas, Top 1000 (`rank8a`) con alas plateadas y medalla de Inmortal General (`rank8`).
+- **Centrado y Tipografía Radiance en la Placa**: Los números de clasificación en la placa ahora se dibujan con blanco marfil sólido (#FFF8E7) centrados en Y=212, idénticos a las tablas de clasificación oficiales de Valve.
+
 ## 1.0.13
 
 ### Medallas Inmortal Oficiales de Valve, Rangos Estrictos de Dígitos, Insignias para Todos los Héroes y Prioridad Rápida

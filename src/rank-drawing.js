@@ -272,9 +272,9 @@ function renderPlaqueGlyphs(pixels, width, height, text, centerX, centerY, scale
     const curY = Math.round(centerY - g.h / 2);
     for (let gy = 0; gy < g.h; gy++) {
       const t = gy / g.h;
-      const targetR = Math.round(250 * (1 - t * 0.05));
-      const targetG = Math.round(242 * (1 - t * 0.08));
-      const targetB = Math.round(226 * (1 - t * 0.14));
+      const targetR = Math.round(255 * (1 - t * 0.03));
+      const targetG = Math.round(250 * (1 - t * 0.05));
+      const targetB = Math.round(235 * (1 - t * 0.08));
 
       for (let gx = 0; gx < g.w; gx++) {
         const a = g.alpha[gy * g.w + gx];
@@ -283,7 +283,7 @@ function renderPlaqueGlyphs(pixels, width, height, text, centerX, centerY, scale
           const py = curY + gy;
           if (px >= 0 && px < width && py >= 0 && py < height) {
             const idx = (py * width + px) * 4;
-            const alphaFrac = a / 255;
+            const alphaFrac = a > 140 ? 1 : a / 140;
             const inv = 1 - alphaFrac;
             pixels[idx] = Math.round(pixels[idx] * inv + targetR * alphaFrac);
             pixels[idx + 1] = Math.round(pixels[idx + 1] * inv + targetG * alphaFrac);
@@ -314,9 +314,9 @@ function renderRankPlaqueDigits(vtexBuffer, rankNumber) {
   const headerSize = copy.readUInt32LE(0);
   const pixels = copy.subarray(headerSize);
 
-  // Standard 256x256 medal (262144 bytes) - plaque plate center at (128, 214)
+  // Standard 256x256 medal (262144 bytes) - plaque plate center at (128, 212)
   if (pixels.length === 256 * 256 * 4) {
-    const centerY = text.length >= 3 ? 213 : 214;
+    const centerY = text.length >= 3 ? 211 : 212;
     renderPlaqueGlyphs(pixels, 256, 256, text, 128, centerY, 'scale');
     return copy;
   }

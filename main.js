@@ -224,31 +224,10 @@ function windowFit() {
   }
 }
 
-let _isDeactivating = false;
 function deactivateModsOnExit() {
-  if (_isDeactivating) return;
-  _isDeactivating = true;
-  try {
-    if (installer) {
-      installer.setMasterEnabled(false);
-      if (typeof applyMasterToCursors === 'function') applyMasterToCursors(false);
-      diag('mods deactivated on app exit');
-    }
-  } catch (err) {
-    diag('failed to deactivate mods on exit: ' + (err?.message || err));
-  }
-  try {
-    if (settings) {
-      const game = settings.get('dotaGamePath');
-      if (game) {
-        const patcher = require('./src/patcher');
-        const backupDir = path.join(app.getPath('userData'), 'backups', 'patch');
-        patcher.revert({ gamePath: game, folder: patcher.FOLDER, backupDir });
-      }
-    }
-  } catch (err) {
-    diag('failed to revert patch on exit: ' + (err?.message || err));
-  }
+  // Installed mods remain active in the game language folder when closing the app
+  // so Dota 2 loads them natively. The master switch is only toggled when the user
+  // explicitly clicks 'Disable all mods' in the UI.
 }
 
 function createWindow() {
