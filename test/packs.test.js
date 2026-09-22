@@ -17,7 +17,10 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const Module = require('module');
 const { crc32 } = require('node:zlib');
+
+const ROOT = path.resolve(__dirname, '..');
 
 const vpk = require('../src/vpk.js');
 const { Installer } = require('../src/installer.js');
@@ -278,4 +281,138 @@ test('the member descriptor fingerprints the bytes that were actually stored', (
   assert.equal(member.name, 'Pudge Hook');
   assert.equal(member.enabled, true);
   assert.equal(member.fp, vpk.fingerprintVpk(fs.readFileSync(installer.packMemberFile('pack-1', member.id))));
+});
+
+function setupPacksIpc() {
+  const channels = new Map();
+  const electron = {
+    ipcMain: {
+      handle: (ch, fn) => channels.set(ch, fn),
+      on: (ch, fn) => channels.set(ch, fn),
+    },
+  };
+
+  const load = Module._load;
+  Module._load = function stubbed(request, ...rest) {
+    return request === 'electron' ? electron : load.call(this, request, ...rest);
+  };
+
+  let refreshed = false;
+  let libraryRecords = [
+    {
+      id: 'pack1',
+      kind: 'pack',
+      name: 'Combined Hero Pack',
+      members: [
+        { id: 'm1', name: 'Juggernaut Arcana', schema: [{ id: 'item1' }], enabled: true },
+        { id: 'm2', name: 'Pudge Hook', schema: [{ id: 'item2' }], enabled: true },
+      ],
+    },
+    {
+      id: 'mod1',
+      name: 'Standalone Mod 1',
+      categoryId: 'cosmetics',
+      files: [{ root: 'lang', relPath: 'pak10_dir.vpk' }],
+    },
+    {
+      id: 'mod2',
+      name: 'Standalone Mod 2',
+      categoryId: 'cosmetics',
+      files: [{ root: 'lang', relPath: 'pak11_dir.vpk' }],
+    },
+  ];
+
+  const library = {
+    find(id) { return libraryRecords.find((r) => r.id === id) || null; },
+    add(r) {
+      const id = 'rec-' + Math.random().toString(36).slice(2);
+      const rec = { ...r, id };
+      libraryRecords.push(rec);
+      return rec;
+    },
+    removeRecord(id) {
+      libraryRecords = libraryRecords.filter((r) => r.id !== id);
+    },
+    setEnabled() {},
+  };
+
+  const installer = {
+    packFolder() { return path.join(ROOT, 'sandbox'); },
+    packMemberFile() { return path.join(ROOT, 'sandbox', 'member.vpk'); },
+    addPackMemberFromRecord(packId, rec, id) {
+      return { id, name: rec.name, schema: rec.schema || null, enabled: true };
+    },
+    deployMemberAsMod(pack, m) {
+      return { files: [{ root: 'lang', relPath: 'pak12_dir.vpk' }] };
+    },
+    remove() {},
+    removePackFully() {},
+    setEnabled() {},
+  };
+
+  try {
+    const file = path.join(ROOT, 'src', 'ipc-packs.js');
+    delete require.cache[require.resolve(file)];
+    const { registerPacksIpc } = require(file);
+    registerPacksIpc({
+      afterDeployMaster: () => {},
+      deployAndApply: (pack) => [],
+      installer,
+      library,
+      schemaService: { refresh: () => { refreshed = true; } },
+    });
+  } finally {
+    Module._load = load;
+  }
+
+  return {
+    channels,
+    library,
+    installer,
+    getRefreshed: () => refreshed,
+    resetRefreshed: () => { refreshed = false; },
+  };
+}
+
+test('packs:extractMembers restores schema and refreshes schemaService', () => {
+  const { channels, getRefreshed, resetRefreshed } = setupPacksIpc();
+  const extractFn = channels.get('packs:extractMembers');
+  assert.ok(extractFn, 'packs:extractMembers must be registered');
+
+  resetRefreshed();
+  const res = extractFn(null, 'pack1', ['m1']);
+  assert.equal(res.ok, true);
+  assert.equal(res.count, 1);
+  assert.equal(getRefreshed(), true, 'schemaService must be refreshed when member carries schema');
+});
+
+test('packs:disband restores schema and refreshes schemaService', () => {
+  const { channels, getRefreshed, resetRefreshed } = setupPacksIpc();
+  const disbandFn = channels.get('packs:disband');
+  assert.ok(disbandFn, 'packs:disband must be registered');
+
+  resetRefreshed();
+  const res = disbandFn(null, 'pack1');
+  assert.equal(res.ok, true);
+  assert.equal(res.count, 2);
+  assert.equal(getRefreshed(), true, 'schemaService must be refreshed when disbanding pack with schema members');
+});
+
+test('packs:combine and packs:setMemberEnabled handle member actions', () => {
+  const { channels } = setupPacksIpc();
+  const combineFn = channels.get('packs:combine');
+  const setEnabledFn = channels.get('packs:setMemberEnabled');
+  const removeMemberFn = channels.get('packs:removeMember');
+
+  const tooFew = combineFn(null, { modIds: ['mod1'] });
+  assert.ok(tooFew.error);
+
+  const resCombine = combineFn(null, { modIds: ['mod1', 'mod2'] });
+  assert.equal(resCombine.ok, true);
+
+  const resToggle = setEnabledFn(null, 'pack1', 'm2', false);
+  assert.equal(resToggle.ok, true);
+
+  const resRemove = removeMemberFn(null, 'pack1', 'm2');
+  assert.equal(resRemove.ok, true);
 });

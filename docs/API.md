@@ -2329,6 +2329,21 @@ Exactly matches in-game Radiance font typography, ivory fill, drop shadow and ce
 @returns {Buffer}
 ```
 
+### `renderHeroBadgeDigits`
+
+```js
+function renderHeroBadgeDigits(vtexBuffer, level)
+```
+
+Renders authentic Dota 2 Radiance font level digits centered onto hero badge textures.
+Supports uncompressed RGBA (256x256, 64x64 small, 32x32 tiny) and PNG-wrapped VTEX.
+
+```
+@param {Buffer} vtexBuffer Raw VTEX buffer
+@param {string|number} level Level number, e.g. 10, 30
+@returns {Buffer} Modified VTEX buffer
+```
+
 ### `createHeroLevelVtex`
 
 ```js
@@ -2371,7 +2386,7 @@ Dota Plus Hero Tier progression badges and level ranges.
 ### `generateRankVpk`
 
 ```js
-function generateRankVpk({ medal = 'rank8c', stars = 5, mmr = 12620, immortalRank = 10, heroTier = 5, heroLevel = 30, } = {})
+function generateRankVpk({ medal = 'rank8c', baseRank = 'rank0', stars = 5, mmr = 12620, immortalRank = 10, heroTier = 5, heroLevel = 30,
 ```
 
 Generates a self-contained single-file VPK buffer overriding rank icons,
@@ -2380,11 +2395,13 @@ star pips, and Dota Plus hero badges.
 ```
 @param {object} opts
 @param {string} [opts.medal] e.g. 'rank8c', 'rank3'
+@param {string} [opts.baseRank] Target account base slot ('rank0' default, or 'rank1'..'rank8', or 'all')
 @param {number} [opts.stars] e.g. 1 to 5 (0 for none)
 @param {number} [opts.mmr] e.g. 12620
+@param {number} [opts.immortalRank] Leaderboard rank number (1-50000)
 @param {number} [opts.heroTier] 0 to 5, or null to keep original
 @param {number} [opts.heroLevel] 1 to 99
-@returns {{ buffer: Buffer, name: string, medalInfo: object }}
+@returns {{ buffer: Buffer, name: string, medalInfo: object, baseRank?: string, stars?: number, mmr?: number, immortalRank?: number|null, heroTier?: number|null, heroLevel?: number }}
 ```
 
 ## src/remote-config.js

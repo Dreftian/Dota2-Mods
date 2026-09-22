@@ -260,6 +260,7 @@ function registerModsIpc({
         customRank: true,
         rankSettings: {
           medal: payload.medal,
+          baseRank: gen.baseRank || payload.baseRank || 'rank0',
           stars: gen.stars,
           mmr: gen.mmr,
           immortalRank: gen.immortalRank,

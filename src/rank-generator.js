@@ -6,7 +6,7 @@ const { buildVpk, crc32 } = require('./vpk');
 const { t } = require('./i18n');
 const {
   renderRankPlaqueDigits,
-  createHeroLevelVtex,
+  renderHeroBadgeDigits,
 } = require('./rank-drawing');
 
 const ASSETS_ROOT = path.join(__dirname, 'assets', 'ranks');
@@ -37,7 +37,6 @@ const HERO_TIERS = [
   { id: 5, nameRu: 'Грандмастер (Ур. 30)', nameEn: 'Grandmaster (Lv 30)', nameEs: 'Gran Maestro (Lv 30)', minLevel: 30, maxLevel: 30, defaultLevel: 30 },
 ];
 
-
 function readAssetSafe(subfolder, fileName) {
   const p = path.join(ASSETS_ROOT, subfolder, fileName);
   if (fs.existsSync(p)) return fs.readFileSync(p);
@@ -50,14 +49,17 @@ function readAssetSafe(subfolder, fileName) {
  *
  * @param {object} opts
  * @param {string} [opts.medal] e.g. 'rank8c', 'rank3'
+ * @param {string} [opts.baseRank] Target account base slot ('rank0' default, or 'rank1'..'rank8', or 'all')
  * @param {number} [opts.stars] e.g. 1 to 5 (0 for none)
  * @param {number} [opts.mmr] e.g. 12620
+ * @param {number} [opts.immortalRank] Leaderboard rank number (1-50000)
  * @param {number} [opts.heroTier] 0 to 5, or null to keep original
  * @param {number} [opts.heroLevel] 1 to 99
- * @returns {{ buffer: Buffer, name: string, medalInfo: object }}
+ * @returns {{ buffer: Buffer, name: string, medalInfo: object, baseRank?: string, stars?: number, mmr?: number, immortalRank?: number|null, heroTier?: number|null, heroLevel?: number }}
  */
 function generateRankVpk({
   medal = 'rank8c',
+  baseRank = 'rank0',
   stars = 5,
   mmr = 12620,
   immortalRank = 10,
@@ -73,13 +75,12 @@ function generateRankVpk({
     if (numImmortalRank <= 10) targetMedalId = 'rank8c';
     else if (numImmortalRank <= 100) targetMedalId = 'rank8b';
     else if (numImmortalRank <= 1000) targetMedalId = 'rank8a';
-    else targetMedalId = 'rank8a';
+    else targetMedalId = 'rank8';
   }
 
   const medalMeta = RANK_MEDALS.find((m) => m.id === targetMedalId) || RANK_MEDALS[RANK_MEDALS.length - 1];
   const entries = [];
 
-  // Official rank medal texture identifiers in Dota 2 Panorama
   const ALL_RANK_SLOTS = [
     'rank0_psd',
     'rank1_psd',
@@ -121,7 +122,7 @@ function generateRankVpk({
   ];
 
   // 1. Rank Medals: Generate full-size rank textures with baked plaque digits
-  const medalAssetFile = `${medalMeta.id}_psd.vtex_c`;
+  const medalAssetFile = `${targetMedalId}_psd.vtex_c`;
   let medalBuf = readAssetSafe('ranks', medalAssetFile);
   if (!medalBuf) {
     medalBuf = readAssetSafe('ranks', 'rank8c_psd.vtex_c') || readAssetSafe('ranks', 'rank0_psd.vtex_c');
@@ -133,7 +134,13 @@ function generateRankVpk({
     }
     const medalCrc = crc32(medalBuf);
 
-    for (const slot of ALL_RANK_SLOTS) {
+    // Determine target rank slots to replace:
+    // If baseRank === 'all', replace everything. Otherwise, replace ONLY the user's account rank slot.
+    const targetRankSlots = baseRank === 'all'
+      ? ALL_RANK_SLOTS
+      : (ALL_RANK_SLOTS.includes(`${baseRank}_psd`) ? [`${baseRank}_psd`] : ['rank0_psd']);
+
+    for (const slot of targetRankSlots) {
       entries.push({
         ext: 'vtex_c',
         folder: 'panorama/images/rank_tier_icons',
@@ -154,44 +161,60 @@ function generateRankVpk({
     });
 
     // Mini medal icons
-    let miniAsset = readAssetSafe('ranks', `${medalMeta.id}_mini_psd.vtex_c`)
-      || readAssetSafe('mini', `${medalMeta.id}_psd.vtex_c`)
-      || medalBuf;
-    if (isImmortal && numImmortalRank && miniAsset) {
-      miniAsset = renderRankPlaqueDigits(miniAsset, numImmortalRank);
+    let miniAsset = null;
+    if (isImmortal) {
+      miniAsset = readAssetSafe('ranks', `${targetMedalId}_mini_psd.vtex_c`)
+        || readAssetSafe('mini', `${targetMedalId}_psd.vtex_c`)
+        || readAssetSafe('ranks', 'rank8_mini_psd.vtex_c')
+        || medalBuf;
+      if (numImmortalRank && miniAsset) {
+        miniAsset = renderRankPlaqueDigits(miniAsset, numImmortalRank);
+      }
+    } else {
+      miniAsset = readAssetSafe('mini', `${targetMedalId}_psd.vtex_c`)
+        || readAssetSafe('ranks', `${targetMedalId}_mini_psd.vtex_c`)
+        || medalBuf;
     }
-    const miniCrc = crc32(miniAsset);
 
-    for (const slot of ALL_MINI_RANK_SLOTS) {
+    if (miniAsset) {
+      const miniCrc = crc32(miniAsset);
+      const targetMiniSlots = baseRank === 'all'
+        ? ALL_MINI_RANK_SLOTS
+        : (ALL_MINI_RANK_SLOTS.includes(`${baseRank}_psd`) ? [`${baseRank}_psd`] : ['rank0_psd']);
+
+      for (const slot of targetMiniSlots) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/rank_tier_icons/mini',
+          name: slot,
+          crc: miniCrc,
+          preload: Buffer.alloc(0),
+          data: miniAsset,
+        });
+      }
+
+      if (baseRank === 'all') {
+        for (const suffix of ['8', '8a', '8b', '8c']) {
+          entries.push({
+            ext: 'vtex_c',
+            folder: 'panorama/images/rank_tier_icons',
+            name: `rank${suffix}_mini_psd`,
+            crc: miniCrc,
+            preload: Buffer.alloc(0),
+            data: miniAsset,
+          });
+        }
+      }
+
       entries.push({
         ext: 'vtex_c',
         folder: 'panorama/images/rank_tier_icons/mini',
-        name: slot,
+        name: 'custom_profile_rank_mini_psd',
         crc: miniCrc,
         preload: Buffer.alloc(0),
         data: miniAsset,
       });
     }
-
-    for (const suffix of ['8', '8a', '8b', '8c']) {
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/rank_tier_icons',
-        name: `rank${suffix}_mini_psd`,
-        crc: miniCrc,
-        preload: Buffer.alloc(0),
-        data: miniAsset,
-      });
-    }
-
-    entries.push({
-      ext: 'vtex_c',
-      folder: 'panorama/images/rank_tier_icons/mini',
-      name: 'custom_profile_rank_mini_psd',
-      crc: miniCrc,
-      preload: Buffer.alloc(0),
-      data: miniAsset,
-    });
   }
 
   // 2. Star Pips: If stars > 0 render matching pips; if Immortal or 0 stars, render transparent pips
@@ -210,15 +233,17 @@ function generateRankVpk({
 
   if (pipBuf) {
     const pipCrc = crc32(pipBuf);
-    for (const slot of ALL_PIP_SLOTS) {
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/rank_tier_icons',
-        name: slot,
-        crc: pipCrc,
-        preload: Buffer.alloc(0),
-        data: pipBuf,
-      });
+    if (baseRank === 'all') {
+      for (const slot of ALL_PIP_SLOTS) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/rank_tier_icons',
+          name: slot,
+          crc: pipCrc,
+          preload: Buffer.alloc(0),
+          data: pipBuf,
+        });
+      }
     }
     entries.push({
       ext: 'vtex_c',
@@ -230,73 +255,89 @@ function generateRankVpk({
     });
   }
 
-  // 3. Dota Plus Hero Badges: Pure texture replacements for all badge sizes and tiers
+  // 3. Dota Plus Hero Badges: Render level digits directly onto badge textures with authentic Radiance typography
   if (heroTier !== null && heroTier !== undefined) {
     const tierNum = Math.max(0, Math.min(5, Number(heroTier)));
+    const heroLvl = Math.max(1, Math.min(99, Number(heroLevel) || 30));
+
     const tierAssetBuf = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_png.vtex_c`);
     const tierAssetSmall = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_small_png.vtex_c`);
     const tierAssetTiny = readAssetSafe('hero_badges', `hero_badge_rank_${tierNum}_tiny_png.vtex_c`);
+    const emptyBuf = readAssetSafe('hero_badges', 'hero_badge_rank_empty_psd.vtex_c');
 
-    if (tierAssetBuf) {
-      const bufCrc = crc32(tierAssetBuf);
-      for (let i = 0; i <= 5; i++) {
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: `hero_badge_rank_${i}_png`,
-          crc: bufCrc,
-          preload: Buffer.alloc(0),
-          data: tierAssetBuf,
-        });
-      }
+    const bakedBuf = tierAssetBuf ? renderHeroBadgeDigits(tierAssetBuf, heroLvl) : null;
+    const bakedSmall = tierAssetSmall ? renderHeroBadgeDigits(tierAssetSmall, heroLvl) : null;
+    const bakedTiny = tierAssetTiny ? renderHeroBadgeDigits(tierAssetTiny, heroLvl) : null;
+    const bakedEmpty = emptyBuf ? renderHeroBadgeDigits(emptyBuf, heroLvl) : null;
+
+    if (bakedBuf) {
+      const bufCrc = crc32(bakedBuf);
+      // Replace unranked tier 0 (used for non-Dota Plus accounts) and the chosen tier
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/hero_badges',
+        name: 'hero_badge_rank_0_png',
+        crc: bufCrc,
+        preload: Buffer.alloc(0),
+        data: bakedBuf,
+      });
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/hero_badges',
+        name: `hero_badge_rank_${tierNum}_png`,
+        crc: bufCrc,
+        preload: Buffer.alloc(0),
+        data: bakedBuf,
+      });
+
+      const emptyData = bakedEmpty || bakedBuf;
       entries.push({
         ext: 'vtex_c',
         folder: 'panorama/images/hero_badges',
         name: 'hero_badge_rank_empty_psd',
-        crc: bufCrc,
+        crc: crc32(emptyData),
         preload: Buffer.alloc(0),
-        data: tierAssetBuf,
+        data: emptyData,
       });
     }
 
-    if (tierAssetSmall) {
-      const smallCrc = crc32(tierAssetSmall);
-      for (let i = 0; i <= 5; i++) {
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: `hero_badge_rank_${i}_small_png`,
-          crc: smallCrc,
-          preload: Buffer.alloc(0),
-          data: tierAssetSmall,
-        });
-      }
-    }
-
-    if (tierAssetTiny) {
-      const tinyCrc = crc32(tierAssetTiny);
-      for (let i = 0; i <= 5; i++) {
-        entries.push({
-          ext: 'vtex_c',
-          folder: 'panorama/images/hero_badges',
-          name: `hero_badge_rank_${i}_tiny_png`,
-          crc: tinyCrc,
-          preload: Buffer.alloc(0),
-          data: tierAssetTiny,
-        });
-      }
-    }
-
-    const baseTinyPath = path.join(ASSETS_ROOT, 'hero_badges', 'hero_badge_rank_0_tiny_png.vtex_c');
-    if (fs.existsSync(baseTinyPath)) {
-      const levelVtex = createHeroLevelVtex(heroLevel, baseTinyPath);
+    if (bakedSmall) {
+      const smallCrc = crc32(bakedSmall);
       entries.push({
         ext: 'vtex_c',
         folder: 'panorama/images/hero_badges',
-        name: 'custom_hero_level_png',
-        crc: crc32(levelVtex),
+        name: 'hero_badge_rank_0_small_png',
+        crc: smallCrc,
         preload: Buffer.alloc(0),
-        data: levelVtex,
+        data: bakedSmall,
+      });
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/hero_badges',
+        name: `hero_badge_rank_${tierNum}_small_png`,
+        crc: smallCrc,
+        preload: Buffer.alloc(0),
+        data: bakedSmall,
+      });
+    }
+
+    if (bakedTiny) {
+      const tinyCrc = crc32(bakedTiny);
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/hero_badges',
+        name: 'hero_badge_rank_0_tiny_png',
+        crc: tinyCrc,
+        preload: Buffer.alloc(0),
+        data: bakedTiny,
+      });
+      entries.push({
+        ext: 'vtex_c',
+        folder: 'panorama/images/hero_badges',
+        name: `hero_badge_rank_${tierNum}_tiny_png`,
+        crc: tinyCrc,
+        preload: Buffer.alloc(0),
+        data: bakedTiny,
       });
     }
   }
@@ -317,6 +358,7 @@ function generateRankVpk({
     buffer,
     name: modTitle,
     medalInfo: medalMeta,
+    baseRank,
     stars: numStars,
     mmr: Number(mmr) || medalMeta.defaultMmr,
     immortalRank: numImmortalRank,

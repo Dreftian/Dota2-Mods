@@ -1,6 +1,18 @@
 # Historial de Cambios
 
 Novedades de cada versión. La aplicación se actualiza de forma automática para que disfrutes de todas las mejoras sin necesidad de reinstalar.
+## 1.0.12
+
+### Aislamiento de Rango en Perfil Propio, Medallas Inmortal Oficiales, Dígitos Radiance en Insignias y Corrección de Packs
+
+Esta versión aísla la modificación de rango al perfil exclusivo del jugador sin alterar las medallas de rivales ni la tabla de puntuación, restaura las texturas oficiales de Valve para Inmortal, añade dígitos Radiance centrados en las insignias de héroe y soluciona la pérdida de esquemas en packs combinados:
+
+- **Aislamiento de Rango en Perfil Propio**: La modificación de rango ahora se aplica a la ranura específica del perfil (por defecto `rank0` / Sin calibrar) en lugar de reemplazar todos los rangos globalmente. Tu medalla personalizada se muestra únicamente en tu perfil y mini showcase sin alterar a los otros 9 jugadores de la partida ni el modal de medallas de Dota 2.
+- **Medallas Inmortal Originales de Valve**: Se reemplazaron texturas no oficiales por las texturas genuinas en alta resolución de Valve, con espadas doradas auténticas, placa original y dígitos de clasificación nítidos con tipografía Radiance oficial.
+- **Dígitos Radiance en Insignias de Héroe**: Los niveles de insignias de héroe (1–30) ahora muestran dígitos nítidos en blanco puro (#FFFFFF) con sombra paralela oscura, centrados vertical y horizontalmente mediante decodificación PNG nativa en Node.js y escalado bilineal, idénticos al Dota Plus original.
+- **Corrección de Esquemas en Packs de Héroes**: Se solucionó el problema por el cual al combinar mods de héroes o empaquetarlos se perdían las definiciones de esquema en `items_game.txt`. Las arcanas, armas, animaciones y piezas cosméticas ahora se conservan íntegramente al ensamblar, desplegar o desarmar packs.
+- **Mejoras en el Personalizador de Rangos**: Se eliminaron todos los bloqueos ficticios de VIP en la interfaz para medallas e insignias, y se añadió la opción de seleccionar el rango base para máximo control estético.
+
 ## 1.0.11
 
 ### Corrección de Error Fatal de Layout y Arquitectura de Mod Nativo

@@ -931,10 +931,15 @@ function afterDeployMaster() {
 
 // rebuild a pack's deployed VPK, persist its files, and re-apply pack + master off-state
 function deployAndApply(pack) {
-  const { files, conflicts } = installer.deployPack(pack);
-  library.update(pack.id, { files, members: pack.members });
+  const { files, conflicts, schema } = installer.deployPack(pack);
+  library.update(pack.id, {
+    files,
+    members: pack.members,
+    schema: (schema && schema.length) ? schema : undefined,
+  });
   if (pack.enabled === false && files.length) { try { installer.setEnabled(files, false); } catch { /* noop */ } }
   afterDeployMaster();
+  try { schemaService?.refresh(); } catch { /* noop */ }
   return conflicts;
 }
 
@@ -1218,7 +1223,7 @@ function registerIpc() {
   });
 
   // ----- combined packs ----- (src/ipc-packs.js)
-  registerPacksIpc({ afterDeployMaster, deployAndApply, installer, library });
+  registerPacksIpc({ afterDeployMaster, deployAndApply, installer, library, schemaService });
 
   // ----- presets ----- (src/ipc-presets.js)
   registerPresetsIpc({

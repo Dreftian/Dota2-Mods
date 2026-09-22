@@ -1,6 +1,18 @@
 # Changelog
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
+## 1.0.12
+
+### Per-Profile Isolated Rank Overrides, Authentic Valve Immortal Medals, Radiance Hero Badge Digits & Pack Schema Bugfixes
+
+This release delivers fully isolated, per-profile rank and hero badge mods that do not alter match scoreboards or opponents, restores genuine Valve Immortal medal textures, renders authentic Radiance level numbers on hero badges, and fixes schema dropping in combined hero packs:
+
+- **Isolated Per-Profile Rank Modding**: Rank mods now target specific profile slots (defaulting to `rank0` / Uncalibrated) rather than globally replacing all rank tiers. Your custom medal displays exclusively on your player profile and mini showcase, leaving match scoreboards, opponent medals, and the in-game rank medals browser untouched.
+- **Genuine Valve Immortal Medals**: Replaced artificial medal graphics with Valve's official high-resolution Immortal textures featuring authentic golden swords, official plaque dimensions, and sharp leaderboard rank numbers rendered in genuine Valve Radiance typography.
+- **Radiance Hero Badge Digits**: Hero level progression badges (levels 1–30) now feature crisp, centered white digits (#FFFFFF) with authentic drop shadows and outlines rendered via pure Node.js PNG decoding and bilinear scaling, perfectly aligned with in-game Dota Plus styling.
+- **Pack Schema & Combined Hero Mod Fixes**: Resolved the bug where combining hero cosmetic mods or creating hero packs dropped `items_game.txt` schema definitions. Item schemas, arcanas, custom animations, and weapon slots are now fully preserved across pack assembly, activation, and disbanding.
+- **Rank Customizer Improvements**: Fully unlocked all rank tiers and hero badges in the desktop UI with no VIP restrictions, and added base rank selection for granular control.
+
 ## 1.0.11
 
 ### Native Rank Mod Architecture & Layout Fatal Error Fix

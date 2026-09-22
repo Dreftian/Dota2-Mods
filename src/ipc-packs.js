@@ -12,7 +12,7 @@ const { packableRecord } = require('./presets-service');
 
 /** @param {object} ctx  the services and main-process callbacks these channels use */
 function registerPacksIpc({
-  afterDeployMaster, deployAndApply, installer, library,
+  afterDeployMaster, deployAndApply, installer, library, schemaService,
 }) {
 
   // Combine any mix of standalone mods and existing packs into one pack. Packs are
@@ -127,9 +127,15 @@ function registerPacksIpc({
     try {
       const ids = new Set(memberIds || []);
       const names = [];
+      let hadSchema = false;
       for (const m of (pack.members || []).filter((x) => ids.has(x.id))) {
         const { files } = installer.deployMemberAsMod(pack, m);
-        const rec = library.add({ name: m.name, categoryId: m.categoryId || 'imported', styleLabel: m.styleLabel || null, fileRef: pack.name, preview: m.preview || null, files });
+        const memberSchema = (Array.isArray(m.schema) && m.schema.length) ? m.schema : undefined;
+        if (memberSchema) hadSchema = true;
+        const rec = library.add({
+          name: m.name, categoryId: m.categoryId || 'imported', styleLabel: m.styleLabel || null,
+          fileRef: pack.name, preview: m.preview || null, files, schema: memberSchema,
+        });
         if (m.enabled === false) { try { installer.setEnabled(files, false); } catch { /* noop */ } library.setEnabled(rec.id, false); }
         try { fs.rmSync(installer.packMemberFile(pack.id, m.id), { force: true }); } catch { /* noop */ }
         names.push(m.name);
@@ -139,9 +145,11 @@ function registerPacksIpc({
         installer.removePackFully(pack);
         library.removeRecord(pack.id);
         afterDeployMaster();
+        if (hadSchema) { try { schemaService?.refresh(); } catch { /* noop */ } }
         return { ok: true, count: names.length, names, removedPack: true };
       }
       deployAndApply(pack);
+      if (hadSchema) { try { schemaService?.refresh(); } catch { /* noop */ } }
       return { ok: true, count: names.length, names };
     } catch (err) {
       return { error: String(err.message || err) };
@@ -154,15 +162,22 @@ function registerPacksIpc({
     if (!pack || pack.kind !== 'pack') return { error: t('Пак не найден') };
     try {
       const names = [];
+      let hadSchema = false;
       for (const m of pack.members || []) {
         const { files } = installer.deployMemberAsMod(pack, m);
-        const rec = library.add({ name: m.name, categoryId: m.categoryId || 'imported', styleLabel: m.styleLabel || null, fileRef: pack.name, preview: m.preview || null, files });
+        const memberSchema = (Array.isArray(m.schema) && m.schema.length) ? m.schema : undefined;
+        if (memberSchema) hadSchema = true;
+        const rec = library.add({
+          name: m.name, categoryId: m.categoryId || 'imported', styleLabel: m.styleLabel || null,
+          fileRef: pack.name, preview: m.preview || null, files, schema: memberSchema,
+        });
         if (m.enabled === false) { try { installer.setEnabled(files, false); } catch { /* noop */ } library.setEnabled(rec.id, false); }
         names.push(m.name);
       }
       installer.removePackFully(pack);
       library.removeRecord(pack.id);
       afterDeployMaster();
+      if (hadSchema) { try { schemaService?.refresh(); } catch { /* noop */ } }
       return { ok: true, count: names.length, names };
     } catch (err) {
       return { error: String(err.message || err) };

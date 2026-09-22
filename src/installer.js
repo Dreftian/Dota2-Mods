@@ -1052,7 +1052,7 @@ class Installer {
     } catch { /* summary is best-effort */ }
     return {
       id: memberId, name: rec.name, categoryId: rec.categoryId, styleLabel: rec.styleLabel || null,
-      preview: rec.preview || null, enabled: rec.enabled !== false, heroes, info, fp,
+      preview: rec.preview || null, enabled: rec.enabled !== false, heroes, info, fp, schema: rec.schema || null,
     };
   }
 
@@ -1076,20 +1076,22 @@ class Installer {
 
   // (Re)build a pack's single deployed VPK from its enabled members. Removes the old
   // deployment first, then combines enabled member sources into the pack's slot. Returns
-  // { files, conflicts } — caller stores files on the record and re-applies enabled/master
+  // { files, conflicts, schema } — caller stores files on the record and re-applies enabled/master
   // state. With no enabled members nothing is written (files: []).
   deployPack(pack) {
     const lang = this.langFolder();
     this.ensureLangFolder();
     this.removePackDeployed(pack);
     const enabled = (pack.members || []).filter((m) => m.enabled);
-    if (!enabled.length) return { files: [], conflicts: [] };
+    if (!enabled.length) { pack.schema = []; return { files: [], conflicts: [], schema: [] }; }
     let base = this.packBase(pack);
     if (!base) base = this.allocatePak(this.usedPakNames(), false).replace(/_dir\.vpk$/i, '');
     const members = enabled.map((m) => ({ key: m.id, buf: fs.readFileSync(this.packMemberFile(pack.id, m.id)) }));
     const { dir, parts, conflicts } = combineVpksToFiles(members, lang, base);
     const files = [{ root: 'lang', relPath: dir }, ...parts.map((p) => ({ root: 'lang', relPath: p }))];
-    return { files, conflicts };
+    const schema = enabled.flatMap((m) => (Array.isArray(m.schema) ? m.schema : []));
+    pack.schema = schema.length ? schema : undefined;
+    return { files, conflicts, schema: pack.schema };
   }
 
   // Fully delete a pack: its deployed VPK and every stored member source.

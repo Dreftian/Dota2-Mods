@@ -243,7 +243,7 @@
           "lines": 93.9
         },
         "src/installer.js": {
-          "lines": 83.7
+          "lines": 83.8
         },
         "src/ipc-auth.js": {
           "lines": 85.4
@@ -261,10 +261,10 @@
           "lines": 77.2
         },
         "src/ipc-mods.js": {
-          "lines": 55.1
+          "lines": 59
         },
         "src/ipc-packs.js": {
-          "lines": 44.5
+          "lines": 78.2
         },
         "src/ipc-presets.js": {
           "lines": 62.4
@@ -309,16 +309,16 @@
           "lines": 88.7
         },
         "src/presets-service.js": {
-          "lines": 13.8
+          "lines": 15.3
         },
         "src/rank-drawing.js": {
-          "lines": 99.1
+          "lines": 99.6
         },
         "src/rank-font-data.js": {
           "lines": 100
         },
         "src/rank-generator.js": {
-          "lines": 97
+          "lines": 98.7
         },
         "src/remote-config.js": {
           "lines": 100
@@ -335,11 +335,14 @@
         "src/steam.js": {
           "lines": 53.2
         },
+        "src/toolchain.js": {
+          "lines": 98.1
+        },
         "src/updater.js": {
           "lines": 95.8
         },
         "src/vpk.js": {
-          "lines": 98.2
+          "lines": 98.6
         },
         "src/vtex.js": {
           "lines": 100

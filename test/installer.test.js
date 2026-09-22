@@ -423,6 +423,7 @@ test('generateRankVpk produces self-contained VPK with pure native textures and 
   const { listVpkPaths } = require('../src/vpk.js');
   const result = generateRankVpk({
     medal: 'rank8c',
+    baseRank: 'rank0',
     immortalRank: 8,
     mmr: 12620,
     heroTier: 5,
@@ -433,18 +434,97 @@ test('generateRankVpk produces self-contained VPK with pure native textures and 
   assert.equal(result.immortalRank, 8);
   assert.equal(result.heroTier, 5);
   assert.equal(result.heroLevel, 30);
+  assert.equal(result.baseRank, 'rank0');
 
   const paths = listVpkPaths(result.buffer);
-  assert.ok(paths.includes('panorama/images/rank_tier_icons/rank0_psd.vtex_c'), 'uncalibrated rank0 must exist');
-  assert.ok(paths.includes('panorama/images/rank_tier_icons/rank8c_psd.vtex_c'), 'immortal rank8c must exist');
+  // Replaces the user's uncalibrated profile rank slot without replacing other players' ranks
+  assert.ok(paths.includes('panorama/images/rank_tier_icons/rank0_psd.vtex_c'), 'user target rank0 must exist');
   assert.ok(paths.includes('panorama/images/rank_tier_icons/mini/rank0_psd.vtex_c'), 'mini rank0 must exist');
-  assert.ok(paths.includes('panorama/images/rank_tier_icons/mini/rank8c_psd.vtex_c'), 'mini rank8c must exist');
-  assert.ok(paths.includes('panorama/images/rank_tier_icons/pip1_psd.vtex_c'), 'star pip1 must exist');
+  assert.ok(!paths.includes('panorama/images/rank_tier_icons/rank1_psd.vtex_c'), 'other players rank1 must NOT be overridden');
   assert.ok(paths.includes('panorama/images/hero_badges/hero_badge_rank_5_png.vtex_c'), 'grandmaster hero badge must exist');
   assert.ok(paths.includes('panorama/images/hero_badges/hero_badge_rank_0_png.vtex_c'), 'base hero badge override must exist');
-  assert.ok(paths.includes('panorama/images/hero_badges/custom_hero_level_png.vtex_c'), 'hero level vtex must exist');
+  assert.ok(paths.includes('panorama/images/hero_badges/hero_badge_rank_5_small_png.vtex_c'), 'small hero badge must exist');
+  assert.ok(paths.includes('panorama/images/hero_badges/hero_badge_rank_5_tiny_png.vtex_c'), 'tiny hero badge must exist');
 
   // Strict check: NO .vcss_c stylesheets to prevent Dota 2 layout fatal crashes (e.g. mini_showcase.xml)
   assert.ok(!paths.some((p) => p.endsWith('.vcss_c')), 'must NOT contain any .vcss_c stylesheets to prevent Dota 2 layout fatal errors');
+
+  // Global baseRank test
+  const globalResult = generateRankVpk({
+    medal: 'rank8c',
+    baseRank: 'all',
+    immortalRank: 10,
+  });
+  const globalPaths = listVpkPaths(globalResult.buffer);
+  assert.ok(globalPaths.includes('panorama/images/rank_tier_icons/rank8c_psd.vtex_c'), 'all slots replaced when baseRank is all');
+  assert.ok(globalPaths.includes('panorama/images/rank_tier_icons/rank1_psd.vtex_c'), 'all slots replaced when baseRank is all');
+});
+
+test('renderRankPlaqueDigits and renderHeroBadgeDigits draw authentic digits across all sizes', () => {
+  const { renderRankPlaqueDigits, renderHeroBadgeDigits, createHeroLevelVtex } = require('../src/rank-drawing.js');
+  const path = require('path');
+  const fs = require('fs');
+
+  // Plaque digits on 256x256, 128x64, 80x80 and edge cases
+  const fake256 = Buffer.concat([Buffer.alloc(2068), Buffer.alloc(262144, 100)]);
+  fake256.writeUInt32LE(2068, 0);
+  const res256 = renderRankPlaqueDigits(fake256, 10);
+  assert.equal(res256.length, fake256.length);
+
+  const fake128 = Buffer.concat([Buffer.alloc(2068), Buffer.alloc(32768, 100)]);
+  fake128.writeUInt32LE(2068, 0);
+  const res128 = renderRankPlaqueDigits(fake128, 10);
+  assert.equal(res128.length, fake128.length);
+
+  const fake80 = Buffer.concat([Buffer.alloc(2068), Buffer.alloc(25600, 100)]);
+  fake80.writeUInt32LE(2068, 0);
+  const res80 = renderRankPlaqueDigits(fake80, 10);
+  assert.equal(res80.length, fake80.length);
+
+  assert.equal(renderRankPlaqueDigits(null, 10), null);
+  assert.equal(renderRankPlaqueDigits(fake256, ''), fake256);
+
+  // Hero badge digits on PNG, 256x256 raw, 64x64 raw, 32x32 raw
+  const gmVtex = fs.readFileSync(path.join(__dirname, '../src/assets/ranks/hero_badges/hero_badge_rank_5_png.vtex_c'));
+  const bakedPng = renderHeroBadgeDigits(gmVtex, 30);
+  assert.ok(bakedPng.length > 2068);
+
+  const bakedRaw256 = renderHeroBadgeDigits(fake256, 30);
+  assert.equal(bakedRaw256.length, fake256.length);
+
+  const fake64 = Buffer.concat([Buffer.alloc(2068), Buffer.alloc(16384, 100)]);
+  fake64.writeUInt32LE(2068, 0);
+  const baked64 = renderHeroBadgeDigits(fake64, 30);
+  assert.equal(baked64.length, fake64.length);
+
+  const fake32 = Buffer.concat([Buffer.alloc(2068), Buffer.alloc(4096, 100)]);
+  fake32.writeUInt32LE(2068, 0);
+  const baked32 = renderHeroBadgeDigits(fake32, 30);
+  assert.equal(baked32.length, fake32.length);
+
+  assert.equal(renderHeroBadgeDigits(null, 30), null);
+  assert.equal(renderHeroBadgeDigits(fake64, ''), fake64);
+
+  // createHeroLevelVtex
+  const baseTinyPath = path.join(__dirname, '../src/assets/ranks/hero_badges/hero_badge_rank_0_tiny_png.vtex_c');
+  const levelBuf = createHeroLevelVtex(30, baseTinyPath);
+  assert.ok(levelBuf.length > 2068);
+});
+
+test('generateRankVpk covers all immortal tiers and star ranks', () => {
+  const { generateRankVpk } = require('../src/rank-generator.js');
+
+  const top100 = generateRankVpk({ medal: 'rank8', immortalRank: 50 });
+  assert.ok(top100.name.includes('Top 100'));
+
+  const top1000 = generateRankVpk({ medal: 'rank8', immortalRank: 500 });
+  assert.ok(top1000.name.includes('Top 1000'));
+
+  const topGeneral = generateRankVpk({ medal: 'rank8', immortalRank: 5000 });
+  assert.ok(topGeneral.name.includes('Immortal'));
+
+  const starred = generateRankVpk({ medal: 'rank5', stars: 3, baseRank: 'rank5' });
+  assert.ok(starred.name.includes('3★'));
+  assert.equal(starred.stars, 3);
 });
 
