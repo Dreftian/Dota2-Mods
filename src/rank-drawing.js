@@ -152,29 +152,34 @@ function drawBadgeNumber(pixels, width, height, text, centerX, centerY, scaleFac
   totalW += (glyphs.length - 1) * spacing;
   const startX = Math.round(centerX - totalW / 2);
 
-  // 1. Drop shadow / dark outline
-  const shadowRadius = Math.max(1, Math.round(scaleFactor * 1.2));
+  // 1. Subtle, soft drop shadow matching authentic Valve Radiance style (no cartoon outlines)
+  const shadowOffsets = [
+    { dx: 0, dy: 1, a: 0.55 },
+    { dx: 1, dy: 1, a: 0.65 },
+    { dx: 0, dy: 2, a: 0.45 },
+    { dx: 1, dy: 2, a: 0.55 },
+    { dx: -1, dy: 1, a: 0.35 },
+    { dx: 2, dy: 2, a: 0.25 },
+  ];
+
   let curX = startX;
   for (const g of glyphs) {
     const startY = Math.round(centerY - g.h / 2);
     for (let gy = 0; gy < g.h; gy++) {
       for (let gx = 0; gx < g.w; gx++) {
         const a = g.alpha[gy * g.w + gx];
-        if (a > 15) {
-          for (let dy = -shadowRadius; dy <= shadowRadius + 1; dy++) {
-            for (let dx = -shadowRadius; dx <= shadowRadius; dx++) {
-              if (dx === 0 && dy === 0) continue;
-              const px = curX + gx + dx;
-              const py = startY + gy + dy;
-              if (px >= 0 && px < width && py >= 0 && py < height) {
-                const idx = (py * width + px) * 4;
-                const shadowA = ((a * 0.9) / 255) * (dy > 0 ? 0.95 : 0.7);
-                const inv = 1 - shadowA;
-                pixels[idx] = Math.round(pixels[idx] * inv + 5 * shadowA);
-                pixels[idx + 1] = Math.round(pixels[idx + 1] * inv + 5 * shadowA);
-                pixels[idx + 2] = Math.round(pixels[idx + 2] * inv + 10 * shadowA);
-                pixels[idx + 3] = Math.max(pixels[idx + 3], Math.round(a * 0.9));
-              }
+        if (a > 10) {
+          for (const off of shadowOffsets) {
+            const px = curX + gx + off.dx;
+            const py = startY + gy + off.dy;
+            if (px >= 0 && px < width && py >= 0 && py < height) {
+              const idx = (py * width + px) * 4;
+              const shadowA = (a * off.a) / 255;
+              const inv = 1 - shadowA;
+              pixels[idx] = Math.round(pixels[idx] * inv + 5 * shadowA);
+              pixels[idx + 1] = Math.round(pixels[idx + 1] * inv + 5 * shadowA);
+              pixels[idx + 2] = Math.round(pixels[idx + 2] * inv + 10 * shadowA);
+              pixels[idx + 3] = Math.max(pixels[idx + 3], Math.round(a * 0.9));
             }
           }
         }
@@ -183,7 +188,7 @@ function drawBadgeNumber(pixels, width, height, text, centerX, centerY, scaleFac
     curX += g.w + spacing;
   }
 
-  // 2. Pure crisp white with subtle ivory gradient
+  // 2. Pure crisp white fill with subtle ivory/silver gradient
   curX = startX;
   for (const g of glyphs) {
     const startY = Math.round(centerY - g.h / 2);
@@ -204,7 +209,7 @@ function drawBadgeNumber(pixels, width, height, text, centerX, centerY, scaleFac
             pixels[idx] = Math.round(pixels[idx] * inv + targetR * alphaFrac);
             pixels[idx + 1] = Math.round(pixels[idx + 1] * inv + targetG * alphaFrac);
             pixels[idx + 2] = Math.round(pixels[idx + 2] * inv + targetB * alphaFrac);
-            pixels[idx + 3] = 255;
+            pixels[idx + 3] = Math.max(pixels[idx + 3], a);
           }
         }
       }
@@ -348,7 +353,7 @@ function renderHeroBadgeDigits(vtexBuffer, level) {
   if (isPng(vtexBuffer, headerSize)) {
     const pngBuf = vtexBuffer.subarray(headerSize);
     const { width, height, pixels } = decodePngRgba(pngBuf);
-    drawBadgeNumber(pixels, width, height, text, Math.round(width / 2), Math.round(height * 0.47), 2.2, 4);
+    drawBadgeNumber(pixels, width, height, text, Math.round(width / 2), Math.round(height * 0.49), 1.15, 2);
     const pngOut = encodePngRgba(width, height, pixels);
     return Buffer.concat([vtexBuffer.subarray(0, headerSize), pngOut]);
   }
@@ -356,11 +361,11 @@ function renderHeroBadgeDigits(vtexBuffer, level) {
   const copy = Buffer.from(vtexBuffer);
   const pixels = copy.subarray(headerSize);
   if (pixels.length === 256 * 256 * 4) {
-    drawBadgeNumber(pixels, 256, 256, text, 128, 120, 2.2, 4);
+    drawBadgeNumber(pixels, 256, 256, text, 128, 125, 1.15, 2);
   } else if (pixels.length === 64 * 64 * 4) {
-    drawBadgeNumber(pixels, 64, 64, text, 32, 30, 0.6, 1);
+    drawBadgeNumber(pixels, 64, 64, text, 32, 31, 0.45, 1);
   } else if (pixels.length === 32 * 32 * 4) {
-    drawBadgeNumber(pixels, 32, 32, text, 16, 16, 0.36, 1);
+    drawBadgeNumber(pixels, 32, 32, text, 16, 16, 0.28, 1);
   }
   return copy;
 }

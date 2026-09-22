@@ -68,14 +68,24 @@ function generateRankVpk({
 } = {}) {
   let targetMedalId = medal;
   const isImmortal = targetMedalId.startsWith('rank8');
-  const numImmortalRank = isImmortal ? Math.max(1, Number(immortalRank) || 10) : null;
+  let numImmortalRank = isImmortal && immortalRank !== null && immortalRank !== undefined
+    ? Math.max(1, Math.round(Number(immortalRank)) || 10)
+    : null;
 
-  // If Immortal and an immortalRank is specified, select the best matching medal tier
+  // If Immortal and an immortalRank is specified, map or clamp according to tier
   if (isImmortal && numImmortalRank !== null) {
-    if (numImmortalRank <= 10) targetMedalId = 'rank8c';
-    else if (numImmortalRank <= 100) targetMedalId = 'rank8b';
-    else if (numImmortalRank <= 1000) targetMedalId = 'rank8a';
-    else targetMedalId = 'rank8';
+    if (medal === 'rank8') {
+      if (numImmortalRank <= 10) targetMedalId = 'rank8c';
+      else if (numImmortalRank <= 100) targetMedalId = 'rank8b';
+      else if (numImmortalRank <= 1000) targetMedalId = 'rank8a';
+      else targetMedalId = 'rank8';
+    } else if (medal === 'rank8c') {
+      numImmortalRank = Math.max(1, Math.min(10, numImmortalRank));
+    } else if (medal === 'rank8b') {
+      numImmortalRank = Math.max(11, Math.min(100, numImmortalRank));
+    } else if (medal === 'rank8a') {
+      numImmortalRank = Math.max(101, Math.min(6000, numImmortalRank));
+    }
   }
 
   const medalMeta = RANK_MEDALS.find((m) => m.id === targetMedalId) || RANK_MEDALS[RANK_MEDALS.length - 1];
@@ -94,6 +104,7 @@ function generateRankVpk({
     'rank8a_psd',
     'rank8b_psd',
     'rank8c_psd',
+    'rank8inactive_psd',
   ];
 
   const ALL_MINI_RANK_SLOTS = [
@@ -109,6 +120,7 @@ function generateRankVpk({
     'rank8a_psd',
     'rank8b_psd',
     'rank8c_psd',
+    'rank8inactive_psd',
   ];
 
   const ALL_PIP_SLOTS = [
@@ -135,10 +147,20 @@ function generateRankVpk({
     const medalCrc = crc32(medalBuf);
 
     // Determine target rank slots to replace:
-    // If baseRank === 'all', replace everything. Otherwise, replace ONLY the user's account rank slot.
-    const targetRankSlots = baseRank === 'all'
-      ? ALL_RANK_SLOTS
-      : (ALL_RANK_SLOTS.includes(`${baseRank}_psd`) ? [`${baseRank}_psd`] : ['rank0_psd']);
+    // If baseRank === 'all', replace everything. Otherwise, replace user's account rank slot.
+    // In Dota 2, uncalibrated/inactive accounts display rank0_psd or rank8inactive_psd.
+    let targetRankSlots;
+    if (baseRank === 'all') {
+      targetRankSlots = ALL_RANK_SLOTS;
+    } else if (baseRank === 'rank0') {
+      targetRankSlots = ['rank0_psd', 'rank8inactive_psd'];
+    } else if (baseRank.startsWith('rank8')) {
+      targetRankSlots = [`${baseRank}_psd`, 'rank8inactive_psd'];
+    } else if (ALL_RANK_SLOTS.includes(`${baseRank}_psd`)) {
+      targetRankSlots = [`${baseRank}_psd`];
+    } else {
+      targetRankSlots = ['rank0_psd', 'rank8inactive_psd'];
+    }
 
     for (const slot of targetRankSlots) {
       entries.push({
@@ -178,9 +200,18 @@ function generateRankVpk({
 
     if (miniAsset) {
       const miniCrc = crc32(miniAsset);
-      const targetMiniSlots = baseRank === 'all'
-        ? ALL_MINI_RANK_SLOTS
-        : (ALL_MINI_RANK_SLOTS.includes(`${baseRank}_psd`) ? [`${baseRank}_psd`] : ['rank0_psd']);
+      let targetMiniSlots;
+      if (baseRank === 'all') {
+        targetMiniSlots = ALL_MINI_RANK_SLOTS;
+      } else if (baseRank === 'rank0') {
+        targetMiniSlots = ['rank0_psd', 'rank8inactive_psd'];
+      } else if (baseRank.startsWith('rank8')) {
+        targetMiniSlots = [`${baseRank}_psd`, 'rank8inactive_psd'];
+      } else if (ALL_MINI_RANK_SLOTS.includes(`${baseRank}_psd`)) {
+        targetMiniSlots = [`${baseRank}_psd`];
+      } else {
+        targetMiniSlots = ['rank0_psd', 'rank8inactive_psd'];
+      }
 
       for (const slot of targetMiniSlots) {
         entries.push({
@@ -204,6 +235,17 @@ function generateRankVpk({
             data: miniAsset,
           });
         }
+      }
+
+      if (baseRank === 'all' || baseRank === 'rank0' || baseRank.startsWith('rank8')) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/rank_tier_icons',
+          name: 'rank8inactive_mini_psd',
+          crc: miniCrc,
+          preload: Buffer.alloc(0),
+          data: miniAsset,
+        });
       }
 
       entries.push({
@@ -270,25 +312,20 @@ function generateRankVpk({
     const bakedTiny = tierAssetTiny ? renderHeroBadgeDigits(tierAssetTiny, heroLvl) : null;
     const bakedEmpty = emptyBuf ? renderHeroBadgeDigits(emptyBuf, heroLvl) : null;
 
+    const ALL_HERO_TIERS = [0, 1, 2, 3, 4, 5];
+
     if (bakedBuf) {
       const bufCrc = crc32(bakedBuf);
-      // Replace unranked tier 0 (used for non-Dota Plus accounts) and the chosen tier
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/hero_badges',
-        name: 'hero_badge_rank_0_png',
-        crc: bufCrc,
-        preload: Buffer.alloc(0),
-        data: bakedBuf,
-      });
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/hero_badges',
-        name: `hero_badge_rank_${tierNum}_png`,
-        crc: bufCrc,
-        preload: Buffer.alloc(0),
-        data: bakedBuf,
-      });
+      for (const t of ALL_HERO_TIERS) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/hero_badges',
+          name: `hero_badge_rank_${t}_png`,
+          crc: bufCrc,
+          preload: Buffer.alloc(0),
+          data: bakedBuf,
+        });
+      }
 
       const emptyData = bakedEmpty || bakedBuf;
       entries.push({
@@ -303,42 +340,30 @@ function generateRankVpk({
 
     if (bakedSmall) {
       const smallCrc = crc32(bakedSmall);
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/hero_badges',
-        name: 'hero_badge_rank_0_small_png',
-        crc: smallCrc,
-        preload: Buffer.alloc(0),
-        data: bakedSmall,
-      });
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/hero_badges',
-        name: `hero_badge_rank_${tierNum}_small_png`,
-        crc: smallCrc,
-        preload: Buffer.alloc(0),
-        data: bakedSmall,
-      });
+      for (const t of ALL_HERO_TIERS) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/hero_badges',
+          name: `hero_badge_rank_${t}_small_png`,
+          crc: smallCrc,
+          preload: Buffer.alloc(0),
+          data: bakedSmall,
+        });
+      }
     }
 
     if (bakedTiny) {
       const tinyCrc = crc32(bakedTiny);
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/hero_badges',
-        name: 'hero_badge_rank_0_tiny_png',
-        crc: tinyCrc,
-        preload: Buffer.alloc(0),
-        data: bakedTiny,
-      });
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/hero_badges',
-        name: `hero_badge_rank_${tierNum}_tiny_png`,
-        crc: tinyCrc,
-        preload: Buffer.alloc(0),
-        data: bakedTiny,
-      });
+      for (const t of ALL_HERO_TIERS) {
+        entries.push({
+          ext: 'vtex_c',
+          folder: 'panorama/images/hero_badges',
+          name: `hero_badge_rank_${t}_tiny_png`,
+          crc: tinyCrc,
+          preload: Buffer.alloc(0),
+          data: bakedTiny,
+        });
+      }
     }
   }
 
@@ -349,7 +374,7 @@ function generateRankVpk({
   const buffer = buildVpk(entries);
   const starsLabel = numStars > 0
     ? `${numStars}★`
-    : (isImmortal ? `#${numImmortalRank || 10}` : '');
+    : (isImmortal ? (numImmortalRank ? `#${numImmortalRank}` : '') : '');
   const tierInfo = HERO_TIERS.find((t) => t.id === heroTier);
   const tierLabel = tierInfo ? `${tierInfo.nameEn} Lv ${heroLevel}` : '';
   const modTitle = `Rank Changer (${medalMeta.nameEn} ${starsLabel} · ${mmr} MMR · ${tierLabel})`;

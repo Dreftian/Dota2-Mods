@@ -68,10 +68,26 @@ export async function initRankCustomizer() {
   }
 }
 
+function clampImmortalRank(val, medalId) {
+  const n = Math.round(Number(val)) || 1;
+  if (medalId === 'rank8c') return Math.max(1, Math.min(10, n));
+  if (medalId === 'rank8b') return Math.max(11, Math.min(100, n));
+  if (medalId === 'rank8a') return Math.max(101, Math.min(6000, n));
+  return n;
+}
+
 export function rankCustomizerHtml() {
   const currentMedal = RANK_DATA.find((m) => m.id === customState.medal) || RANK_DATA[11];
   const currentTier = HERO_TIER_DATA.find((t) => t.id === customState.heroTier) || HERO_TIER_DATA[5];
   const isImmortal = currentMedal.id.startsWith('rank8');
+  const hasLeaderboard = ['rank8a', 'rank8b', 'rank8c'].includes(currentMedal.id);
+
+  let immMin = 1, immMax = 10, immHint = L`Top 10: Número del 1 al 10 para la placa de clasificación.`;
+  if (currentMedal.id === 'rank8b') {
+    immMin = 11; immMax = 100; immHint = L`Top 100: Número del 11 al 100 para la placa de clasificación.`;
+  } else if (currentMedal.id === 'rank8a') {
+    immMin = 101; immMax = 6000; immHint = L`Top 1000: Número del 101 al 6000 para la placa de clasificación.`;
+  }
 
   return `
     <section class="rank-customizer-container" id="rankCustomizerSection">
@@ -161,15 +177,15 @@ export function rankCustomizerHtml() {
         </div>
       </div>
 
-      <!-- Immortal Rank Leaderboard Digit (Visible when Immortal is selected) -->
-      <div class="rc-controls-row ${isImmortal ? '' : 'hidden'}" id="rcImmortalRow" style="margin-top: -6px; margin-bottom: 18px;">
+      <!-- Immortal Rank Leaderboard Digit (Visible when Top 10, Top 100, or Top 1000 is selected) -->
+      <div class="rc-controls-row ${hasLeaderboard ? '' : 'hidden'}" id="rcImmortalRow" style="margin-top: -6px; margin-bottom: 18px;">
         <div class="rc-control-group rc-immortal-group" style="max-width: 360px;">
           <label class="rc-label" for="rcImmortalRankInput">${L`Posición / Dígito de Clasificación Inmortal`}</label>
           <div class="rc-mmr-input-wrap">
-            <input type="number" id="rcImmortalRankInput" class="rc-input" min="1" max="50000" value="${customState.immortalRank || 10}" />
+            <input type="number" id="rcImmortalRankInput" class="rc-input" min="${immMin}" max="${immMax}" value="${customState.immortalRank || 10}" />
             <span class="rc-input-unit">RANK</span>
           </div>
-          <div class="rc-hint">${L`El número que se mostrará en la placa de tu medalla Inmortal (ej. 1, 10, 100, 1000).`}</div>
+          <div class="rc-hint" id="rcImmortalHint">${immHint}</div>
         </div>
       </div>
 
@@ -274,6 +290,7 @@ export function rankCustomizerHtml() {
 function updatePreview() {
   const currentMedal = RANK_DATA.find((m) => m.id === customState.medal) || RANK_DATA[0];
   const isImmortal = currentMedal.id.startsWith('rank8');
+  const hasLeaderboard = ['rank8a', 'rank8b', 'rank8c'].includes(currentMedal.id);
 
   const previewMedalImg = $('#rcPreviewMedalImg');
   if (previewMedalImg) previewMedalImg.src = `assets/ranks/${customState.medal}.png`;
@@ -290,7 +307,7 @@ function updatePreview() {
 
   const previewImmortalRank = $('#rcPreviewImmortalRank');
   const previewImmortalNum = $('#rcPreviewImmortalNum');
-  if (previewImmortalRank) previewImmortalRank.classList.toggle('hidden', !isImmortal);
+  if (previewImmortalRank) previewImmortalRank.classList.toggle('hidden', !hasLeaderboard);
   if (previewImmortalNum) previewImmortalNum.textContent = customState.immortalRank || 10;
 
   const previewTitleEl = $('#rcPreviewTitle');
@@ -348,18 +365,31 @@ export function bindRankCustomizer(container) {
       }
 
       // Toggle immortal rank input row
+      const hasLeaderboard = ['rank8a', 'rank8b', 'rank8c'].includes(medalId);
       const immortalRow = container.querySelector('#rcImmortalRow');
-      if (immortalRow) immortalRow.classList.toggle('hidden', !isImmortal);
-      if (isImmortal) {
-        const immInput = container.querySelector('#rcImmortalRankInput');
-        if (immInput && immInput.value && Number(immInput.value) > 0) {
-          customState.immortalRank = Math.max(1, Number(immInput.value));
+      if (immortalRow) immortalRow.classList.toggle('hidden', !hasLeaderboard);
+
+      const immInput = container.querySelector('#rcImmortalRankInput');
+      const immHint = container.querySelector('#rcImmortalHint');
+      if (hasLeaderboard && immInput) {
+        let minVal = 1, maxVal = 10, defaultVal = 10, hintText = L`Top 10: Número del 1 al 10 para la placa de clasificación.`;
+        if (medalId === 'rank8b') {
+          minVal = 11; maxVal = 100; defaultVal = 50;
+          hintText = L`Top 100: Número del 11 al 100 para la placa de clasificación.`;
+        } else if (medalId === 'rank8a') {
+          minVal = 101; maxVal = 6000; defaultVal = 1000;
+          hintText = L`Top 1000: Número del 101 al 6000 para la placa de clasificación.`;
+        }
+        immInput.min = minVal;
+        immInput.max = maxVal;
+        if (immHint) immHint.textContent = hintText;
+
+        const curVal = Number(immInput.value);
+        if (!curVal || curVal < minVal || curVal > maxVal) {
+          customState.immortalRank = defaultVal;
+          immInput.value = defaultVal;
         } else {
-          if (medalId === 'rank8c') customState.immortalRank = 10;
-          else if (medalId === 'rank8b') customState.immortalRank = 100;
-          else if (medalId === 'rank8a') customState.immortalRank = 1000;
-          else if (medalId === 'rank8') customState.immortalRank = 5000;
-          if (immInput) immInput.value = customState.immortalRank;
+          customState.immortalRank = curVal;
         }
       }
 
@@ -407,7 +437,15 @@ export function bindRankCustomizer(container) {
   const immortalInput = container.querySelector('#rcImmortalRankInput');
   if (immortalInput) {
     immortalInput.addEventListener('input', () => {
-      customState.immortalRank = Math.max(1, Number(immortalInput.value) || 1);
+      const val = Number(immortalInput.value);
+      if (val) {
+        customState.immortalRank = clampImmortalRank(val, customState.medal);
+      }
+      updatePreview();
+    });
+    immortalInput.addEventListener('change', () => {
+      customState.immortalRank = clampImmortalRank(immortalInput.value, customState.medal);
+      immortalInput.value = customState.immortalRank;
       updatePreview();
     });
   }
@@ -449,8 +487,8 @@ export function bindRankCustomizer(container) {
         customState.baseRank = liveBaseRank.value;
       }
       const liveImmortal = container.querySelector('#rcImmortalRankInput');
-      if (liveImmortal && liveImmortal.value) {
-        customState.immortalRank = Math.max(1, Number(liveImmortal.value) || 1);
+      if (liveImmortal && liveImmortal.value && ['rank8a', 'rank8b', 'rank8c'].includes(customState.medal)) {
+        customState.immortalRank = clampImmortalRank(liveImmortal.value, customState.medal);
       }
       const liveMmr = container.querySelector('#rcMmrInput');
       if (liveMmr && liveMmr.value) {

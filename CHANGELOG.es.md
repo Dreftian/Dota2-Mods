@@ -1,6 +1,18 @@
 # Historial de Cambios
 
 Novedades de cada versión. La aplicación se actualiza de forma automática para que disfrutes de todas las mejoras sin necesidad de reinstalar.
+## 1.0.13
+
+### Medallas Inmortal Oficiales de Valve, Rangos Estrictos de Dígitos, Insignias para Todos los Héroes y Prioridad Rápida
+
+Esta versión reemplaza la medalla azul inactiva por las texturas genuinas de Valve, aplica límites estrictos de dígitos por categoría de Inmortal, extiende el mod de insignias a todos los héroes en la selección y perfil, mejora los números con tipografía Radiance y soluciona colisiones de prioridad entre mods:
+
+- **Eliminación de la Medalla Azul Inactiva**: Las cuentas sin calibrar o inactivas en Dota 2 cargan la medalla azul oficial inactiva (`rank8inactive_psd.vtex_c` y su versión mini). El generador ahora sustituye estas ranuras inactivas junto con `rank0_psd`, asegurando que el perfil muestre la medalla Inmortal auténtica de Valve seleccionada (Top 10 con alas de fuego, Top 100 con alas rojas, Top 1000 con alas plateadas/moradas o Inmortal General).
+- **Rangos Estrictos de Dígitos por Nivel de Inmortal**: Validación estricta del número de tabla de clasificación: Top 10 (`rank8c`) acepta únicamente del 1 al 10; Top 100 (`rank8b`) del 11 al 100; Top 1000 (`rank8a`) del 101 al 6000. Para Inmortal General (`rank8`) y medallas normales, el campo de número de puesto permanece oculto.
+- **Insignias de Progreso para Todos los Héroes**: Se reemplazan todos los niveles de insignias (del 0 al 5 y vacío) en todas las resoluciones. El 100% de los héroes en la cuadrícula de selección y en la vista de progreso del perfil muestran la insignia y nivel seleccionados (ej. Gran Maestro nivel 30).
+- **Tipografía Radiance Oficial en Dígitos de Héroes**: Los números de nivel se renderizan en blanco nítido (#FFFFFF) con sombra suave, perfectamente centrados sobre la gema central de la insignia (`x=128, y=125`), idénticos al Dota Plus oficial y sin marcos toscos.
+- **Acción Rápida para Resolver "Anulado por Prioridad"**: Se tradujo la advertencia al español y se añadió el botón y opción de menú «Dar máxima prioridad» («Загружать первым» / «Load first») para mover de inmediato un mod al primer lugar de carga.
+
 ## 1.0.12
 
 ### Aislamiento de Rango en Perfil Propio, Medallas Inmortal Oficiales, Dígitos Radiance en Insignias y Corrección de Packs

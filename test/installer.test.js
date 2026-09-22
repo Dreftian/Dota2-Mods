@@ -526,5 +526,17 @@ test('generateRankVpk covers all immortal tiers and star ranks', () => {
   const starred = generateRankVpk({ medal: 'rank5', stars: 3, baseRank: 'rank5' });
   assert.ok(starred.name.includes('3★'));
   assert.equal(starred.stars, 3);
+
+  const explicit8c = generateRankVpk({ medal: 'rank8c', immortalRank: 25 });
+  assert.equal(explicit8c.immortalRank, 10);
+
+  const explicit8b = generateRankVpk({ medal: 'rank8b', immortalRank: 5 });
+  assert.equal(explicit8b.immortalRank, 11);
+
+  const explicit8a = generateRankVpk({ medal: 'rank8a', immortalRank: 9999 });
+  assert.equal(explicit8a.immortalRank, 6000);
+
+  const unknownMedal = generateRankVpk({ medal: 'rank_nonexistent' });
+  assert.ok(unknownMedal.buffer.length > 0);
 });
 

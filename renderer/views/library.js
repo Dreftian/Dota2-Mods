@@ -161,7 +161,8 @@ function coveredTagHtml(rec) {
   if (!by || !by.length || !rec.enabled) return '';
   const total = by.reduce((n, x) => n + x.files, 0);
   const who = by.map((x) => `«${x.name}» (${x.files})`).join(', ');
-  return ` <span class="lib-tag covered" title="${esc(L`Файлов перекрыто: ${total} — ${who}. Побеждает мод, который загружается раньше; порядок меняется правой кнопкой.`)}"><span class="ms">layers</span>${L`перекрыт`}</span>`;
+  const tip = `${L`Файлов перекрыто: ${total} — ${who}. Побеждает мод, который загружается раньше; порядок меняется правой кнопкой.`} — ${L`Нажми, чтобы дать максимальный приоритет`}`;
+  return ` <button type="button" class="lib-tag covered" data-prioritize="${esc(rec.id)}" title="${esc(tip)}" style="cursor: pointer;"><span class="ms">layers</span>${L`перекрыт`}</button>`;
 }
 
 /* The handle you drag to change the load order.
@@ -233,7 +234,12 @@ function rowMenuItems(rec) {
   const langDir = rec.files.some((f) => f.root === 'lang' && /_dir\.vpk$/i.test(f.relPath));
   const exportable = isCursorRec(rec) || langDir;
   const ordered = rec.slotIndex != null;
+  const isCovered = rec.coveredBy && rec.coveredBy.length > 0;
   return [
+    ordered && isCovered && rec.slotIndex > 0 && {
+      label: L`Загружать первым`, icon: 'vertical_align_top',
+      onPick: () => moveRecordTop(rec.id),
+    },
     ordered && {
       label: L`Загружать раньше`, icon: 'keyboard_arrow_up', disabled: rec.slotIndex === 0,
       onPick: () => moveRecord(rec.id, -1),
@@ -263,6 +269,18 @@ const reDraw = async () => { await refreshInstalledIndex(); renderLibrary(); };
 async function moveRecord(id, dir) {
   const r = await window.api.mods.move(id, dir);
   if (r.error) toast(r.error, 'error', 6000);
+  reDraw();
+}
+
+async function moveRecordTop(id) {
+  const rec = recById(id);
+  if (!rec || rec.slotIndex == null || rec.slotIndex === 0) return;
+  const count = rec.slotIndex;
+  for (let i = 0; i < count; i++) {
+    const r = await window.api.mods.move(id, -1);
+    if (r.error || !r.moved) break;
+  }
+  toast(L`Мод перемещён на первое место по приоритету загрузки`, 'ok');
   reDraw();
 }
 
@@ -1184,8 +1202,13 @@ async function bindLibrary(external) {
       reRender();
       return;
     }
-    const el = e.target.closest('[data-expand],[data-id],[data-mtoggle],[data-mremove],[data-del],[data-adopt]');
+    const el = e.target.closest('[data-expand],[data-id],[data-mtoggle],[data-mremove],[data-del],[data-adopt],[data-split],[data-prioritize]');
     if (!el) return;
+
+    if (el.dataset.prioritize) {
+      moveRecordTop(el.dataset.prioritize);
+      return;
+    }
 
     if (el.dataset.expand !== undefined && el.dataset.expand) {
       const id = el.dataset.expand;

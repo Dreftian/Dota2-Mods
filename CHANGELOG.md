@@ -1,6 +1,18 @@
 # Changelog
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
+## 1.0.13
+
+### Authentic Valve Immortal Ranks, Strict Tier Digit Bounds, All-Hero Badge Progression & Priority Quick Fix
+
+This release replaces the uncalibrated blue medal with authentic Valve Immortal textures, enforces strict digit boundaries per Immortal tier, extends hero badge progression across all heroes and views, renders authentic Radiance typography on hero badges, and resolves overruled mod priority collisions:
+
+- **Elimination of Uncalibrated Blue Medal**: Dota 2 uncalibrated and inactive accounts load Valve's default blue medal (`rank8inactive_psd.vtex_c` and its mini variant). The rank generator now replaces these inactive slots alongside `rank0_psd`, ensuring player profiles accurately display the chosen authentic Valve Immortal textures (Top 10 fire wings, Top 100 red wings, Top 1000 silver/purple wings, or General Immortal).
+- **Strict Digit Boundaries Per Immortal Tier**: Enforced strict leaderboard rank number validation in both the UI and generator: Top 10 (`rank8c`) strictly accepts ranks 1–10; Top 100 (`rank8b`) strictly accepts ranks 11–100; Top 1000 (`rank8a`) strictly accepts ranks 101–6000. General Immortal (`rank8`) and non-immortal medals automatically hide the leaderboard rank number input.
+- **Hero Badge Progression Across All Heroes**: Replaced all tier slots (0 through 5 and empty) across normal, small, and tiny resolutions. All heroes in the hero selection grid and profile progression view now reflect the selected badge and level (e.g. Grandmaster level 30).
+- **Authentic Valve Radiance Hero Digits**: Hero level numbers now render in pure crisp white (#FFFFFF) with a soft shadow centered on the jewel at `x=128, y=125`, matching Valve's official Radiance typography and eliminating the thick black cartoonish box border.
+- **Overruled Mod Priority Quick Action**: Added full Spanish localization for the overruled files warning and introduced the "Dar máxima prioridad" ("Загружать первым" / "Load first") action button and context menu item to instantly elevate a conflicting mod to loading slot 0.
+
 ## 1.0.12
 
 ### Per-Profile Isolated Rank Overrides, Authentic Valve Immortal Medals, Radiance Hero Badge Digits & Pack Schema Bugfixes
