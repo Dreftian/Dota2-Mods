@@ -45,6 +45,58 @@ const ES = {
   'Tool removed, pictures come from the wiki again': 'Herramienta eliminada — imágenes de la wiki nuevamente',
   'Source 2 Viewer installed — mod pictures will work now': 'Source 2 Viewer instalado — las imágenes de los mods ya funcionan',
 
+  // Safe Mode Dialog & Status
+  'Safe:': 'Seguro:',
+  'Безопасно:': 'Seguro:',
+  'Safe mode': 'Modo seguro',
+  'Безопасный режим': 'Modo seguro',
+  'Turn safe mode off': 'Desactivar modo seguro',
+  'Выключить безопасный режим': 'Desactivar modo seguro',
+  'Keep safe mode': 'Mantener modo seguro',
+  'Оставить безопасный режим': 'Mantener modo seguro',
+  'Now': 'Ahora',
+  'Сейчас': 'Ahora',
+  'After': 'Después',
+  'После': 'Después',
+  'The app drops its .vpk files into a folder Dota already reads. It leaves the game\'s own files alone.':
+    'La aplicación coloca sus archivos .vpk en una carpeta que Dota ya lee. Deja intactos los archivos del propio juego.',
+  'Приложение кладёт свои .vpk в папку, которую Dota и так читает. Файлы игры оно не открывает и не меняет.':
+    'La aplicación coloca sus archivos .vpk en una carpeta que Dota ya lee. Deja intactos los archivos del propio juego.',
+  'The app starts changing game files': 'La aplicación comenzará a modificar archivos del juego',
+  'Приложение начнёт менять файлы игры': 'La aplicación comenzará a modificar archivos del juego',
+  'It writes its mods folder into two of Dota\'s files:': 'Escribirá su carpeta de mods en dos archivos de Dota:',
+  'Оно впишет свою папку с модами в два файла Dota:': 'Escribirá su carpeta de mods en dos archivos de Dota:',
+  '+ a line naming the mods folder': '+ una línea indicando la carpeta de mods',
+  '+ строка с папкой модов': '+ una línea indicando la carpeta de mods',
+  '+ a signature for the file above': '+ una firma para el archivo anterior',
+  '+ подпись изменённого файла': '+ una firma para el archivo anterior',
+  'The app saves a copy of each before the first edit. Switch safe mode back on and both return byte for byte, with nothing left behind.':
+    'La aplicación guarda una copia de cada uno antes de la primera edición. Vuelve a activar el modo seguro y ambos regresarán byte por byte, sin dejar rastro.',
+  'Оригиналы приложение сохраняет до первой правки. Вернёшь безопасный режим, и они встанут на место байт в байт, без следов.':
+    'La aplicación guarda una copia de cada uno antes de la primera edición. Vuelve a activar el modo seguro y ambos regresarán byte por byte, sin dejar rastro.',
+  'Dota wipes the edit with every update. The app writes it back on its own for as long as safe mode is off.':
+    'Dota elimina esta modificación con cada actualización. La aplicación la volverá a escribir por sí misma mientras el modo seguro esté desactivado.',
+  'Дота стирает эту правку каждым обновлением. Приложение впишет её заново само, пока безопасный режим выключен.':
+    'Dota elimina esta modificación con cada actualización. La aplicación la volverá a escribir por sí misma mientras el modo seguro esté desactivado.',
+  'In return, mods with effects start working, and the catalog opens looks for the default items every account has: weather, terrain, couriers, wards and a dozen more slots. Your default item is drawn as any other item in the game, and only you see it.':
+    'A cambio, comenzarán a funcionar los mods con efectos y en el catálogo se habilitarán aspectos para los ítems predeterminados de cada cuenta: clima, terrenos, mensajeros, guardianes y una docena más de casillas. Tu ítem predeterminado se verá como cualquier otro ítem del juego, y solo tú podrás verlo.',
+  'Взамен заработают моды с эффектами, а в каталоге откроются виды для стандартных предметов: погода, ландшафт, курьеры, варды и ещё десяток слотов. Стандартный предмет начинает выглядеть как любой другой из игры, и видно это только тебе.':
+    'A cambio, comenzarán a funcionar los mods con efectos y en el catálogo se habilitarán aspectos para los ítems predeterminados de cada cuenta: clima, terrenos, mensajeros, guardianes y una docena más de casillas. Tu ítem predeterminado se verá como cualquier otro ítem del juego, y solo tú podrás verlo.',
+  'Dota modders count editing game files as unsafe. In 8+ years we know of no ban for it. We still give no guarantees.':
+    'Los modders de Dota consideran que editar archivos del juego no es seguro. En más de 8 años no conocemos ningún baneo por esto. Aun así, no ofrecemos garantías.',
+  'Правку файлов игры в моддинге Dota считают небезопасной. За 8+ лет мы не знаем ни одного бана за это. Гарантий всё равно не даём.':
+    'Los modders de Dota consideran que editar archivos del juego no es seguro. En más de 8 años no conocemos ningún baneo por esto. Aun así, no ofrecemos garantías.',
+  'Safe mode: patch-only mods (effects, cosmetics) are hidden and inactive. Turn it off to enable them — the app will register its folder in the game files.':
+    'Modo seguro: los mods del parche (efectos, cosméticos) están ocultos e inactivos. Desactívalo para habilitarlos — la app registrará su carpeta en los archivos del juego.',
+  'Безопасный режим: моды из патча (эффекты, косметика) скрыты и не работают. Выключи, чтобы их включить — приложение впишет свою папку в файлы игры.':
+    'Modo seguro: los mods del parche (efectos, cosméticos) están ocultos e inactivos. Desactívalo para habilitarlos — la app registrará su carpeta en los archivos del juego.',
+  'Safe mode off — effects and cosmetics are available': 'Modo seguro desactivado — efectos y cosméticos disponibles',
+  'Безопасный режим выключен — эффекты и косметика доступны': 'Modo seguro desactivado — efectos y cosméticos disponibles',
+  'Safe mode on, game files restored. Effects and cosmetics wait until you turn it off again.':
+    'Modo seguro activado, archivos del juego restaurados. Los efectos y cosméticos esperarán hasta que lo desactives de nuevo.',
+  'Безопасный режим включён, файлы игры восстановлены. Эффекты и косметика ждут, пока не выключишь его снова.':
+    'Modo seguro activado, archivos del juego restaurados. Los efectos y cosméticos esperarán hasta que lo desactives de nuevo.',
+
   // Settings
   'Language': 'Idioma',
   'Scale': 'Escala',
@@ -375,7 +427,17 @@ const JA = {
   'Version': 'バージョン',
   'Resolve conflict': '競合を解決',
   'Conflict resolved successfully': '競合を解決しました',
-  'on': '有効',
+  'Safe:': 'セーフ:',
+  'Safe mode': 'セーフモード',
+  'Turn safe mode off': 'セーフモードをオフにする',
+  'Keep safe mode': 'セーフモードを維持する',
+  'Now': '現在',
+  'After': '変更後',
+  'The app starts changing game files': 'アプリがゲームファイルの変更を開始します',
+  'It writes its mods folder into two of Dota\'s files:': 'Dotaの2つのファイルにMODフォルダを登録します:',
+  '+ a line naming the mods folder': '+ MODフォルダを指す行',
+  '+ a signature for the file above': '+ 上記ファイルの署名',
+  'Safe mode off — effects and cosmetics are available': 'セーフモードオフ — エフェクトやスキンが利用可能',
   'Got it': '了解',
   'Понятно': '了解',
   "What's new": '更新情報',
@@ -424,7 +486,17 @@ const ZH = {
   'Version': '版本',
   'Resolve conflict': '解决冲突',
   'Conflict resolved successfully': '已成功解决冲突',
-  'on': '开启',
+  'Safe:': '安全:',
+  'Safe mode': '安全模式',
+  'Turn safe mode off': '关闭安全模式',
+  'Keep safe mode': '保持安全模式',
+  'Now': '当前',
+  'After': '关闭后',
+  'The app starts changing game files': '应用将开始修改游戏文件',
+  'It writes its mods folder into two of Dota\'s files:': '它将在Dota的两个文件中写入模组文件夹:',
+  '+ a line naming the mods folder': '+ 指向模组文件夹的一行',
+  '+ a signature for the file above': '+ 上述文件的签名',
+  'Safe mode off — effects and cosmetics are available': '安全模式已关闭 — 特效与饰品可用',
   'Got it': '知道了',
   'Понятно': '知道了',
   "What's new": '更新说明',
