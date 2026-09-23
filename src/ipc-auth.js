@@ -1,4 +1,4 @@
-/* IPC channels for InsForge authentication and subscription management.
+/* IPC channels for the local accounts and the subscription record (src/auth.js).
  */
 const { ipcMain } = require('electron');
 
@@ -8,7 +8,7 @@ function registerAuthIpc({ auth }) {
     return { authenticated: !!user, user };
   });
 
-  ipcMain.handle('auth:login', async (event, { email, password }) => {
+  ipcMain.handle('auth:login', async (event, { email, password } = {}) => {
     try {
       const user = await auth.login(email, password);
       return { ok: true, user };
@@ -29,6 +29,20 @@ function registerAuthIpc({ auth }) {
   ipcMain.handle('auth:logout', async () => {
     try {
       await auth.logout();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  // Takes { oldPassword, newPassword } like auth:login takes its pair, and also the two as
+  // separate arguments, so the preload side can pass them either way.
+  ipcMain.handle('auth:changePassword', async (event, first, second) => {
+    const { oldPassword, newPassword } = first && typeof first === 'object'
+      ? first
+      : { oldPassword: first, newPassword: second };
+    try {
+      await auth.changePassword(oldPassword, newPassword);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err.message };

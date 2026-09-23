@@ -198,10 +198,13 @@
       }
     },
     "win32": {
-      "measured": "2026-09-22",
+      "measured": "2026-09-23",
       "files": {
         "src/adopt.js": {
           "lines": 100
+        },
+        "src/auth.js": {
+          "lines": 98.6
         },
         "src/beta.js": {
           "lines": 100
@@ -213,7 +216,7 @@
           "lines": 100
         },
         "src/catalog.js": {
-          "lines": 96.4
+          "lines": 97.9
         },
         "src/cursors.js": {
           "lines": 100
@@ -231,10 +234,13 @@
           "lines": 48.6
         },
         "src/game-icons.js": {
-          "lines": 48.1
+          "lines": 83.8
         },
         "src/gamelang.js": {
           "lines": 99.4
+        },
+        "src/hero-items.js": {
+          "lines": 99.2
         },
         "src/i18n.js": {
           "lines": 100
@@ -243,31 +249,34 @@
           "lines": 93.9
         },
         "src/installer.js": {
-          "lines": 83.8
+          "lines": 88.6
+        },
+        "src/ipc-arsenal.js": {
+          "lines": 100
         },
         "src/ipc-auth.js": {
-          "lines": 85.4
+          "lines": 91.9
         },
         "src/ipc-diagnostics.js": {
           "lines": 80.8
         },
         "src/ipc-game.js": {
-          "lines": 87.6
+          "lines": 87.7
         },
         "src/ipc-library.js": {
-          "lines": 63.5
+          "lines": 72.7
         },
         "src/ipc-misc.js": {
           "lines": 77.2
         },
         "src/ipc-mods.js": {
-          "lines": 59
+          "lines": 80.9
         },
         "src/ipc-packs.js": {
           "lines": 78.2
         },
         "src/ipc-presets.js": {
-          "lines": 62.4
+          "lines": 78.2
         },
         "src/ipc-settings.js": {
           "lines": 82.6
@@ -278,8 +287,11 @@
         "src/library.js": {
           "lines": 100
         },
+        "src/master-switch.js": {
+          "lines": 100
+        },
         "src/minify.js": {
-          "lines": 97.9
+          "lines": 98.3
         },
         "src/mod-id.js": {
           "lines": 100
@@ -297,10 +309,10 @@
           "lines": 93.9
         },
         "src/patcher.js": {
-          "lines": 89
+          "lines": 90.1
         },
         "src/portable-update.js": {
-          "lines": 97.8
+          "lines": 97.9
         },
         "src/preset-link.js": {
           "lines": 100
@@ -309,7 +321,7 @@
           "lines": 88.7
         },
         "src/presets-service.js": {
-          "lines": 15.3
+          "lines": 16.2
         },
         "src/rank-drawing.js": {
           "lines": 99.6
@@ -326,10 +338,16 @@
         "src/safe-zip.js": {
           "lines": 100
         },
+        "src/schema-service.js": {
+          "lines": 78.4
+        },
         "src/schema.js": {
-          "lines": 99.5
+          "lines": 99.3
         },
         "src/settings.js": {
+          "lines": 100
+        },
+        "src/slots.js": {
           "lines": 100
         },
         "src/steam.js": {
@@ -339,10 +357,10 @@
           "lines": 98.1
         },
         "src/updater.js": {
-          "lines": 95.8
+          "lines": 95.9
         },
         "src/vpk.js": {
-          "lines": 98.2
+          "lines": 98.6
         },
         "src/vtex.js": {
           "lines": 100
@@ -354,7 +372,7 @@
           "lines": 74.1
         },
         "tools/check-i18n.js": {
-          "lines": 93.8
+          "lines": 97.9
         },
         "tools/coverage.mjs": {
           "lines": 70

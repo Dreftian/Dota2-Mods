@@ -804,11 +804,6 @@
   font-weight: 800;
   color: var(--text);
 }
-.rc-preview-mmr {
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffd700;
-}
 .rc-preview-hero-badge {
   display: flex;
   align-items: center;

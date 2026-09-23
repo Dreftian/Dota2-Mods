@@ -86,6 +86,15 @@ contextBridge.exposeInMainWorld('api', {
     icons: (names) => ipcRenderer.invoke('cosmetics:icons', names),
     pick: (slot, itemId, itemName) => ipcRenderer.invoke('cosmetics:pick', slot, itemId, itemName),
   },
+  // the Arsenal (VIP): any look a hero can wear, put on that hero's default items. A pick is a
+  // cosmetic record, so My mods switches and removes it like any other
+  arsenal: {
+    heroes: () => ipcRenderer.invoke('arsenal:heroes'),
+    hero: (hero) => ipcRenderer.invoke('arsenal:hero', hero),
+    pick: (hero, slot, itemId, style) => ipcRenderer.invoke('arsenal:pick', hero, slot, itemId, style),
+    clear: (hero, slot) => ipcRenderer.invoke('arsenal:clear', hero, slot),
+    equipSet: (hero, bundleId) => ipcRenderer.invoke('arsenal:set', hero, bundleId),
+  },
   // a mod's own video, and the still the window decodes out of it
   preview: {
     video: (key) => ipcRenderer.invoke('preview:video', key),
@@ -123,6 +132,7 @@ contextBridge.exposeInMainWorld('api', {
     register: (payload, password, name) => ipcRenderer.invoke('auth:register', typeof payload === 'object' ? payload : { email: payload, password, name }),
     logout: () => ipcRenderer.invoke('auth:logout'),
     subscribe: (payload) => ipcRenderer.invoke('auth:subscribe', payload),
+    changePassword: (oldPassword, newPassword) => ipcRenderer.invoke('auth:changePassword', { oldPassword, newPassword }),
   },
   account: {
     signIn: () => ipcRenderer.invoke('account:signIn'),

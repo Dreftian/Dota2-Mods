@@ -437,26 +437,26 @@ function cleanForeign({ gamePath, folder }) {
 function revert({ gamePath, folder, backupDir }) {
   const p = paths(gamePath);
 
-  // 1. Signatures: .bak first if available, else .orig from backupDir, else stripSignatures
-  const sigBak = p.signatures + '.bak';
+  /* 1. Signatures: the live list minus our line, exactly as apply() builds it. A
+     dota.signatures.bak beside it is never written back: nothing in this app creates one, so it
+     is a foreign patcher's or a hand-made copy, and after any Dota update it names an older
+     build's hashes - restoring it brought back the refused-matchmaking break apply() documents.
+     The userData copy is only for the one case the live file cannot answer: it is gone. */
   const sigSrc = backupDir ? path.join(backupDir, path.basename(p.signatures) + '.orig') : null;
-  if (fs.existsSync(sigBak)) {
-    try {
-      writeAtomic(p.signatures, fs.readFileSync(sigBak));
-    } catch { /* fallback */ }
-  } else {
-    const sigNow = fs.existsSync(p.signatures) ? p.signatures : (sigSrc && fs.existsSync(sigSrc) ? sigSrc : null);
-    if (sigNow) {
-      writeAtomic(p.signatures, Buffer.from(stripSignatures(fs.readFileSync(sigNow, 'latin1')), 'latin1'));
-    }
+  const sigNow = fs.existsSync(p.signatures) ? p.signatures : (sigSrc && fs.existsSync(sigSrc) ? sigSrc : null);
+  if (sigNow) {
+    writeAtomic(p.signatures, Buffer.from(stripSignatures(fs.readFileSync(sigNow, 'latin1')), 'latin1'));
   }
 
-  // 2. Branchspecific: .bak if valid vanilla, else .orig from backupDir, else algorithmic restoreBranch
+  // 2. Branchspecific: a .bak only when this build's own list vouches for it, else the
+  // userData .orig, else the live file with our block taken out
   const want = fs.existsSync(p.signatures) ? vanillaBranchHashes(fs.readFileSync(p.signatures, 'latin1')) : null;
   const branchBak = p.branch + '.bak';
   const branchSrc = backupDir ? path.join(backupDir, path.basename(p.branch) + '.orig') : null;
   let restored = false;
-  if (fs.existsSync(branchBak)) {
+  // matchesVanilla() says yes to anything when there is no list, so without one a .bak
+  // proves nothing and is not used
+  if (want && fs.existsSync(branchBak)) {
     const bakText = fs.readFileSync(branchBak, 'latin1');
     if (matchesVanilla(bakText, want)) {
       writeAtomic(p.branch, Buffer.from(bakText, 'latin1'));
@@ -476,13 +476,9 @@ function revert({ gamePath, folder, backupDir }) {
     writeAtomic(p.branch, Buffer.from(text, 'latin1'));
   }
 
-  // 3. Gameinfo: .bak if present, else cleanForeignText
-  const giBak = p.gameinfo + '.bak';
-  if (fs.existsSync(giBak)) {
-    try {
-      writeAtomic(p.gameinfo, fs.readFileSync(giBak));
-    } catch { /* noop */ }
-  } else if (fs.existsSync(p.gameinfo)) {
+  // 3. Gameinfo: only foreign lines come out of the live file. A gameinfo.gi.bak is not ours
+  // and carries whatever build it was copied from, so it is never written back.
+  if (fs.existsSync(p.gameinfo)) {
     const rawGi = fs.readFileSync(p.gameinfo, 'latin1');
     const cleanedGi = cleanForeignText(rawGi);
     if (cleanedGi !== rawGi) {

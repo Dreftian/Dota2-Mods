@@ -1,12 +1,15 @@
 {
   "_why": "Lines each of the largest files is allowed. tools/size-budget.mjs fails a run where one grows, and where a file that is not listed crosses 800 lines. --update writes measurements back but never raises a number: raising one means editing this file by hand and saying why. Splitting these files shows up here as a number going down.",
-  "measured": "2026-09-22",
+  "measured": "2026-09-23",
   "watchAt": 800,
   "files": {
-    "main.js": 1239,
-    "renderer/views/catalog.js": 1740,
+    "main.js": 1238,
+    "renderer/i18n-locales.js": 900,
+    "renderer/i18n.js": 1002,
+    "renderer/views/catalog.js": 1739,
     "renderer/views/library.js": 1413,
-    "src/installer.js": 1368,
+    "src/installer.js": 1307,
     "src/vpk.js": 967
-  }
+  },
+  "_installer": "src/installer.js was locked at 1306 by --update on 2026-09-23 and raised by hand to 1307 the same day: the ownedRelPaths constructor option needed its JSDoc line. The file was 1368 that morning; slot allocation and the master sweep moved out to src/slots.js and src/master-switch.js."
 }

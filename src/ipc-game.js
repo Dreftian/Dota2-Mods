@@ -177,10 +177,12 @@ function registerGameIpc({
   });
 
   // A pick is a library record like any other mod: mods:setEnabled/mods:remove already
-  // handle it (see touchesSchema above), this is only for the initial choice.
-  ipcMain.handle('cosmetics:pick', (e, slot, itemId, itemName) => {
+  // handle it (see touchesSchema above), this is only for the initial choice. It rebuilds the
+  // table in the game folder, so it waits for the game to close like every other write there.
+  ipcMain.handle('cosmetics:pick', async (e, slot, itemId, itemName) => {
     const stop = blocked('cosmetics');
     if (stop) return stop;
+    if (await dotaIsRunning()) return { error: t('Закрой Dota 2 перед изменением файлов игры') };
     try {
       const rec = schemaService.pickCosmetic(slot, itemId, itemName);
       return { ok: true, record: rec };

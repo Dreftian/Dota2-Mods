@@ -91,6 +91,8 @@
   gap: 2px;
   height: 100%;
   min-width: 0;
+  /* last in line to give: the search box empties first, then the strip scrolls */
+  flex-shrink: 0.1;
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-app-region: no-drag;  /* the strip is swiped, so it cannot also drag the window */
@@ -212,8 +214,10 @@
   height: 32px;
   width: 210px;
   min-width: 42px;
-  /* yields space before the tab strip does, so all tabs fit the default window */
-  flex-shrink: 2;
+  /* yields space before the tab strip does, so all tabs fit the default window. Shrinking
+     is weighted by width, and a 210px box at 2 lost to the strip once the Arsenal made it five
+     tabs: "Configuración" was cut at 1360px. At 12 the box gives nearly all of it first. */
+  flex-shrink: 12;
   padding: 0 12px;
   gap: 7px;
   transition: border-color 0.25s var(--ease), background 0.25s var(--ease), width 0.3s var(--ease), box-shadow 0.25s var(--ease);

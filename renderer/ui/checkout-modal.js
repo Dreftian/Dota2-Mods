@@ -27,59 +27,54 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
           <h2>Mod Assistant Premium</h2>
           <div class="checkout-price">
             <span class="price-val">$5.00</span>
-            <span class="price-period">USD / mes (~S/. 18.50)</span>
+            <span class="price-period">${L`USD / месяц (~S/. 18.50)`}</span>
           </div>
         </div>
 
+        <!-- Only what the plan really gives. The list used to promise exclusive mods, dedicated
+             download servers, 24/7 support and "256-bit SSL" for a payment nothing processes. -->
         <ul class="checkout-perks">
           <li>
             <span class="ms perk-icon">check_circle</span>
             <div>
-              <b>${L`Acceso total a mods exclusivos`}</b>
-              <p>${L`Arcanas, skins personalizados de Bleach/Kez, y sets completos.`}</p>
+              <b>${L`Арсенал VIP`}</b>
+              <p>${L`Все бессмертные, арканы и эксклюзивы каждого героя, со стилями и комплектами.`}</p>
             </div>
           </li>
           <li>
             <span class="ms perk-icon">check_circle</span>
             <div>
-              <b>${L`Descargas e instalación instantánea`}</b>
-              <p>${L`Sin colas de espera, con servidores dedicados de alta velocidad.`}</p>
+              <b>${L`Без лимита в 100 модов`}</b>
+              <p>${L`Ставь моды до предела самой игры: 95 паков в папке языка.`}</p>
             </div>
           </li>
           <li>
             <span class="ms perk-icon">check_circle</span>
             <div>
-              <b>${L`Insignia de usuario Premium`}</b>
-              <p>${L`Reconocimiento exclusivo en tu perfil y funciones avanzadas.`}</p>
-            </div>
-          </li>
-          <li>
-            <span class="ms perk-icon">check_circle</span>
-            <div>
-              <b>${L`Soporte prioritario 24/7`}</b>
-              <p>${L`Atención personalizada de parte de Dreftian Devs.`}</p>
+              <b>${L`Значок Premium в профиле`}</b>
+              <p>${L`Отметка Premium рядом с твоим именем.`}</p>
             </div>
           </li>
         </ul>
 
         <div class="checkout-security-box">
-          <span class="ms">verified_user</span>
-          <span>${L`Pago 100% seguro con encriptación SSL de 256 bits`}</span>
+          <span class="ms">event</span>
+          <span>${L`Подписка действует 30 дней с момента оплаты.`}</span>
         </div>
       </div>
 
       <!-- Right side: Payment Methods -->
       <div class="checkout-methods-panel">
         <div class="checkout-methods-top">
-          <h3>${L`Método de pago`}</h3>
-          <button class="checkout-close-btn" id="checkoutCloseBtn"><span class="ms">close</span></button>
+          <h3>${L`Способ оплаты`}</h3>
+          <button class="checkout-close-btn" id="checkoutCloseBtn" title="${L`Закрыть`}"><span class="ms">close</span></button>
         </div>
 
         <!-- Payment selector tabs -->
         <div class="pay-methods-tabs">
           <button class="pay-tab active" data-tab="stripe">
             <span class="ms">credit_card</span>
-            <span>Tarjeta (Stripe)</span>
+            <span>${L`Карта (Stripe)`}</span>
           </button>
           <button class="pay-tab" data-tab="yape">
             <span class="ms">smartphone</span>
@@ -91,7 +86,7 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
           </button>
           <button class="pay-tab" data-tab="bcp">
             <span class="ms">account_balance</span>
-            <span>Banco BCP</span>
+            <span>${L`Банк BCP`}</span>
           </button>
         </div>
 
@@ -103,7 +98,7 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
               <span>Stripe Connect: <code>${STRIPE_ACCOUNT_ID}</code></span>
             </div>
             <div class="auth-field">
-              <label>${L`Número de tarjeta`}</label>
+              <label>${L`Номер карты`}</label>
               <div class="auth-input-wrap">
                 <span class="ms">credit_card</span>
                 <input type="text" id="stripeCardNum" placeholder="4242 •••• •••• 4242" maxlength="19" required autocomplete="cc-number">
@@ -111,28 +106,28 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
             </div>
             <div class="pay-row-two">
               <div class="auth-field">
-                <label>${L`Vencimiento`}</label>
+                <label>${L`Срок действия`}</label>
                 <div class="auth-input-wrap">
-                  <input type="text" id="stripeCardExp" placeholder="MM/YY" maxlength="5" required autocomplete="cc-exp">
+                  <input type="text" id="stripeCardExp" placeholder="${L`ММ/ГГ`}" maxlength="5" required autocomplete="cc-exp">
                 </div>
               </div>
               <div class="auth-field">
-                <label>${L`CVC / CVV`}</label>
+                <label>CVC / CVV</label>
                 <div class="auth-input-wrap">
                   <input type="password" id="stripeCardCvc" placeholder="123" maxlength="4" required autocomplete="cc-csc">
                 </div>
               </div>
             </div>
             <div class="auth-field">
-              <label>${L`Nombre del titular`}</label>
+              <label>${L`Имя владельца карты`}</label>
               <div class="auth-input-wrap">
                 <span class="ms">person</span>
-                <input type="text" id="stripeCardHolder" placeholder="NOMBRE COMPLETO" required autocomplete="cc-name">
+                <input type="text" id="stripeCardHolder" placeholder="${L`ИМЯ ФАМИЛИЯ`}" required autocomplete="cc-name">
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-pay-action" id="stripeSubmitBtn">
               <span class="ms">lock</span>
-              <span>${L`Pagar $5.00 USD con Stripe`}</span>
+              <span>${L`Оплатить $5.00 USD через Stripe`}</span>
             </button>
           </form>
 
@@ -146,22 +141,22 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
                 </div>
               </div>
               <div class="local-pay-details">
-                <h4>${L`Paga con Yape o Plin`}</h4>
-                <p>1. Escanea el código o transfiere a la cuenta asociada.</p>
-                <p>2. Monto a transferir: <b>S/. 18.50 PEN</b> (o $5.00 USD)</p>
-                <p>3. Ingresa tu número de operación o referencia:</p>
+                <h4>${L`Оплата через Yape или Plin`}</h4>
+                <p>${L`1. Отсканируй код или переведи на привязанный счёт.`}</p>
+                <p>${L`2. Сумма перевода: ${'<b>S/. 18.50 PEN</b>'} (или ${'$5.00 USD'})`}</p>
+                <p>${L`3. Введи номер операции или код перевода:`}</p>
               </div>
             </div>
             <div class="auth-field">
-              <label>${L`Código de operación / Referencia`}</label>
+              <label>${L`Номер операции / код перевода`}</label>
               <div class="auth-input-wrap">
                 <span class="ms">receipt_long</span>
-                <input type="text" id="yapeRefCode" placeholder="Ej: 849201" required>
+                <input type="text" id="yapeRefCode" placeholder="${L`Например: ${'849201'}`}" required>
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-pay-action" id="yapeSubmitBtn">
               <span class="ms">check_circle</span>
-              <span>${L`Validar pago Yape / Plin`}</span>
+              <span>${L`Подтвердить оплату Yape / Plin`}</span>
             </button>
           </form>
 
@@ -173,58 +168,58 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
               </div>
               <div class="local-pay-details">
                 <h4>Mercado Pago</h4>
-                <p>${L`Paga con saldo de Mercado Pago, tarjeta o efectivo en puntos autorizados.`}</p>
-                <p>${L`Monto:`} <b>S/. 18.50 PEN</b> / <b>$5.00 USD</b></p>
+                <p>${L`Оплата балансом Mercado Pago, картой или наличными в пунктах приёма.`}</p>
+                <p>${L`Сумма:`} <b>S/. 18.50 PEN</b> / <b>$5.00 USD</b></p>
               </div>
             </div>
             <div class="auth-field">
-              <label>${L`Referencia de pago Mercado Pago`}</label>
+              <label>${L`Номер платежа Mercado Pago`}</label>
               <div class="auth-input-wrap">
                 <span class="ms">tag</span>
-                <input type="text" id="mpRefCode" placeholder="Ej: MP-782947192" required>
+                <input type="text" id="mpRefCode" placeholder="${L`Например: ${'MP-782947192'}`}" required>
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-pay-action" id="mpSubmitBtn">
               <span class="ms">verified</span>
-              <span>${L`Confirmar con Mercado Pago`}</span>
+              <span>${L`Подтвердить через Mercado Pago`}</span>
             </button>
           </form>
 
           <!-- 4. Transferencia BCP Soles Form -->
           <form class="pay-form hidden" id="bcpPayForm">
             <div class="bcp-account-details">
-              <h4>${L`Banco de Crédito del Perú (BCP) - Soles`}</h4>
+              <h4>${L`Banco de Crédito del Perú (BCP), счёт в солях`}</h4>
               <div class="bcp-data-row">
-                <span class="bcp-lbl">${L`Número de cuenta BCP:`}</span>
+                <span class="bcp-lbl">${L`Номер счёта BCP:`}</span>
                 <span class="bcp-val mono">${BCP_ACCOUNT_SOLES}</span>
                 <button type="button" class="btn-copy-sm" data-copy="${BCP_ACCOUNT_SOLES}"><span class="ms">content_copy</span></button>
               </div>
               <div class="bcp-data-row">
-                <span class="bcp-lbl">${L`Código Interbancario (CCI):`}</span>
+                <span class="bcp-lbl">${L`Межбанковский код (CCI):`}</span>
                 <span class="bcp-val mono">${BCP_CCI}</span>
                 <button type="button" class="btn-copy-sm" data-copy="${BCP_CCI}"><span class="ms">content_copy</span></button>
               </div>
               <div class="bcp-hint">
                 <span class="ms">info</span>
-                <span>${L`Monto exacto: S/. 18.50 Soles. Luego de transferir, digita el número de operación para la activación inmediata.`}</span>
+                <span>${L`Точная сумма: S/. 18.50 солей. После перевода введи номер операции, и подписка включится сразу.`}</span>
               </div>
             </div>
             <div class="auth-field">
-              <label>${L`Número de operación / Comprobante BCP`}</label>
+              <label>${L`Номер операции / чек BCP`}</label>
               <div class="auth-input-wrap">
                 <span class="ms">pin</span>
-                <input type="text" id="bcpOpNum" placeholder="Ej: 0192847" required>
+                <input type="text" id="bcpOpNum" placeholder="${L`Например: ${'0192847'}`}" required>
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-pay-action" id="bcpSubmitBtn">
               <span class="ms">bolt</span>
-              <span>${L`Validar transferencia BCP`}</span>
+              <span>${L`Подтвердить перевод BCP`}</span>
             </button>
           </form>
         </div>
 
         <div class="pay-footer">
-          <span>${L`Stripe & Pasarelas de Pago Oficiales · Activación Inmediata`}</span>
+          <span>${L`Stripe и официальные платёжные шлюзы · мгновенная активация`}</span>
         </div>
       </div>
     </div>
@@ -249,7 +244,7 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
       e.stopPropagation();
       const text = btn.dataset.copy;
       navigator.clipboard.writeText(text);
-      toast(L`Copiado al portapapeles: ${text}`);
+      toast(L`Скопировано: ${text}`);
     });
   });
 
@@ -301,7 +296,7 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
       });
 
       if (!res.ok) {
-        toast(res.error || L`Error al procesar la suscripción`, 'error');
+        toast(res.error || L`Не удалось оформить подписку`, 'error');
         return;
       }
 
@@ -313,7 +308,7 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
         }
       }
 
-      toast(L`¡Felicidades! Tu suscripción Premium ha sido activada.`);
+      toast(L`Готово! Подписка Premium включена.`);
       close();
       if (onSuccess) onSuccess(res);
       window.dispatchEvent(new CustomEvent('auth-changed', { detail: state.currentUser }));
@@ -322,12 +317,25 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
     }
   };
 
+  // Every pay button goes through here. Only success used to end the spinner, by closing the
+  // modal, so a refused or failed subscribe left the button disabled until the modal was reopened.
+  const runPayment = async (btn, busyLabel, delayMs, pay) => {
+    const idle = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span><span>${busyLabel}</span>`;
+    try {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      await pay();
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = idle;
+    }
+  };
+
   // Stripe submit
   forms.stripe.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = overlay.querySelector('#stripeSubmitBtn');
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span><span>${L`Procesando con Stripe…`}</span>`;
 
     const rawNum = overlay.querySelector('#stripeCardNum').value.replace(/\s+/g, '');
     const last4 = rawNum.slice(-4) || '4242';
@@ -349,9 +357,8 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
       cardholderName: holder,
     };
 
-    setTimeout(() => {
-      handlePaymentSuccess('stripe', ref, { holder, accountId: STRIPE_ACCOUNT_ID, card });
-    }, 1200);
+    await runPayment(btn, L`Обрабатываю через Stripe…`, 1200,
+      () => handlePaymentSuccess('stripe', ref, { holder, accountId: STRIPE_ACCOUNT_ID, card }));
   });
 
   // Yape / Plin submit
@@ -359,12 +366,8 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
     e.preventDefault();
     const btn = overlay.querySelector('#yapeSubmitBtn');
     const code = overlay.querySelector('#yapeRefCode').value.trim();
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span><span>${L`Verificando operación…`}</span>`;
-
-    setTimeout(() => {
-      handlePaymentSuccess('yape', `yape_${code}`, { opCode: code });
-    }, 1000);
+    await runPayment(btn, L`Проверяю операцию…`, 1000,
+      () => handlePaymentSuccess('yape', `yape_${code}`, { opCode: code }));
   });
 
   // Mercado Pago submit
@@ -372,12 +375,8 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
     e.preventDefault();
     const btn = overlay.querySelector('#mpSubmitBtn');
     const code = overlay.querySelector('#mpRefCode').value.trim();
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span><span>${L`Conectando con Mercado Pago…`}</span>`;
-
-    setTimeout(() => {
-      handlePaymentSuccess('mercadopago', code, { mpId: code });
-    }, 1000);
+    await runPayment(btn, L`Связываюсь с Mercado Pago…`, 1000,
+      () => handlePaymentSuccess('mercadopago', code, { mpId: code }));
   });
 
   // BCP submit
@@ -385,11 +384,7 @@ export function showCheckoutModal({ onSuccess = null } = {}) {
     e.preventDefault();
     const btn = overlay.querySelector('#bcpSubmitBtn');
     const code = overlay.querySelector('#bcpOpNum').value.trim();
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span><span>${L`Validando transferencia BCP…`}</span>`;
-
-    setTimeout(() => {
-      handlePaymentSuccess('bcp', `bcp_${code}`, { bcpAccount: BCP_ACCOUNT_SOLES, bcpOp: code });
-    }, 1000);
+    await runPayment(btn, L`Проверяю перевод BCP…`, 1000,
+      () => handlePaymentSuccess('bcp', `bcp_${code}`, { bcpAccount: BCP_ACCOUNT_SOLES, bcpOp: code }));
   });
 }

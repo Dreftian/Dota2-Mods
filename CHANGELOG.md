@@ -2,6 +2,21 @@
 
 What changed in each release. The app updates itself, so you get all of this without reinstalling.
 
+## 1.1.0
+
+### Arsenal VIP: every immortal, arcana and exclusive on any hero, plus a round of fixes
+
+**Arsenal VIP** is a new tab (Ctrl+5). Pick a hero, then pick what each slot wears: every arcana, every immortal and every other wearable the installed game knows, with their styles, their variants (Golden, Crimson...) and whole sets in one click. A filter shows the exclusives the store never sold - treasures, battle passes and events, such as Dragonclaw Hook, Phantom Advent or Planetfall. The list is read from your own game, so items Valve adds later appear without an update. Only you see the looks. It needs safe mode off and a VIP account.
+
+- **More free cosmetics**: cursor packs and Roshan skins are now offered next to couriers, wards, HUDs, weather, terrain, loading screens, announcers and the rest. They had been missing because of a slot mix-up in the item table.
+- **Catalog**: removed 41 placeholder entries whose archives never existed (every one of them failed to install) and two duplicate rank cards. Exact duplicates in the catalog show once. A mod that shares its name with one in another category no longer installs in its place.
+- **Ranks**: the medal packs in the catalog install their own files again - all eight used to install the generated medal. Plain Immortal no longer gets a Top number, the chosen stars are baked into the medal, and the customizer is translated. The MMR field is labelled as what it is: a name in My mods, not a number in the game.
+- **Accounts**: the administrator password is no longer part of the app, and every sign-in checks the stored password. The built-in administrator account older versions created is removed on first start, so its old password opens nothing; its owner signs up again. You can change your password in the profile. Premium ends when its date passes. A damaged accounts file is set aside instead of wiped. The profile no longer claims a cloud sync that does not exist.
+- **Game files**: turning safe mode back on never restores an old .bak copy of Valve's files, which could break matchmaking. A failed rebuild of the item table is reported and retried instead of reported as done. The Mods switch runs as one transaction, mods installed while mods are off stay off, your own pak99 is no longer mistaken for Minify, and mods stranded in pak100+ by older versions are moved back into slots the game loads.
+- **Speed**: rebuilding the item table with many looks went from about 30 seconds to under one.
+- **Spanish everywhere**: about 340 missing Spanish texts were added, guides show in English instead of Russian, and the rank, sign-in and checkout windows follow the chosen language.
+- **Updates** now come from the public Dreftian/Dota2-Mods-Releases repository, which also carries the source code of every release. Settings links there.
+
 ## 1.0.14
 
 ### Authentic Valve Immortal Medal Textures, In-Game Active Mod Persistence & Plaque Digit Refinements

@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 /**
- * Upload built release binaries to GitHub Releases for tag v1.0.10.
+ * Publish the version in package.json to the public releases repository: the builds in Install/,
+ * the source archive of the exact commit they came from, and notes that carry the original
+ * author's credit.
+ *
+ * The source repository is private from 1.1.0, so the releases repository is where installed
+ * copies update from (src/updater.js), where the website's buttons point, and where the GPL's
+ * offer of the source has to be kept. NOTICE (7b, 7c) asks every release page of a modified
+ * version to name the original and say it was changed, and since when.
+ *
+ * Usage: node tools/upload-release.mjs   (RELEASE_REPO=owner/name publishes elsewhere,
+ *                                         RELEASE_REF=<commit> archives another commit)
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,7 +21,27 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const tag = `v${pkg.version}`;
-const repo = 'Dreftian/Dota2-Mods';
+const repo = process.env.RELEASE_REPO || 'Dreftian/Dota2-Mods-Releases';
+const sourceName = `Mod-Assistant-${pkg.version}-source.zip`;
+const sourceFile = path.join(root, 'Install', sourceName);
+
+/** The release page: the Spanish notes, the English ones folded, and the credit NOTICE asks for. */
+function releaseBody() {
+  const sectionOf = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+    .split(`## ${pkg.version}`)[1]?.split(/## \d+\.\d+\.\d+/)[0]?.trim() || '';
+  return [
+    sectionOf('CHANGELOG.es.md'),
+    '---',
+    `<details><summary><b>English</b></summary>\n\n${sectionOf('CHANGELOG.md')}\n\n</details>`,
+    '---',
+    'Mod Assistant es una versión modificada de [Dota 2 Mod Manager](https://github.com/TheFleece/dota2-mod-manager) '
+      + 'de TheFleece (Copyright (C) 2026 TheFleece), cambiada por Dreftian Devs desde el 20 de septiembre de 2026, '
+      + 'bajo la GPL-3.0 con los términos de su NOTICE. Mod Assistant is a modified version of Dota 2 Mod Manager by '
+      + 'TheFleece, changed by Dreftian Devs since 20 September 2026.',
+    `Código fuente de esta versión / source code of this release: \`${sourceName}\`. `
+      + 'Dota 2 es una marca de Valve Corporation; este proyecto no está afiliado con Valve.',
+  ].join('\n\n');
+}
 
 function getToken() {
   if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
@@ -51,8 +81,7 @@ async function main() {
       console.log(`Found draft release: ${release.html_url}`);
     } else {
       console.log(`Creating release for ${tag}...`);
-      const changelog = fs.readFileSync(path.join(root, 'CHANGELOG.md'), 'utf8');
-      const section = changelog.split(`## ${pkg.version}`)[1]?.split(/## \d+\.\d+\.\d+/)[0]?.trim() || '';
+      const section = releaseBody();
       const createRes = await fetch(`https://api.github.com/repos/${repo}/releases`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
@@ -88,11 +117,17 @@ async function main() {
     }
   }
 
+  // the exact commit being released, as the GPL's Corresponding Source
+  cp.execFileSync('git', ['archive', '--format=zip', `--prefix=Mod-Assistant-${pkg.version}/`, '-o', sourceFile, process.env.RELEASE_REF || 'HEAD'], { cwd: root });
+
   const filesToUpload = [
     { name: 'Dota2-Mod-Setup.exe', file: path.join(root, 'Install', 'Dota2-Mod-Setup.exe'), type: 'application/vnd.microsoft.portable-executable' },
     { name: 'Dota2.Mod.exe', file: path.join(root, 'Install', 'Dota2.Mod.exe'), type: 'application/vnd.microsoft.portable-executable' },
     { name: 'latest.yml', file: path.join(root, 'Install', 'latest.yml'), type: 'text/yaml' },
     { name: 'portable.yml', file: path.join(root, 'Install', 'portable.yml'), type: 'text/yaml' },
+    // lets electron-updater fetch only the blocks that changed instead of the whole installer
+    { name: 'Dota2-Mod-Setup.exe.blockmap', file: path.join(root, 'Install', 'Dota2-Mod-Setup.exe.blockmap'), type: 'application/octet-stream' },
+    { name: sourceName, file: sourceFile, type: 'application/zip' },
   ];
 
   for (const item of filesToUpload) {

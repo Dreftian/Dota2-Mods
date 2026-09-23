@@ -6,7 +6,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { readMinify: read, readConfig, MINIFY_FOLDER, MINIFY_BORROWED, RESERVED_PAKS, RESERVED_LABEL, isMinifyFile, prelaunchHook } = require('../src/minify.js');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { crc32 } = require('node:zlib');
+
+const { readMinify: read, readConfig, MINIFY_FOLDER, MINIFY_BORROWED, RESERVED_PAKS, RESERVED_LABEL, isMinifyFile, isMinifyLegacyPak, ownedByNote, OWNERSHIP_FILE, prelaunchHook } = require('../src/minify.js');
+const { buildVpk } = require('../src/vpk.js');
 
 /* Every case below describes a whole machine, so none of them may read the Minify that is
  * installed on the one running the tests: without this the suite passes or fails depending on
@@ -169,18 +175,100 @@ test('a slot is kept empty only where Minify may still write it', () => {
   assert.ok(!RESERVED_PAKS.includes(99), '99 is free to hand out');
 });
 
-test('a pak Minify already wrote is still recognised as its own', () => {
-  /* Releasing the slot must not turn its file into a stranger. Anybody on v1.14rc6 or older
-   * has a pak99 on disk, and letting go of the number there would put it in reach of the
-   * master switch and the foreign-file scan - the two things that rename and offer to delete.
-   * The allocator does not need the number: an existing file is an occupied slot. */
-  for (const n of [65, 66, 67, 99]) {
+test('a pak Minify writes is recognised as its own by the slot alone', () => {
+  /* 65 to 67 are the slots it may write on any patch, so whatever sits there is its work and
+   * stays out of reach of the master switch and the foreign-file scan - the two things that
+   * rename and offer to delete. */
+  for (const n of [65, 66, 67]) {
     assert.equal(isMinifyFile(`pak${n}_dir.vpk`), true, `pak${n} is Minify's`);
     assert.equal(isMinifyFile(`pak${n}_000.vpk`), true, 'and so are its volumes');
     assert.equal(isMinifyFile(`pak${n}_dir.vpk.moff`), true, 'even switched off by us');
   }
   assert.equal(isMinifyFile('pak64_dir.vpk'), false);
   assert.equal(isMinifyFile('pak98_dir.vpk'), false, 'the slot below 99 was always ours');
+  /* 99 is a slot we hand out, so its number cannot say whose it is. Deciding by number left the
+   * 87th mod somebody installed live through "Mods off", and behind in a language move. */
+  assert.equal(isMinifyFile('pak99_dir.vpk'), false, 'pak99 is decided by who made it, not where it is');
+});
+
+/** A throwaway folder for one test. */
+function tmp(t) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mm-minify-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  return dir;
+}
+
+/** A VPK holding the named files, which is all isMinifyPak reads. */
+function vpkOf(...names) {
+  return buildVpk(names.map((n) => {
+    const data = Buffer.from(n);
+    const [name, ext] = n.split('.');
+    return { ext, folder: ' ', name, data, preload: Buffer.alloc(0), crc: crc32(data) >>> 0 };
+  }));
+}
+
+test('a pak99 is ours when we say so, and the English fix of an older Minify when we do not', (t) => {
+  /* Anybody on Minify v1.14rc6 or older has a pak99 on disk, which it copied there and may not
+   * have marked. Letting go of the number must not turn that file into a stranger; claiming it
+   * must not happen to ours. So: named by the library or by our note, ours; named by nobody,
+   * its; and with nothing known about ownership at all, only its marker makes it Minify's. */
+  const dir = tmp(t);
+  const full = path.join(dir, 'pak99_dir.vpk');
+  fs.writeFileSync(full, vpkOf('hero.txt'));
+  const ours = new Set(['pak99_dir.vpk']);
+
+  assert.equal(isMinifyLegacyPak(full, ours), false, 'the library holds it');
+  assert.equal(isMinifyLegacyPak(path.join(dir, 'pak99_000.vpk'), ours), false, 'a volume goes with its index');
+  assert.equal(isMinifyLegacyPak(`${full}.moff`, ours), false, 'switched off by us is still ours');
+  assert.equal(isMinifyLegacyPak(full, new Set(['pak10_dir.vpk'])), true, 'claimed by nobody: the English fix');
+  assert.equal(isMinifyLegacyPak(full, null), false, 'unmarked and nothing known: not something to claim for it');
+
+  fs.writeFileSync(full, vpkOf('minify_version.txt', 'english.txt'));
+  assert.equal(isMinifyLegacyPak(full, null), true, 'its marker says so');
+  assert.equal(isMinifyLegacyPak(path.join(dir, 'pak99_000.vpk'), null), true, 'and its volume goes with it');
+
+  assert.equal(isMinifyLegacyPak(path.join(dir, 'pak98_dir.vpk'), new Set()), false, 'only the slot both apps used');
+  assert.equal(isMinifyLegacyPak(path.join(dir, 'pak66_dir.vpk'), new Set()), false, 'the reserved ones are isMinifyFile\'s');
+  assert.equal(isMinifyLegacyPak(path.join(dir, 'gameinfo.gi'), new Set()), false);
+});
+
+test('a language move takes our pak99 along and leaves one nobody claims where Minify put it', (t) => {
+  /* The move runs at startup, before there is a library to ask, so the note decides. Going by
+   * the number left our own pak99 behind in a folder the game stopped reading, and the library
+   * then dropped it as a mod that had been deleted. */
+  const { moveLangFolder } = require('../src/gamelang.js');
+  const note = (dir, files) => fs.writeFileSync(path.join(dir, OWNERSHIP_FILE), JSON.stringify({ files }));
+  const game = tmp(t);
+  const from = path.join(game, 'dota_russian');
+  fs.mkdirSync(from);
+  for (const f of ['pak10_dir.vpk', 'pak99_dir.vpk']) fs.writeFileSync(path.join(from, f), f);
+  note(from, ['pak10_dir.vpk', 'pak99_dir.vpk']);
+
+  moveLangFolder(game, 'russian', 'schinese');
+  const moved = fs.readdirSync(path.join(game, 'dota_schinese'));
+  assert.ok(moved.includes('pak10_dir.vpk') && moved.includes('pak99_dir.vpk'), `ours went together: ${moved}`);
+
+  const other = tmp(t);
+  const old = path.join(other, 'dota_russian');
+  fs.mkdirSync(old);
+  for (const f of ['pak10_dir.vpk', 'pak99_dir.vpk']) fs.writeFileSync(path.join(old, f), f);
+  note(old, ['pak10_dir.vpk']);
+  moveLangFolder(other, 'russian', 'schinese');
+  assert.deepEqual(fs.readdirSync(old), ['pak99_dir.vpk'], 'the English fix stays in the folder Minify uses');
+});
+
+test('the note beside our mods reads back as the files it names, and no note is not an empty one', (t) => {
+  const dir = tmp(t);
+  assert.equal(ownedByNote(dir), null, 'no note: nothing known, which is not "nothing is ours"');
+
+  fs.writeFileSync(path.join(dir, OWNERSHIP_FILE), JSON.stringify({ files: ['pak10_dir.vpk', 'Maps\\Dota.vpk'] }));
+  assert.deepEqual([...ownedByNote(dir)].sort(), ['maps/dota.vpk', 'pak10_dir.vpk'], 'compared the way the folder spells it');
+
+  fs.writeFileSync(path.join(dir, OWNERSHIP_FILE), JSON.stringify({ files: 'pak10_dir.vpk' }));
+  assert.deepEqual([...ownedByNote(dir)], [], 'a note that names nothing claims nothing');
+
+  fs.writeFileSync(path.join(dir, OWNERSHIP_FILE), '{ half a note');
+  assert.equal(ownedByNote(dir), null, 'a note nobody can read tells us nothing');
 });
 
 test('Minify putting itself in front of the game launch is recognised', () => {

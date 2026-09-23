@@ -23,14 +23,11 @@ const { openZip, safeJoin } = require('./safe-zip');
 const { validateGamePath } = require('./steam');
 const { FileTx, copyInto, writeInto } = require('./file-tx');
 const { Overlays, FONTS_SUBDIR, CURSOR_SUBDIR } = require('./overlays');
-const { RESERVED_PAKS, isMinifyFile, isMinifyPak } = require('./minify');
+const { isMinifyFile, isMinifyPak, isMinifyLegacyPak, ownedByNote, OWNERSHIP_FILE } = require('./minify');
+const { PRIORITY_CATEGORIES, allocatePak, countSlots, freeSlotBelow, remountHighSlots } = require('./slots');
+const { MASTER_OFF, moffOnDisk, sweepMaster } = require('./master-switch');
 const { downloadFile } = require('./net');
 const { t } = require('./i18n');
-
-// Categories whose VPKs must load with higher priority: lower pak numbers (02-09).
-// The game only mounts files named pakNN_dir.vpk — the "!pak" prefix seen in
-// Dota2PornFx cart zips is a merge-order hint for VPKMerge, not a valid install name.
-const PRIORITY_CATEGORIES = ['ranks', 'trees', 'river', 'shaders', 'herofx', 'ranged-attack', 'hero-items', 'optimization'];
 
 // Merging a multi-volume import into one file holds the whole mod in memory once. Well
 // above any real skin pack (a Skinchanger export is ~70 MB), but a multi-GB set is left
@@ -41,28 +38,8 @@ const MERGE_SIZE_CAP = 1200 * 1024 * 1024;
 // few lines: Dota's own dota_english.txt is ~4 MB, a deliberate edit is a few KB.
 const LOC_COPY_MIN = 256 * 1024;
 
-// Master "mods off" switch: every active mod pak is renamed <file>.moff so the game
-// ignores it (it only mounts pakNN_dir.vpk). Distinct from the per-mod ".off" state so
-// the two never clobber each other. Official localization (pak01_*) / gameinfo.gi are
-// never touched — turning mods off must not strip the game's own language files.
-const MASTER_OFF = '.moff';
-
-/* Which files in the language folder are ours, written where another program can read it.
- *
- * Minify marks its work by packing metadata into the VPKs it builds, and checks for that
- * before deleting one. The same courtesy in the other direction cannot be done the same way:
- * mods from the catalog are copied byte for byte and identified by a hash of their contents,
- * and the project is building integrity guarantees on the file being exactly what the catalog
- * published - sha256 on download, a signed catalog after that. Repacking every install to
- * insert a marker is cheap enough (35ms against 15ms for a plain copy of a 46 MB mod, and the
- * hash survives if marker names are left out of it), but it would end byte-identity, which is
- * worth more than the convenience.
- *
- * So the marker is one file beside the mods instead of a marker inside each one. Anything
- * reading it learns which files in the folder belong to this app, which is the question a
- * second mod manager actually needs answered before it deletes anything.
- */
-const OWNERSHIP_FILE = 'dota2modmanager.json';
+// The game's own localization (pak01_*) and the layer definition: nothing we install, switch
+// or move. Why the note beside our mods (OWNERSHIP_FILE) exists is written in src/minify.js.
 function isOfficialLangFile(baseLower) {
   return /^pak01_/.test(baseLower) || baseLower === 'gameinfo.gi';
 }
@@ -117,8 +94,10 @@ class Installer {
    * @param {() => string|null} opts.getGamePath   e.g. ...\dota 2 beta\game
    * @param {() => string} opts.getLangSuffix      e.g. "123"
    * @param {(evt: object) => void} opts.onProgress
+   * @param {() => boolean} [opts.masterExplicitOff]  the user switched mods off (settings.json)
+   * @param {() => string[]} [opts.ownedRelPaths]  the library's own files, which decide whose pak99 it is
    */
-  constructor({ userDataDir, getGamePath, getLangSuffix, onProgress, identify = null, publishedHash = null }) {
+  constructor({ userDataDir, getGamePath, getLangSuffix, onProgress, identify = null, publishedHash = null, masterExplicitOff = null, ownedRelPaths = null }) {
     this.downloadsDir = path.join(userDataDir, 'downloads');
     this.toolsDir = path.join(userDataDir, 'tools');
     this.backupsDir = path.join(userDataDir, 'backups');
@@ -143,6 +122,9 @@ class Installer {
     // what the catalog says an archive should hash to (src/catalog.js); optional and often
     // null, which means the download is checked the way it always was
     this.publishedHash = publishedHash || (() => null);
+    // optional: without it "off" is only what the folder shows (see masterIsOff)
+    this.masterExplicitOff = masterExplicitOff || (() => false);
+    this.ownedRelPaths = ownedRelPaths || (() => null); // optional too, see oursIn
   }
 
   /**
@@ -293,94 +275,59 @@ class Installer {
 
   // ---------- master mods on/off ----------
 
-  // Is this base name a mod pak the master switch may toggle? (i.e. not the game's own
-  // localization / gameinfo). Accepts a lowercased name without .off/.moff suffix.
   /* What the master switch is allowed to rename.
    *
    * Not the game's own files, and not Minify's: the switch sweeps the folder rather than
    * asking the library, so in the arrangement we recommend - both apps sharing one language
    * folder - "mods off" would rename pak65 to pak67 out from under it and Minify would find
-   * its own work missing. Ours are the only mods this switch has any business touching.
+   * its own work missing. Ours are the only mods this switch has any business touching, and a
+   * pak99 is ours when we say so (`ours`, see isMinifyLegacyPak): by number alone the 87th
+   * mod somebody installed stayed live through "Mods off".
+   * @param {string} baseLower  a lowercased name without .off/.moff
+   * @param {string|null} [full]  its full path, which is what decides a pak99
+   * @param {Set<string>|null} [ours]  lowercased relPaths this app installed
    */
-  isTogglableModFile(baseLower) {
-    return !isOfficialLangFile(baseLower) && !isMinifyFile(baseLower) && baseLower !== OWNERSHIP_FILE;
+  isTogglableModFile(baseLower, full = null, ours = null) {
+    if (isOfficialLangFile(baseLower) || isMinifyFile(baseLower) || baseLower === OWNERSHIP_FILE) return false;
+    return !full || !isMinifyLegacyPak(full, ours);
   }
 
-  // true when the master switch is currently "off" (any .moff file present in lang root)
+  /**
+   * Whether mods are meant to be off: the user switched them off, or the folder says so.
+   *
+   * The folder alone used to be the answer, and it cannot say "off" when there was nothing live
+   * to rename - an empty library, or every mod already switched off one by one. The next mod
+   * installed then went live while the Library said mods were off, and a preset turned mods on
+   * behind the switch. The flag is main.js's to hand in; a copy built without it (the tests)
+   * reads the folder as before.
+   */
   masterIsOff() {
-    const lang = this.langFolder();
-    if (!fs.existsSync(lang)) return false;
-    for (const f of fs.readdirSync(lang)) if (f.toLowerCase().endsWith(MASTER_OFF)) return true;
-    return false;
+    return this.masterExplicitOff() || moffOnDisk(this.langFolder());
   }
 
-  // Enable/disable every mod pak at once without losing per-mod state:
-  //  off -> rename each active mod file <f> to <f>.moff (skips .off and official files)
-  //  on  -> rename each <f>.moff back to <f>
-  // Also covers the language\maps folder (terrain mods live there as dota.vpk).
-  setMasterEnabled(enabled) {
+  /**
+   * Every mod off at once, or back on, without losing anybody's own choice. The renaming is
+   * src/master-switch.js, one transaction for the whole folder.
+   * @param {boolean} enabled
+   * @param {string[]|null} [owned]  the library's lang relPaths, when the caller has them (oursIn)
+   */
+  setMasterEnabled(enabled, owned = null) {
     const lang = this.langFolder();
-    if (!fs.existsSync(lang)) return { changed: 0 };
-    let changed = 0;
-    const sweep = (dir) => {
-      for (const f of fs.readdirSync(dir)) {
-        const full = path.join(dir, f);
-        if (!fs.statSync(full).isFile()) continue;
-        const lower = f.toLowerCase();
-        if (enabled) {
-          if (lower.endsWith(MASTER_OFF)) {
-            fs.renameSync(full, path.join(dir, f.slice(0, -MASTER_OFF.length)));
-            changed++;
-          }
-        } else {
-          if (lower.endsWith(MASTER_OFF) || lower.endsWith('.off')) continue; // already off
-          if (dir === lang && !this.isTogglableModFile(lower)) continue;       // official files
-          fs.renameSync(full, full + MASTER_OFF);
-          changed++;
-        }
-      }
-    };
-    sweep(lang);
-    const mapsDir = path.join(lang, 'maps');
-    if (fs.existsSync(mapsDir)) sweep(mapsDir);
-    return { changed };
+    const ours = this.oursIn(lang, owned);
+    return sweepMaster(lang, !!enabled, (lower, full) => this.isTogglableModFile(lower, full, ours));
   }
 
+  /* Lowercased relPaths ours in `lang`: the caller's, else the library's (main.js), else the note,
+   * rewritten only when the Library lists: a preset put a mod in pak99 and "Mods off" left it live. */
+  oursIn(lang, owned = null) {
+    const list = owned || this.ownedRelPaths();
+    return list ? new Set(list.map((r) => String(r).replace(/\\/g, '/').toLowerCase())) : ownedByNote(lang);
+  }
+
+  // The arithmetic of slots is src/slots.js. These stay methods because src/import.js and the
+  // tests reach them through the installer.
   allocatePak(used, priority) {
-    if (priority) {
-      for (let n = 2; n <= 9; n++) {
-        const name = `pak0${n}_dir.vpk`;
-        if (!used.has(name)) {
-          used.add(name);
-          return name;
-        }
-      }
-    }
-    for (let n = 10; n <= 99; n++) {
-      // Minify writes 65, 66 and 67 into whichever language folder it is set to, and if that
-      // is ours, whoever writes second replaces the other's mod. Three slots out of ninety
-      // buys never having to coordinate - see src/minify.js. A pak it has already written
-      // needs no reserving: it is in `used`, read off the folder.
-      if (RESERVED_PAKS.includes(n)) continue;
-      const name = `pak${n}_dir.vpk`;
-      if (!used.has(name)) {
-        used.add(name);
-        return name;
-      }
-    }
-    // Fallback: If slots 10-99 are exhausted and this was a non-priority allocation,
-    // utilize any remaining priority slots (02-09) before failing.
-    for (let n = 2; n <= 9; n++) {
-      const name = `pak0${n}_dir.vpk`;
-      if (!used.has(name)) {
-        used.add(name);
-        return name;
-      }
-    }
-    // Note on Dota 2 filesystem: filesystem_stdio.dll strictly validates pak file names
-    // with a 13-character length check (pakNN_dir.vpk) and parses exactly two digits.
-    // Files beyond pak99 (pak100+) are silently ignored by the engine and never mounted.
-    throw new Error(t('Свободных слотов pakNN не осталось (10-99 заняты)'));
+    return allocatePak(used, priority);
   }
 
   /**
@@ -485,26 +432,17 @@ class Installer {
     return out;
   }
 
-  // highest free slot strictly below `n`, so climbing over one mod does not eat the whole
-  // low range that the priority categories want
   freeSlotBelow(n, used) {
-    for (let i = n - 1; i >= 2; i--) {
-      // `used` is read off the folder, so Minify's paks are already in it once it has run.
-      // Skipped by number as well, for the machine where it is installed but has not patched
-      // yet: taking 66 today means losing that mod the first time it does.
-      if (RESERVED_PAKS.includes(i)) continue;
-      const base = `pak${String(i).padStart(2, '0')}`;
-      if (!used.has(`${base}_dir.vpk`)) return base;
-    }
-    return null;
+    return freeSlotBelow(n, used);
   }
 
   /**
    * Rename every pak file of a record to another slot, keeping .off/.moff state and the
    * volume numbering of a multi-volume pack.
+   * @param {FileTx|null} [tx]  when given, the renames are part of it and undone with it
    * @returns {Array<object>} the record's new files array (caller stores it)
    */
-  moveToSlot(rec, newBase) {
+  moveToSlot(rec, newBase, tx = null) {
     const lang = this.langFolder();
     const oldBase = this.slotBase(rec);
     if (!oldBase) throw new Error(t('У мода нет слота pakNN'));
@@ -514,7 +452,9 @@ class Installer {
       const next = newBase + f.relPath.slice(oldBase.length);
       for (const suf of ['', '.off', MASTER_OFF]) {
         const from = path.join(lang, f.relPath + suf);
-        if (fs.existsSync(from)) fs.renameSync(from, path.join(lang, next + suf));
+        if (!fs.existsSync(from)) continue;
+        if (tx) tx.move(from, path.join(lang, next + suf));
+        else fs.renameSync(from, path.join(lang, next + suf));
       }
       return { ...f, relPath: next };
     });
@@ -565,7 +505,10 @@ class Installer {
     // mod with nowhere to go still cost the user a 300 MB download first and only then said
     // no. Tools are the exception: they live in the app's own folder and need no game.
     if (categoryId !== 'tools') this.requireGameFolder();
-    if (categoryId === 'ranks' || (fileRef && String(fileRef).startsWith('generator:')) || (modName && modName.includes('Hero Tier Changer'))) {
+    // Only an entry that names the generator is generated. Deciding by category sent all eight
+    // medal packs in the catalog's Ranks to it, so each installed the same generated file and
+    // none of them was ever downloaded.
+    if (fileRef && String(fileRef).startsWith('generator:')) {
       const { generateRankVpk } = require('./rank-generator');
       const gen = generateRankVpk({ heroTier: 5, heroLevel: 30 });
       return this.installDirectBuffer(gen.buffer, modName, categoryId);
@@ -582,19 +525,11 @@ class Installer {
     this.requireGameFolder();
     this.onProgress({ type: 'stage', label: modName, stage: t('установка') });
     return FileTx.run((tx) => {
-      const isPriority = PRIORITY_CATEGORIES.includes(categoryId);
       const lang = this.langFolder();
       this.ensureLangFolder();
-      const used = this.usedPakNames();
-      let pakName;
-      if (categoryId === 'ranks') {
-        for (let n = 2; n <= 9; n++) if (!used.has(`pak0${n}_dir.vpk`)) { pakName = `pak0${n}_dir.vpk`; break; }
-        if (!pakName) for (let n = 10; n <= 99; n++) if (!RESERVED_PAKS.includes(n) && !used.has(`pak${n}_dir.vpk`)) { pakName = `pak${n}_dir.vpk`; break; }
-        pakName = pakName || 'pak05_dir.vpk';
-        used.add(pakName);
-      } else {
-        pakName = this.allocatePak(used, isPriority);
-      }
+      // Ranks are a priority category, so this starts at 02 like the loop it replaced - which
+      // fell back to pak05 when every slot was taken and wrote over another mod's file there.
+      const pakName = this.allocatePak(this.usedPakNames(), PRIORITY_CATEGORIES.includes(categoryId));
       this.writeInto(buffer, safeJoin(lang, pakName), tx);
       return [{ root: 'lang', relPath: pakName }];
     });
@@ -719,14 +654,19 @@ class Installer {
       else this.overlays.undeployCursor(recId, files);
       return;
     }
+    // While mods are off, a mod switched on waits under .moff for the master switch, and one
+    // switched off goes from .moff to .off. Ignoring .moff let a preset put a mod live behind the
+    // switch, and a mod it switched off came back on with the rest when mods were turned on.
+    const hold = enabled && files.some((f) => f.root === 'lang') && this.masterIsOff();
     FileTx.run((tx) => {
       for (const f of files) {
         if (f.root === 'tools') continue;
         if (f.root === 'fonts' || f.root === 'cursor') continue; // handled by reinstall/restore
         const abs = path.join(this.rootAbs(f.root), f.relPath);
         const off = abs + '.off';
-        if (enabled && fs.existsSync(off)) tx.move(off, abs);
+        if (enabled && fs.existsSync(off)) tx.move(off, hold ? abs + MASTER_OFF : abs);
         if (!enabled && fs.existsSync(abs)) tx.move(abs, off);
+        else if (!enabled && fs.existsSync(abs + MASTER_OFF)) tx.move(abs + MASTER_OFF, off);
       }
     });
   }
@@ -1122,27 +1062,23 @@ class Installer {
     return ['', '.off', '.moff'].some((suf) => fs.existsSync(path.join(lang, primary.relPath + suf)));
   }
 
-  // Number of occupied pak slots (mod paks only, excluding the game's own pak01_*), used
-  // to warn/suggest combining when the library approaches the 99-slot ceiling.
-  usedModSlots() {
+  // The Library's "N of M slots" (src/slots.js countSlots), told whose the pak99 here is
+  slotUse(owned = null) {
     const lang = this.langFolder();
-    if (!fs.existsSync(lang)) return 0;
-    const bases = new Set();
-    for (const f of fs.readdirSync(lang)) {
-      const m = f.toLowerCase().replace(/\.moff$/, '').replace(/\.off$/, '').match(/^(pak\d+)_dir\.vpk$/);
-      if (m && !/^pak01$/.test(m[1])) bases.add(m[1]);
-    }
-    return bases.size;
+    const names = fs.existsSync(lang) ? fs.readdirSync(lang) : [];
+    return countSlots(names, (f) => isMinifyLegacyPak(path.join(lang, f), this.oursIn(lang, owned)));
   }
 
   // Older app versions wrote priority mods as "!pakNN_dir.vpk" — a name the game
   // never mounts, so those mods silently did nothing. Rename them to real low
   // pak slots and fix the matching manifest records.
+  // main.js runs this at every start, which is why the pak100+ repair rides along with it.
   migrateLegacyPriorityPaks(library) {
     const lang = this.langFolder();
-    if (!fs.existsSync(lang)) return;
+    if (!fs.existsSync(lang)) return { moved: 0, stuck: 0 };
+    const high = remountHighSlots(this, library);
     const legacy = fs.readdirSync(lang).filter((f) => /^!pak\d+_dir\.vpk(\.off)?$/i.test(f));
-    if (!legacy.length) return;
+    if (!legacy.length) return high;
     const used = this.usedPakNames();
     let changed = false;
     for (const f of legacy) {
@@ -1160,6 +1096,7 @@ class Installer {
       }
     }
     if (changed) library.save();
+    return high;
   }
 
   // Imports made before multi-volume sets were folded on the way in still sit in the
@@ -1280,8 +1217,9 @@ class Installer {
         // Minify's output, in a folder both apps share: listing it here would offer the user
         // buttons to adopt, disable and delete another program's files. By slot for the three
         // it reserves, and by the marker it packs into everything it builds, which covers a
-        // version that ever uses a different number.
-        if (isMinifyFile(base) || isMinifyPak(full)) continue;
+        // version that ever uses a different number. A pak99 the library does not hold is the
+        // English fix its older releases left there.
+        if (isMinifyFile(base) || isMinifyPak(full) || isMinifyLegacyPak(full, knownLang)) continue;
         const part = base.match(/^(.*)_\d{3}\.vpk$/);
         if (part && indexed.has(part[1])) continue;
         out.push(this.vpkItem(full, f, f, true));
@@ -1365,4 +1303,5 @@ class Installer {
 
 // MERGE_SIZE_CAP is shared with src/import.js, which folds a multi-volume import into one
 // file the same way harvestSchema and mergeMultiPartRecords repack one that is already here.
-module.exports = { Installer, PRIORITY_CATEGORIES, MERGE_SIZE_CAP };
+// PRIORITY_CATEGORIES and SLOT_CAPACITY moved to src/slots.js with the rest of the slot rules.
+module.exports = { Installer, MERGE_SIZE_CAP };

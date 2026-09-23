@@ -12,9 +12,9 @@
  */
 'use strict';
 import { $ } from './core/dom.js';
-import { COSMETIC_PREFIX } from './core/constants.js';
 import { esc, fmtMB } from './ui/format.js';
-import { showWhatsNew, safeModeDialog, toolchainDialog } from './ui/dialog.js';
+import { showWhatsNew, toolchainDialog } from './ui/dialog.js';
+import { setSafeMode } from './ui/safe-mode.js';
 import { state } from './core/store.js';
 import { toast } from './ui/toast.js';
 import { watchMedia } from './ui/media.js';
@@ -34,6 +34,7 @@ import { showAuthModal } from './ui/auth-modal.js';
 import { showCheckoutModal } from './ui/checkout-modal.js';
 import { showUserProfileModal } from './ui/user-profile-modal.js';
 import './views/settings.js';
+import './views/arsenal.js';
 
 // A crash the user can't explain is the hardest kind to fix from a support chat. Both land
 // in the app's own log (see main.js diag:rendererError / src/diagnostics.js), so "it broke"
@@ -87,8 +88,8 @@ function paintAccount() {
   if (!host) return;
   const user = state.currentUser;
   if (!user) {
-    host.innerHTML = `<button class="tb-login" id="tbLoginBtn" title="${esc(L`Iniciar sesión`)}">
-         <span class="ms">account_circle</span><span>${L`Iniciar sesión`}</span>
+    host.innerHTML = `<button class="tb-login" id="tbLoginBtn" title="${esc(L`Войти`)}">
+         <span class="ms">account_circle</span><span>${L`Войти`}</span>
        </button>`;
     $('#tbLoginBtn')?.addEventListener('click', () => {
       showAuthModal({
@@ -104,19 +105,19 @@ function paintAccount() {
   }
 
   const badgeClass = user.isAdmin ? 'badge-admin' : (user.isPremium ? 'badge-premium' : 'badge-free');
-  const badgeLabel = user.isAdmin ? 'ADMIN' : (user.isPremium ? 'PREMIUM' : 'FREE');
+  const badgeLabel = user.isAdmin ? 'ADMIN' : (user.isPremium ? 'PREMIUM' : L`БЕСПЛАТНО`);
 
   host.innerHTML = `
     <div class="tb-user-group">
       ${!user.isPremium && !user.isAdmin ? `
-        <button class="tb-premium-upgrade" id="tbUpgradeBtn" title="${esc(L`Mejorar a Premium por $5.00 USD`)}">
+        <button class="tb-premium-upgrade" id="tbUpgradeBtn" title="${esc(L`Перейти на Premium за $5.00 USD`)}">
           <span class="ms">auto_awesome</span><span>Premium</span>
         </button>
       ` : ''}
       <button class="tb-user" id="tbUserBtn" title="${esc(user.name || user.email)}">
         <span class="ms">person</span>
         <span class="tb-user-name">${esc(user.name || user.email)}</span>
-        <span class="tb-user-badge ${badgeClass}">${badgeLabel}</span>
+        <span class="tb-user-badge ${badgeClass}">${esc(badgeLabel)}</span>
       </button>
     </div>
   `;
@@ -180,26 +181,8 @@ $('#modsMasterBtn')?.addEventListener('click', async () => {
 });
 
 
-$('#safeModeBtn')?.addEventListener('click', async () => {
-  const btn = $('#safeModeBtn');
-  const turningUnsafe = !state.settings?.schemaPatch === true; // currently safe -> about to turn it off
-  if (turningUnsafe) {
-    if (!await safeModeDialog()) return;
-  }
-  btn.disabled = true;
-  const r = await window.api.patch.setEnabled(turningUnsafe);
-  btn.disabled = false;
-  if (r.error) { toast(r.error, 'error'); return; }
-  state.settings = { ...state.settings, schemaPatch: turningUnsafe };
-  toast(turningUnsafe ? L`Безопасный режим выключен — эффекты и косметика доступны` : L`Безопасный режим включён, файлы игры восстановлены. Эффекты и косметика ждут, пока не выключишь его снова.`);
-  await Promise.all([refreshCosmeticSlots(), refreshPatchState()]);
-  if (state.view === 'catalog') {
-    // the cosmetics rail section just appeared or disappeared — bail out of a category
-    // that no longer exists rather than show a dead one
-    if (!turningUnsafe && state.activeCategory.startsWith(COSMETIC_PREFIX)) state.activeCategory = 'all';
-    render();
-  }
-});
+// the switch flips whatever is set now; ui/safe-mode.js is shared with the Arsenal's banner
+$('#safeModeBtn')?.addEventListener('click', () => setSafeMode(!!state.settings?.schemaPatch));
 
 /* Fetching it is a download of somebody else's program, so it happens on a yes and never
  * otherwise. Either answer is remembered: the question is asked once and Settings carries it
@@ -222,8 +205,12 @@ $('#globalSearch').addEventListener('input', (e) => {
   searchTimer = setTimeout(() => {
     state.search = e.target.value;
     $('#clearSearch').classList.toggle('hidden', !state.search);
-    if (state.view !== 'catalog') switchView('catalog');
-    else render();
+    if (state.view !== 'catalog') {
+      // the catalog kept from the last visit was drawn for the old query, and a switch to a
+      // kept screen only shows it
+      invalidateViews();
+      switchView('catalog');
+    } else render();
   }, 180);
 });
 $('#clearSearch').addEventListener('click', () => {
@@ -231,6 +218,7 @@ $('#clearSearch').addEventListener('click', () => {
   state.search = '';
   $('#clearSearch').classList.add('hidden');
   if (state.view === 'catalog') render();
+  else invalidateViews(); // the kept catalog still holds the results of the query just cleared
 });
 
 // drag & drop of .vpk files anywhere in the window -> import

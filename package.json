@@ -1,7 +1,7 @@
 {
   "name": "mod-assistant",
   "productName": "Mod Assistant",
-  "version": "1.0.14",
+  "version": "1.1.0",
   "description": "Mod Assistant for Dota 2 — browse, install, toggle and manage cosmetic mods",
   "main": "main.js",
   "scripts": {
@@ -32,7 +32,7 @@
   },
   "author": "Dreftian Devs",
   "license": "GPL-3.0-or-later",
-  "homepage": "https://github.com/Dreftian/Dota2-Mods",
+  "homepage": "https://dota2-mods.vercel.app/",
   "devDependencies": {
     "electron": "^44.4.3",
     "electron-builder": "^26.15.3",
@@ -115,7 +115,7 @@
     "publish": {
       "provider": "github",
       "owner": "Dreftian",
-      "repo": "Dota2-Mods",
+      "repo": "Dota2-Mods-Releases",
       "releaseType": "release"
     }
   }

@@ -1,7 +1,7 @@
 /* Keys for the things done every session.
  *
  * The rare actions went to the right mouse button (see ui/menu.js); this is the other half:
- * moving between the four sections, getting to the search box, and refreshing the catalog.
+ * moving between the sections, getting to the search box, and refreshing the catalog.
  * Nothing here deletes or installs anything - a keyboard is easy to hit by accident, and the
  * app writes into somebody's game files.
  *
@@ -12,7 +12,9 @@
  */
 import { $ } from '../core/dom.js';
 
-const SECTIONS = ['catalog', 'library', 'presets', 'settings'];
+// The Arsenal came after the other four had their numbers, so it takes 5 rather than moving
+// the muscle memory of everyone who already presses Ctrl+2 for My mods.
+const SECTIONS = ['catalog', 'library', 'presets', 'settings', 'arsenal'];
 
 // .confirm-overlay covers the confirm, the prompt, the share sheet and the what's-new notes
 const overlayOpen = () => !!document.querySelector('.confirm-overlay, .lang-pick-overlay')
@@ -40,7 +42,7 @@ export function bindHotkeys({ onSection, onRefresh }) {
     }
     if (overlayOpen()) return;
 
-    if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key >= '1' && e.key <= '4') {
+    if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key >= '1' && e.key <= '5') {
       e.preventDefault();
       onSection(SECTIONS[Number(e.key) - 1]);
       return;

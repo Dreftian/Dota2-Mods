@@ -61,6 +61,7 @@ const { registerGameIpc } = require('./src/ipc-game');
 const { registerDiagnosticsIpc } = require('./src/ipc-diagnostics');
 const { AuthManager } = require('./src/auth');
 const { registerAuthIpc } = require('./src/ipc-auth');
+const { registerArsenalIpc } = require('./src/ipc-arsenal');
 
 /* Presets and sharing, wired once the services they use exist. Assigned in whenReady
  * below; every call site reads it late, which is the same lifetime the bare functions had
@@ -556,9 +557,12 @@ app.whenReady().then(async () => {
     onProgress: sendProgress,
     identify: (paths) => modId.identify(paths),
     publishedHash: (categoryId, file) => catalog.publishedHash(categoryId, file),
+    masterExplicitOff: () => settings.get('masterExplicitOff') === true, ownedRelPaths: () => library.knownLangRelPaths(),
   });
   presence = new DiscordPresence({ clientId: discordAuth.CLIENT_ID, onDiag: diag });
-  schemaService = createSchemaService({ settings, library, installer, userDataDir: userData });
+  // Arsenal picks go in the item table only for a VIP; an account change rebuilds it, a lapse waits for heal()
+  schemaService = createSchemaService({ settings, library, installer, userDataDir: userData, entitled: () => auth.isVip() });
+  auth.on('change', () => { try { schemaService.entitlementChanged(diag); } catch (e) { diag('arsenal rebuild skipped: ' + (e?.message || e)); } });
   ({ isCursorRecord, disableOtherCursors, disableOtherCosmetics, applyMasterToCursors, reconcileCursors }
     = createCursors({ installer, library, settings }));
   ({ adoptImportedFiles, registerImportResults } = createAdopt({ installer, library, schemaService }));
@@ -901,8 +905,6 @@ const importVpkBuffers = (items) => runImport(importer.importVpkBuffers, Array.i
 // copy: src/schema-service.js lifts the blocks they changed and splices them into the game's
 // CURRENT table. Everything below is a thin call into that service.
 
-// Whether toggling/removing this record can change what belongs in the built schema: a mod
-// with lifted item blocks, or a cosmetic pick (which IS a schema edit, not a file).
 // after any deploy, if the master switch is off, sweep freshly written files off too
 function afterDeployMaster() {
   try { if (installer.masterIsOff()) installer.setMasterEnabled(false); } catch { /* noop */ }
@@ -951,7 +953,7 @@ function presenceActivity() {
   return {
     details: t(PRESENCE_VIEWS[presenceView] || PRESENCE_VIEWS.catalog),
     state,
-    buttons: [{ label: t('Скачать Mod Manager'), url: 'https://thefleece.github.io/dota2-mod-manager/' }],
+    buttons: [{ label: t('Скачать Mod Assistant'), url: 'https://dota2-mods.vercel.app/' }],
   };
 }
 
@@ -966,7 +968,6 @@ function applyPresenceSetting() {
   presence.start();
   refreshPresence();
 }
-
 
 // Dota reads boot.vcfg once at startup and rewrites it on exit, so language changes must be
 // made while it is closed or the game would just overwrite them.
@@ -1145,15 +1146,13 @@ function registerIpc() {
 
   // ----- settings ----- (src/ipc-settings.js)
   registerSettingsIpc({
-    applyPresenceSetting, catalog, discordAuth, findDotaGamePath, library, moveLangFolder,
-    presence, refreshPresence, remoteConfig, settings, settingsView, validateGamePath,
+    applyPresenceSetting, catalog, destroyTray, discordAuth, findDotaGamePath, library, moveLangFolder,
+    presence, refreshPresence, remoteConfig, settings, settingsView, setupTray, validateGamePath,
     updater: () => updater,
     langFolder: () => langFolder,
     patchWatcher: () => patchWatcher,
     setPresenceView: (v) => { presenceView = v; },
     win: () => win,
-    setupTray,
-    destroyTray,
   });
 
   // One gate, handed to both of the modules that guard a channel with it. Two copies is how
@@ -1164,7 +1163,7 @@ function registerIpc() {
   registerModsIpc({
     applyMasterToCursors, blocked, catalog, diag, disableOtherCursors, fingerprints,
     importVpkBuffers, importVpkPaths, installer, isCursorRecord, library, refreshPresence,
-    schemaService, sendProgress, win: () => win,
+    schemaService, sendProgress, settings, win: () => win,
     // read late: Steam's verify rewrites this while the app is running
     verifyStuck: () => verifyStuck,
   });
@@ -1185,15 +1184,15 @@ function registerIpc() {
     return { ok: true };
   });
 
-  // ---------- item schema / search-path patch ----------
-
-  // ----- what the app was told from the network ----- (src/ipc-game.js)
+  // ----- the network's word, the search-path patch, the item schema ----- (src/ipc-game.js)
   registerGameIpc({
     blocked, diag, dotaIsRunning, gameIcons, icons, library, modPreviews, remoteConfig,
     repairAfterPatch, schemaService, settings, toolchain,
     patchRepair: () => patchRepair,
     setPatchRepair,
   });
+  // ----- the Arsenal: VIP hero looks on the default items ----- (src/ipc-arsenal.js)
+  registerArsenalIpc({ auth, blocked, dotaIsRunning, schemaService, settings });
 
   // ----- managing what is installed ----- (src/ipc-library.js)
   registerLibraryIpc({
@@ -1207,7 +1206,7 @@ function registerIpc() {
   // ----- presets ----- (src/ipc-presets.js)
   registerPresetsIpc({
     win: () => win, settings, catalog, installer, library, schemaService, presets,
-    adoptImportedFiles, afterDeployMaster, disableOtherCursors, sendProgress,
+    adoptImportedFiles, afterDeployMaster, auth, disableOtherCursors, sendProgress,
   });
 
   // ----- misc ----- (src/ipc-misc.js)

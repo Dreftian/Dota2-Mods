@@ -14,7 +14,7 @@ the code, not in this page.
 | Module | What it owns |
 |---|---|
 | [`src/adopt.js`](#srcadoptjs) | What a VPK has to go through before it counts as a mod. |
-| [`src/auth.js`](#srcauthjs) | InsForge authentication, session management, and role-based permissions. |
+| [`src/auth.js`](#srcauthjs) | Local accounts: sign-in, the session, and the VIP entitlement the Arsenal checks. |
 | [`src/beta.js`](#srcbetajs) | The beta channel: who is let in, and which update feed this copy reads. |
 | [`src/capture.js`](#srccapturejs) |  |
 | [`src/catalog-signature.js`](#srccatalog-signaturejs) | Making the catalog's own author the only person who can change the catalog. |
@@ -28,11 +28,13 @@ the code, not in this page.
 | [`src/fingerprints.js`](#srcfingerprintsjs) | Fingerprint index: fetch + cache the fp -> mod identity map published alongside the |
 | [`src/game-icons.js`](#srcgame-iconsjs) | Item pictures taken from the installed game instead of scraped off a wiki. |
 | [`src/gamelang.js`](#srcgamelangjs) | Which dota_<lang> folder the game actually mounts. |
+| [`src/hero-items.js`](#srchero-itemsjs) | The Arsenal: any look a hero can wear, put on the items every account already owns. |
 | [`src/i18n.js`](#srci18njs) | Minimal i18n for the main process (main.js, installer.js, vpk.js). |
 | [`src/icons.js`](#srciconsjs) | Pictures for the cosmetics picker, and for the Library where a picture can be found for |
 | [`src/import.js`](#srcimportjs) | Taking in a mod the user already has: a .vpk, a .zip, a folder, or bytes off a drop. |
 | [`src/installer.js`](#srcinstallerjs) | Installer engine: download, extract, pak allocation, per-category install/uninstall |
 | [`src/library.js`](#srclibraryjs) | Library: manifest of installed mods + presets |
+| [`src/master-switch.js`](#srcmaster-switchjs) | The master switch: every mod off at once, and back, without touching anybody's own choice. |
 | [`src/minify.js`](#srcminifyjs) | Living next to Minify. |
 | [`src/mod-id.js`](#srcmod-idjs) | What a mod actually replaces, asked of the game instead of guessed from folder names. |
 | [`src/mod-preview.js`](#srcmod-previewjs) | A picture for a mod that came with none, taken out of the mod itself. |
@@ -44,7 +46,7 @@ the code, not in this page.
 | [`src/preset-link.js`](#srcpreset-linkjs) | Presets as a link: "d2mm://preset/<code>", where <code> is the whole preset squeezed |
 | [`src/preset-share.js`](#srcpreset-sharejs) | Shareable preset files (.d2mm) — a zip holding preset.json plus the VPK of every mod |
 | [`src/presets-service.js`](#srcpresets-servicejs) | Presets, and the two ways one travels to somebody else. |
-| [`src/rank-drawing.js`](#srcrank-drawingjs) | Renders authentic Dota 2 rank and hero badge numbers directly onto textures |
+| [`src/rank-drawing.js`](#srcrank-drawingjs) | Draws onto rank textures: leaderboard digits, hero badge levels, star pips baked into a medal. |
 | [`src/rank-font-data.js`](#srcrank-font-datajs) |  |
 | [`src/rank-generator.js`](#srcrank-generatorjs) | Generates a native Dota 2 VPK mod that overrides rank medals, star pips and hero badges |
 | [`src/remote-config.js`](#srcremote-configjs) | The one thing the app can be told after it has shipped. |
@@ -52,6 +54,7 @@ the code, not in this page.
 | [`src/schema-service.js`](#srcschema-servicejs) | Orchestration around the item schema: what goes into it, when it is rebuilt, and how a |
 | [`src/schema.js`](#srcschemajs) | Item-schema engine: the game's own scripts/items/items_game.txt is the only place |
 | [`src/settings.js`](#srcsettingsjs) | Simple JSON settings store in userData |
+| [`src/slots.js`](#srcslotsjs) | Which pak slots a mod can have, and handing them out. |
 | [`src/steam.js`](#srcsteamjs) | Finding Steam, and then finding Dota inside it. |
 | [`src/toolchain.js`](#srctoolchainjs) | Tools the app can borrow, fetched only when something actually needs them. |
 | [`src/updater.js`](#srcupdaterjs) | Where an installed copy looks for a new version, and on which channel. |
@@ -93,18 +96,28 @@ function createAdopt({ installer, library, schemaService })
 
 ## src/auth.js
 
-InsForge authentication, session management, and role-based permissions.
+Local accounts: sign-in, the session, and the VIP entitlement the Arsenal checks.
 
-Project: 9457c313-82cc-4773-9d4e-4640d3309e86
-Default Administrator: dreftian@gmail.com / Ehkaiser98
+Everything lives in two JSON files in userData and nothing here talks to a server, so an
+account exists on this PC only and an entitlement is exactly as trustworthy as a file the user
+can edit. Real verification needs a signed claim from a backend (src/beta.js shows how the app
+checks one). Until then this module has two jobs: be honest, and never lose anybody's account.
+
+No password is written in this file. Until September 2026 one was: the login form filled it
+in, login() accepted it without looking at the stored hash, and every start re-hashed it over
+whatever the owner had changed it to. The administrator is now simply the account registered
+under ADMIN_EMAIL, and it signs in through its stored hash like any other. The record those
+builds seeded is removed on the first start (isLegacySeed), since the old password still opens it.
 
 ### `AuthManager`
 
 ```js
-class AuthManager
+class AuthManager extends EventEmitter
 ```
 
-Manages user accounts, local authentication persistence, and subscription plans.
+Accounts on this PC and the session of whoever is signed in.
+Emits 'change' with the signed-in account (or null) after login, register, logout, subscribe
+and changePassword, so whatever depends on the entitlement can rebuild.
 
 ### `ADMIN_EMAIL`
 
@@ -112,7 +125,7 @@ Manages user accounts, local authentication persistence, and subscription plans.
 const ADMIN_EMAIL = 'dreftian@gmail.com'
 ```
 
-The default administrator email address.
+The account registered under this address is the administrator.
 
 ### `INSFORGE_PROJECT_ID`
 
@@ -120,7 +133,23 @@ The default administrator email address.
 const INSFORGE_PROJECT_ID = '9457c313-82cc-4773-9d4e-4640d3309e86'
 ```
 
-The configured InsForge backend project ID.
+The InsForge project these accounts are named after. Nothing connects to it yet.
+
+### `hasVip`
+
+```js
+function hasVip(user, now = Date.now())
+```
+
+Whether a stored account holds VIP right now: the administrator always, anyone else while a
+premium subscription is active and its end date is still ahead. A subscription with no end
+date counts as running.
+
+```
+@param {object|null} user a record from auth-users.json
+@param {number} [now]
+@returns {boolean}
+```
 
 ## src/beta.js
 
@@ -369,19 +398,8 @@ The catalog describes a mod's links two ways: a `links` array, and an older pair
 on the mod itself. 32 mods still carry the old pair and 26 of those are previews - the
 whole TI battle-pass row - so a reader that knows only the array shows them with no
 preview at all. The site reads both; folding one into the other here means the rest of the
-app only ever sees the array. The cache on disk keeps whatever the author wrote.
-
-### `injectChangerMods`
-
-```js
-function injectChangerMods(mods)
-```
-
-Injects custom mods from Dota2Changer into catalog data so they appear across categories.
-
-```
-@param {object} mods The catalog mods object containing modsData.
-```
+app only ever sees the array. The cache on disk keeps whatever the author wrote, repeats
+included (see dropRepeats).
 
 ## src/cursors.js
 
@@ -962,8 +980,266 @@ Another program's work is not ours to relocate, whatever folder it is sitting in
 already taken in the destination is not overwritten, because the file there is somebody's
 current mod and this one is a leftover.
 
+Whose a pak99 is comes from the note we leave in the folder, since this runs at startup with
+no library to ask: ours go, and the English fix an older Minify dropped there stays. Going by
+the number alone left our own pak99 behind, and the library then dropped it as missing.
+
 ```
 @returns {number} how many files were actually moved
+```
+
+## src/hero-items.js
+
+The Arsenal: any look a hero can wear, put on the items every account already owns.
+
+Each hero has a default item per slot (prefab "default_item", which is what gives it
+baseitem 1), and the client draws whatever that item's block says. Rewrite the block to carry
+another wearable's model and visuals and the hero wears that wearable with nobody owning it:
+the trick baseItemPatch plays on Default Weather, one hero slot at a time.
+
+Measured on the real table (research, 2026-09-23), and the reason for each rule below:
+  - 127 heroes, one default per hero and slot, and every immortal and arcana wearable of a
+    hero lands on one of them. Taunts are the exception: their only default is 8632, shared by
+    every hero, and a taunt plays through an owned tool anyway, so they are left out.
+  - A few defaults serve several heroes (8366 "All Heroes' Default Pet" is the summon of ten).
+    Dressing it dresses all of them, so a slot says who else it reaches, and a pick there
+    switches the other heroes' picks on it off: the table holds one block per item.
+  - A default item is never an owned copy, so nothing stores a style for it and it runs style
+    0 (assumed, not seen in the game). A chosen style is moved into slot 0.
+  - The *_persona_N slots only show while the persona is on, so a pick there switches the
+    hero's persona selector on too, unless the user picked a persona of their own.
+
+Everything here reads the game's own table and returns text; the library, the rebuild and
+who may use it are src/schema-service.js's business.
+
+### `slotKey`
+
+```js
+const slotKey = (hero, slot) => `${SLOT_PREFIX}${hero}:${slot}`
+```
+
+'hero:npc_dota_hero_juggernaut:hero_base' - the slot of a library record.
+
+### `isHeroSlot`
+
+```js
+const isHeroSlot = (slot) => typeof slot === 'string' && slot.startsWith(SLOT_PREFIX)
+```
+
+_No description in the source._
+
+### `parseSlotKey`
+
+```js
+function parseSlotKey(key)
+```
+
+```
+@returns {{hero: string, slot: string}|null}
+```
+
+### `itemKey`
+
+```js
+const itemKey = (id, style) => (style == null ? String(id) : `${id}#${style}`)
+```
+
+'9059' or '9059#1' when a style other than the first was chosen.
+
+### `parseItemKey`
+
+```js
+function parseItemKey(key)
+```
+
+```
+@returns {{itemId: string, style: string|null}}
+```
+
+### `compareSlots`
+
+```js
+const compareSlots = (a, b) => slotRank(a) - slotRank(b) || a.localeCompare(b)
+```
+
+Slot order for the Arsenal: SLOT_ORDER, abilities, the ultimate, voice, then A-Z.
+
+### `heroMap`
+
+```js
+function heroMap(text)
+```
+
+Per hero: slot -> default item, and every wearable that fits it, variants folded under their
+head. Built once per game table: about a third of a second on the real one.
+
+```
+@param {string} text  the game's own items_game.txt (latin1)
+```
+
+### `findHero`
+
+```js
+function findHero(text, hero)
+```
+
+A hero by npc name, or by the short key ('juggernaut') for convenience.
+
+### `heroList`
+
+```js
+function heroList(text)
+```
+
+Every hero with something to wear, A-Z.
+
+```
+@returns {Array<{hero: string, key: string, name: string, counts: {arcana: number, immortal: number, total: number}}>}
+```
+
+### `heroView`
+
+```js
+function heroView(text, hero, { picks = new Map(), styleName = (s) => s } = {})
+```
+
+One hero, slot by slot, with its sets.
+
+```
+@param {string} text
+@param {string} hero
+@param {object} [opts]
+@param {Map<string, {recordId: string, itemId: string, style: string|null}>} [opts.picks]  live picks by slot
+@param {(name: string) => string} [opts.styleName]  turns a style's "#token" into words
+```
+
+### `heroSets`
+
+```js
+function heroSets(text, hero)
+```
+
+```
+@returns {Array<{id: string, name: string, rarity: string, store: boolean, members: Array<{slot: string, itemId: string, name: string}>}>}
+```
+
+### `setFor`
+
+```js
+function setFor(text, hero, bundleId)
+```
+
+One bundle of one hero, ready to equip.
+
+```
+@returns {{hero: string, name: string, members: Array<{slot: string, itemId: string, name: string}>, skipped: string[]}}
+```
+
+### `stylesOf`
+
+```js
+function stylesOf(text, id)
+```
+
+How an item's styles behave.
+ - none:       no styles block
+ - auto:       some style carries auto_style_rule and the game switches it at run time
+               (Troll melee/ranged, Lifestealer rage): every style is kept, only unlocks go
+ - selectable: the owner picks one, so a style other than the first has to move into slot 0
+
+```
+@returns {{kind: string, styles: Array<{index: string, name: string, auto: boolean}>}|null}
+```
+
+### `heroItemPatch`
+
+```js
+function heroItemPatch(text, targetId, donorId, opts = {})
+```
+
+The block that turns default item `targetId` into a copy of `donorId`'s look.
+
+```
+@param {string} text      the game's own items_game.txt (latin1)
+@param {string} targetId  the hero's default item for the slot
+@param {string} donorId   the wearable to show
+@param {{style?: string|null}} [opts]  a style index of a donor with selectable styles
+@returns {string}  a block for mergeSchema ({ id: targetId, block })
+```
+
+### `targetOf`
+
+```js
+function targetOf(text, hero, slot)
+```
+
+The default item a hero's slot dresses, or null. Several heroes' slots can name the same one.
+
+### `resolvePick`
+
+```js
+function resolvePick(text, hero, slot, itemId, style)
+```
+
+Check a pick against the game's table and say how it is stored. `target` is the default item
+it dresses, which a pick for another hero may dress too (see targetClashes).
+
+```
+@returns {{key: string, itemId: string, name: string, itemName: string, hero: string, slot: string, style: string|null, target: string}}
+```
+
+### `heroPatches`
+
+```js
+function heroPatches(text, records)
+```
+
+The blocks the live hero picks put into the table, plus the persona selector a *_persona_N
+pick needs to be seen at all.
+
+```
+@param {string} text  the game's own table
+@param {Array<{slot: string, itemId: string, name: string}>} records  live 'hero:' records
+@returns {Array<{id: string, block: string, source: string}>}
+```
+
+### `targetClashes`
+
+```js
+function targetClashes(text, records)
+```
+
+Live picks that put different looks on one default item. The table holds one block per item,
+the last one written, so of a default several heroes share (8366, the pet of ten) only one
+pick is drawn. A new pick switches its rivals off (schema-service); this names what an older
+library, a preset or My mods left on together.
+
+```
+@param {string} text  the game's own table
+@param {Array<{slot: string, itemId: string, name: string}>} records  live 'hero:' records
+@returns {Array<{id: string, name: string, mods: string[]}>}  shaped like the mods' own clashes
+```
+
+### `styleTokens`
+
+```js
+function styleTokens(text)
+```
+
+Every "#token" a hero wearable's style is named with, lower case and without the '#'.
+
+### `readTokens`
+
+```js
+function readTokens(locText, wanted)
+```
+
+The wanted tokens out of a localization file ("Tokens" { "Key" "Text" }).
+
+```
+@param {string} locText
+@param {Set<string>} wanted  lower-case keys
+@returns {Map<string, string>}  lower-case key -> text
 ```
 
 ## src/i18n.js
@@ -1131,16 +1407,6 @@ class Installer
 
 _No description in the source._
 
-### `PRIORITY_CATEGORIES`
-
-```js
-const PRIORITY_CATEGORIES = ['ranks', 'trees', 'river', 'shaders', 'herofx', 'ranged-attack', 'hero-items', 'optimization']
-```
-
-Categories whose VPKs must load with higher priority: lower pak numbers (02-09).
-The game only mounts files named pakNN_dir.vpk — the "!pak" prefix seen in
-Dota2PornFx cart zips is a merge-order hint for VPKMerge, not a valid install name.
-
 ### `MERGE_SIZE_CAP`
 
 ```js
@@ -1162,6 +1428,64 @@ class Library
 ```
 
 _No description in the source._
+
+## src/master-switch.js
+
+The master switch: every mod off at once, and back, without touching anybody's own choice.
+
+Off renames each live mod file <f> to <f>.moff and on renames each <f>.moff back. The game
+only mounts pakNN_dir.vpk, so a .moff is invisible to it and the bytes stay. The suffix is
+its own, distinct from one mod's .off, so the two states never clobber each other: turning
+mods back on must not resurrect the ones somebody had switched off one at a time.
+
+Split out of src/installer.js, which had reached its size budget. The installer still
+decides which files are ours to rename; this does the renaming.
+
+### `MASTER_OFF`
+
+```js
+const MASTER_OFF = '.moff'
+```
+
+What a file switched off by the master switch is called: <file>.moff. Never ".off", which is
+one mod's own choice and has to survive the master switch going off and on again.
+
+### `isLocked`
+
+```js
+function isLocked(err)
+```
+
+Did this fail because somebody else has the file open?
+
+### `moffOnDisk`
+
+```js
+function moffOnDisk(lang)
+```
+
+Is there a .moff anywhere in the language folder's root?
+
+### `sweepMaster`
+
+```js
+function sweepMaster(lang, enabled, mayToggle)
+```
+
+Switch every mod in the language folder, and in its maps folder where terrains live.
+
+One transaction, because the renames used to be one at a time: a pak the game was holding
+stopped the sweep halfway, the ones before it stayed renamed, and the Library read the
+single .moff on disk as "mods off" while the rest went on loading. Now a failure puts every
+rename back and says which file was held.
+
+```
+@param {string} lang  the language folder
+@param {boolean} enabled
+@param {(lower: string, full: string) => boolean} mayToggle  whether a file in the folder root
+is ours to switch off; the maps folder holds nothing but mods
+@returns {{ changed: number }}
+```
 
 ## src/minify.js
 
@@ -1253,7 +1577,7 @@ had this app announce a folder called dota_english, which exists nowhere.
 function isMinifyFile(baseLower)
 ```
 
-Is this file in the language folder one of Minify's paks?
+Is this file in the language folder one of Minify's paks, by its slot alone?
 
 Reserving the slots keeps us from writing over its work, which is only half the bargain.
 The other half is not touching what it wrote: the master switch sweeps the folder and
@@ -1262,7 +1586,8 @@ that is not ours to adopt, disable or delete. Sharing one folder is the arrangem
 people to make, so in that arrangement both of those would reach into another program.
 
 Matches the dir file and its data volumes: pak66_dir.vpk, pak66_000.vpk, and the same with
-an .off or .moff already on the end.
+an .off or .moff already on the end. Only the reserved slots: pak99 is a slot we hand out,
+so its number says nothing about whose it is - that is isMinifyLegacyPak.
 
 ```
 @param {string} baseLower a file name, lowercased
@@ -1279,6 +1604,61 @@ Was this VPK built by Minify? Reads the archive index only, never the content.
 ```
 @param {string} file  full path to a *_dir.vpk
 ```
+
+### `isMinifyLegacyPak`
+
+```js
+function isMinifyLegacyPak(full, ours = null)
+```
+
+Is this pak99 Minify's? Releases up to v1.14rc6 wrote their English fix there, and we hand
+the slot out today, so the two are told apart by who made the file rather than where it is.
+
+Ours when we say so: the library, or the note we leave in the folder, names it. Anything in
+that slot we do not claim is taken for Minify's, as it always was, because the English fix
+it copied there may carry no marker. With nothing known about ownership at all, only its
+marker makes it Minify's.
+
+```
+@param {string} full  full path to the file
+@param {Set<string>|null} [ours]  lowercased relative paths this app installed there
+```
+
+### `ownedByNote`
+
+```js
+function ownedByNote(dir)
+```
+
+What the note in a language folder says is ours.
+
+```
+@param {string} dir  the language folder
+@returns {Set<string>|null}  lowercased relative paths, or null when there is no note to read
+```
+
+### `OWNERSHIP_FILE`
+
+```js
+const OWNERSHIP_FILE = 'dota2modmanager.json'
+```
+
+Which files in the language folder are ours, written where another program can read it.
+
+Minify marks its work by packing metadata into the VPKs it builds, and checks for that
+before deleting one. The same courtesy in the other direction cannot be done the same way:
+mods from the catalog are copied byte for byte and identified by a hash of their contents,
+and the project is building integrity guarantees on the file being exactly what the catalog
+published - sha256 on download, a signed catalog after that. Repacking every install to
+insert a marker is cheap enough (35ms against 15ms for a plain copy of a 46 MB mod, and the
+hash survives if marker names are left out of it), but it would end byte-identity, which is
+worth more than the convenience.
+
+So the marker is one file beside the mods instead of a marker inside each one. Anything
+reading it learns which files in the folder belong to this app, which is the question a
+second mod manager actually needs answered before it deletes anything - and the question
+this app needs answered about a pak99, in the places that walk the folder without the
+library to ask. src/installer.js writes it (writeOwnership).
 
 ### `MINIFY_MARKERS`
 
@@ -1354,8 +1734,13 @@ whether or not it is on the machine.
 v1.14rc7 (commit 9ffc8e4, "Include the swap into main vpk"; #English Fix/manifest.json is
 gone with it), so nothing will write there in future and the slot is ours to use. Anybody
 still on an older release has a pak99 on disk already, which the allocator reads off the
-folder like any other occupied slot - and MINIFY_PAKS still knows whose it is. The author
-asked for exactly this: detect the file rather than blindly reserve the number.
+folder like any other occupied slot. The author asked for exactly this: detect the file
+rather than blindly reserve the number.
+
+Which is also why the number alone stopped deciding whose a pak99 is. Once we hand the slot
+out, the 87th mod somebody installs lands there, and recognising it by number had "Mods off"
+leave that one live and a language move leave it behind, dropping it from the library. So
+65 to 67 are Minify's by number (isMinifyFile) and 99 by who made it (isMinifyLegacyPak).
 
 ### `prelaunchHook`
 
@@ -2311,8 +2696,9 @@ Does changing this record mean the item table has to be rebuilt?
 
 ## src/rank-drawing.js
 
-Renders authentic Dota 2 rank and hero badge numbers directly onto textures
-and patches Panorama CSS style sheets for in-game display.
+Draws onto rank textures: leaderboard digits, hero badge levels, star pips baked into a medal.
+Nothing here touches a Panorama style sheet: patching those is what took the game's layout
+down (e458486).
 
 ### `renderRankPlaqueDigits`
 
@@ -2358,6 +2744,28 @@ Generates a 32x32 transparent .vtex_c containing the level digit in white with b
 @returns {Buffer}
 ```
 
+### `compositeVtexLayer`
+
+```js
+function compositeVtexLayer(baseVtex, layerVtex)
+```
+
+Draws one raw RGBA texture over another of the same size, the way Panorama stacks the pip
+image on top of the medal image.
+
+The pip slots (pip1_psd..pip7_psd) are shared by every player with that many stars, so a mod
+that replaces one account's medal cannot replace them without changing everyone's stars. The
+stars go into the medal instead. Both textures are the same uncompressed format (BGRA8888 in
+the shipped assets), so blending channel by channel needs no knowledge of the byte order; only
+alpha has to be the fourth byte, which it is in both.
+
+```
+@param {Buffer} baseVtex The medal: VTEX header followed by raw pixels
+@param {Buffer} layerVtex The pips: same header size and pixel count as the medal
+@returns {Buffer} A copy of the medal with the layer on top, or the medal untouched when the
+two do not line up (a PNG-wrapped texture, or a different size)
+```
+
 ## src/rank-font-data.js
 
 _Exports nothing._
@@ -2396,9 +2804,12 @@ star pips, and Dota Plus hero badges.
 @param {object} opts
 @param {string} [opts.medal] e.g. 'rank8c', 'rank3'
 @param {string} [opts.baseRank] Target account base slot ('rank0' default, or 'rank1'..'rank8', or 'all')
-@param {number} [opts.stars] e.g. 1 to 5 (0 for none)
-@param {number} [opts.mmr] e.g. 12620
-@param {number} [opts.immortalRank] Leaderboard rank number (1-50000)
+@param {number} [opts.stars] 1 to 5 (0 for none). Drawn into the medal for a single base slot,
+written to the shared pip slots for 'all'
+@param {number} [opts.mmr] Only a label for the library name: the game shows no MMR, so
+nothing in the VPK depends on it
+@param {number|null} [opts.immortalRank] Leaderboard place (1-6000). With plain 'rank8' a number
+picks the Top 10/100/1000 medal it belongs to; null keeps plain Immortal with an empty plate
 @param {number} [opts.heroTier] 0 to 5, or null to keep original
 @param {number} [opts.heroLevel] 1 to 99
 @returns {{ buffer: Buffer, name: string, medalInfo: object, baseRank?: string, stars?: number, mmr?: number, immortalRank?: number|null, heroTier?: number|null, heroLevel?: number }}
@@ -2645,7 +3056,7 @@ The rules it enforces:
 ### `createSchemaService`
 
 ```js
-function createSchemaService({ settings, library, installer, userDataDir })
+function createSchemaService({ settings, library, installer, userDataDir, entitled = () => true })
 ```
 
 ```
@@ -2654,6 +3065,7 @@ function createSchemaService({ settings, library, installer, userDataDir })
 @param {import('./library').Library} deps.library
 @param {import('./installer').Installer} deps.installer
 @param {string} deps.userDataDir
+@param {() => boolean} [deps.entitled]  may hero picks go into the build (the Arsenal is VIP)
 ```
 
 ## src/schema.js
@@ -2755,6 +3167,19 @@ function listItems(text)
 
 _No description in the source._
 
+### `itemIndex`
+
+```js
+function itemIndex(text)
+```
+
+Every numbered item by id. The first definition of an id wins, as it does in findItem.
+
+```
+@param {string} text
+@returns {Map<string, {id: string, name: string, slot: string, prefab: string, image: string, baseitem: boolean, hasVisuals: boolean, start: number, end: number}>}
+```
+
 ### `baseItemFor`
 
 ```js
@@ -2778,6 +3203,44 @@ adds to the schema later shows up on its own, without an app update.
 @returns {Array<{id, name}>}  name is the schema's own English name, sorted A-Z
 ```
 
+### `slotOf`
+
+```js
+function slotOf(item, text)
+```
+
+Which slot an item belongs to. Wearables say it outright; the whole-match cosmetics
+(weather, terrain, HUD...) leave item_slot out and only name their prefab.
+
+A few base items carry a stray item_slot copied from the wearable they were cloned from:
+202 Default Cursor Pack and 801 Default Roshan say "weapon", a loading screen says "head".
+Believing it filed them under a slot nothing else is in, so cursor packs and Roshan were
+never offered. The prefabs block settles it - a prefab that fixes a slot of its own
+(cursor_pack, roshan, loading_screen) decides, and "weapon" there is only the wearable's
+default, "none" leaves the choice to the item (announcer vs mega_kills, misc). The key stays
+the prefab's name, because that is what the slot-less items of those prefabs were always
+filed under and what existing picks are stored as ("radiantcreeps", not "radiant_creeps").
+
+```
+@param {{slot: string, prefab: string}} item  a record from listItems()
+@param {string} [text]  the table it came from; without it the item's own word is taken
+@returns {string}
+```
+
+### `prefabSlots`
+
+```js
+function prefabSlots(text)
+```
+
+The item_slot each prefab in the "prefabs" block declares ("cursor_pack" -> "cursor_pack",
+"wearable" -> "weapon", "misc" -> "none"). Empty for a table with no prefabs block.
+
+```
+@param {string} text
+@returns {Map<string, string>}
+```
+
 ### `findItem`
 
 ```js
@@ -2797,6 +3260,86 @@ function itemFields(text, item)
 ```
 
 Direct scalar fields of an item block ("name", "prefab", "item_slot"...).
+
+### `readToken`
+
+```js
+function readToken(text, i)
+```
+
+Read a token (quoted or bare) at i. Returns { value, start, next } or null at a closing brace.
+
+### `blockBounds`
+
+```js
+function blockBounds(text, i)
+```
+
+Bounds of the { ... } block that starts at (or after) i.
+
+```
+@param {string} text
+@param {number} i
+@returns {[number, number]}  [open, close+1]
+```
+
+### `eachChild`
+
+```js
+function eachChild(text, bounds, fn)
+```
+
+Walk the direct children of a block.
+
+```
+@param {string} text
+@param {[number, number]} bounds  from blockBounds()
+@param {(child: {key: string, start: number, end: number, isBlock: boolean, value: string|null, body: [number, number]|null}) => void} fn
+`body` is the child block's own bounds, null for a plain key-value pair
+```
+
+### `sectionOf`
+
+```js
+function sectionOf(text, name)
+```
+
+A top-level section of items_game.txt by name, or null. Stops at the first match: the small
+sections ("prefabs", "item_sets") are asked about by themselves, and walking on past the
+50 MB "items" block to finish the list would cost more than finding them did.
+
+```
+@param {string} text
+@param {string} name  lower case
+@returns {[number, number]|null}
+```
+
+### `itemsSection`
+
+```js
+function itemsSection(text)
+```
+
+The "items" section of items_game.txt (all item definitions live directly under it).
+
+### `stripKeyBlocks`
+
+```js
+function stripKeyBlocks(text, key)
+```
+
+Remove every "<key> { … }" sub-block from a KV fragment, with the whitespace in front
+of it, so the result still reads like the file it came from.
+
+### `toUtf8`
+
+```js
+function toUtf8(s)
+```
+
+The table is read as latin1 so every splice stays byte-exact, which leaves names with
+non-ASCII characters (curly quotes, accents) as raw UTF-8 bytes. Anything shown to a
+person goes back through UTF-8 first.
 
 ### `extractDeltas`
 
@@ -2929,6 +3472,125 @@ class Settings
 ```
 
 _No description in the source._
+
+## src/slots.js
+
+Which pak slots a mod can have, and handing them out.
+
+The game mounts pakNN_dir.vpk in numeric order and the first copy of a file wins, so a slot
+is two things at once: a place to put a mod, and its priority. filesystem_stdio.dll checks
+the name at thirteen characters and reads exactly two digits, so pak100 and above are never
+mounted at all - a mod written there is installed, listed, switched on, and does nothing.
+
+Split out of src/installer.js, which had reached its size budget. The installer still owns
+the folder; this owns the arithmetic, and the one repair that needs nothing but that.
+
+### `PRIORITY_CATEGORIES`
+
+```js
+const PRIORITY_CATEGORIES = ['ranks', 'trees', 'river', 'shaders', 'herofx', 'ranged-attack', 'hero-items', 'optimization']
+```
+
+Categories whose VPKs must load with higher priority: lower pak numbers (02-09).
+The game only mounts files named pakNN_dir.vpk — the "!pak" prefix seen in
+Dota2PornFx cart zips is a merge-order hint for VPKMerge, not a valid install name.
+
+### `PRIORITY_SLOTS`
+
+```js
+const PRIORITY_SLOTS = range(2, 9)
+```
+
+pak01 is the game's own voice pack and pak00 is where swapSlots parks a mod mid-swap.
+
+### `MOD_SLOTS`
+
+```js
+const MOD_SLOTS = range(10, 99).filter((n) => !RESERVED_PAKS.includes(n))
+```
+
+Minify writes 65, 66 and 67 into whichever language folder it is set to, and if that is
+ours, whoever writes second replaces the other's mod. Three slots out of ninety buys never
+having to coordinate - see src/minify.js. A pak it has already written needs no reserving:
+it is in `used`, read off the folder.
+
+### `SLOT_CAPACITY`
+
+```js
+const SLOT_CAPACITY = PRIORITY_SLOTS.length + MOD_SLOTS.length
+```
+
+How many mods can have a slot of their own, whatever plan anybody is on.
+
+Counted from the two lists rather than written down, because the Library said 98 and then
+100 and then 9999 while the allocator gave out 95: the number on screen had its own copy of
+a rule that lives here.
+
+### `allocatePak`
+
+```js
+function allocatePak(used, priority)
+```
+
+The next free slot, taken out of `used` so a plan made in one pass never hands one out twice.
+A category that must load early starts at 02; everything else starts at 10 and falls back to
+the early slots only when the rest are gone.
+
+```
+@param {Set<string>} used  lowercased file names already in the folder, suffixes stripped
+@param {boolean} priority
+@returns {string} "pakNN_dir.vpk"
+```
+
+### `countSlots`
+
+```js
+function countSlots(names, isMinifys = () => false)
+```
+
+The Library's "N of M slots", both counted in the slots allocatePak hands out. Every pakNN in
+the folder used to count, so beside Minify it read 98 of 95: its 65-67 are not slots of ours,
+and neither are pak00, pak01 or pak100+. An old Minify's pak99 is not a mod of ours either and
+takes the slot with it, so the count still reaches the ceiling when installing starts to fail.
+
+```
+@param {string[]} names  file names in the language folder
+@param {(name: string) => boolean} [isMinifys]  whether a pak99_dir.vpk there is Minify's
+@returns {{ taken: number, ceiling: number }}
+```
+
+### `freeSlotBelow`
+
+```js
+function freeSlotBelow(n, used)
+```
+
+The highest free slot strictly below `n`, so climbing over one mod does not eat the whole low
+range that the priority categories want.
+
+```
+@returns {string|null} "pakNN", or null when there is none
+```
+
+### `remountHighSlots`
+
+```js
+function remountHighSlots(installer, library)
+```
+
+Bring back the mods 1.0.6, 1.0.8 and 1.0.9 parked where the game never looks.
+
+Those three releases went on handing out pak100 to pak250 once 02-99 were full, and 1.0.10
+stopped doing it without moving anything back. Each such mod gets a real slot if there is
+one. One that cannot is kept, and flagged notMounted, so the Library can say it is not
+loading instead of showing it switched on. Lowest first, so whichever of them was on top
+stays on top. Safe to run on every start: with nothing above 99 it reads one folder listing.
+
+```
+@param {object} installer  the Installer: langFolder, usedPakNames, slotNumber, moveToSlot
+@param {object} library
+@returns {{ moved: number, stuck: number }}
+```
 
 ## src/steam.js
 
@@ -3085,11 +3747,15 @@ Moved out of main.js on 2026-09-19, unchanged in what it does, so the beta chann
 somewhere to live and so this could be tested against a stand-in for electron-updater rather
 than only by releasing something.
 
-Two feeds. GitHub is the origin; https://cdn.dota2modmanager.com/updates/ is a copy this
-project also owns, tried only after GitHub fails. On 2026-08-17 GitHub was down for three
-hours, which meant no installed copy could check for or fetch an update, and nobody noticed,
-because an app that fails to update looks exactly like an app. Each four-hourly round starts at
-GitHub again: the mirror is for the hours it is down, not a place to settle into.
+Two feeds. The GitHub API is the origin; the second reads the same release through its
+plain download address, which does not go through the API and its rate limit, and is tried only
+after the first fails. On 2026-08-17 GitHub was down for three hours, which meant no installed
+copy could check for or fetch an update, and nobody noticed, because an app that fails to
+update looks exactly like an app. Each four-hourly round starts at the origin again.
+
+Both read Dota2-Mods-Releases, a public repository that holds only the builds and the source
+archive of each one. The source repository is private from 2026-09-23, and a private
+repository answers an installed copy with nothing at all, so the builds had to live apart.
 
 Two channels. Everybody reads `latest`; the testers the maintainer picked read `beta`, which is
 a different manifest (beta.yml) in the same place. src/beta.js decides who is on which, and the
@@ -3128,7 +3794,7 @@ One address for both channels: electron-updater asks for latest.yml or beta.yml 
 ### `MIRROR`
 
 ```js
-const MIRROR = 'https://github.com/Dreftian/Dota2-Mods/releases/latest/download/'
+const MIRROR = 'https://github.com/Dreftian/Dota2-Mods-Releases/releases/latest/download/'
 ```
 
 The copy of each release this project keeps, for the hours GitHub is not answering.

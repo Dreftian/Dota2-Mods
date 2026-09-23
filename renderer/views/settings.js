@@ -46,7 +46,9 @@ export async function renderSettings() {
   let beta = { eligible: false, on: false };
   try { beta = await window.api.beta.state(); } catch { /* older build */ }
 
-  const isAdmin = !!(state.currentUser?.isAdmin || state.currentUser?.role === 'admin' || state.currentUser?.email === 'dreftian@gmail.com');
+  // the account says whether it is an admin; an address typed into the source would make
+  // anybody who signs up with it one, and publishes it to everyone who reads the code
+  const isAdmin = !!state.currentUser?.isAdmin;
 
   await paint(() => { viewRoot.innerHTML = `
     <div class="view-header"><h1 class="view-title">${L`Настройки`}</h1></div>
@@ -67,12 +69,12 @@ export async function renderSettings() {
         </div>
       </div>
       <div class="settings-row spaced">
-        <span class="settings-label">${L`Theme mode`}</span>
+        <span class="settings-label">${L`Тема`}</span>
         <div class="select-wrap">
           <span class="ms">palette</span>
           <select class="input" id="themeModeSelect">
-            <option value="dark" ${s.themeMode !== 'light' ? 'selected' : ''}>${L`Dark`}</option>
-            <option value="light" ${s.themeMode === 'light' ? 'selected' : ''}>${L`Light`}</option>
+            <option value="dark" ${s.themeMode !== 'light' ? 'selected' : ''}>${L`Тёмная`}</option>
+            <option value="light" ${s.themeMode === 'light' ? 'selected' : ''}>${L`Светлая`}</option>
           </select>
         </div>
       </div>
@@ -163,11 +165,10 @@ export async function renderSettings() {
         <span>${state.catalog?.fetchedAt ? new Date(state.catalog.fetchedAt).toLocaleString(window.i18nLocale()) : '—'}</span>
         <button class="btn btn-sm" id="refreshCatBtn2">${L`Обновить сейчас`}</button>
       </div>
-      ${isAdmin ? `
       <div class="settings-row">
         <span class="settings-label">${L`Источник`}</span>
-        <a class="settings-link" id="srcLink">github.com/Dreftian/Dota2-Mods</a>
-      </div>` : ''}
+        <a class="settings-link" id="srcLink">github.com/h6rd/Dota2PornFxWeb</a>
+      </div>
     </div>
 
     <div class="settings-block" style="--i:5">
@@ -192,14 +193,27 @@ export async function renderSettings() {
            its own block above; this row is for whoever else did the work. -->
       <div class="settings-row spaced">
         <span class="settings-label">${L`Спасибо`}</span>
-        <span>Creado por Dreftian Devs</span>
+        <span>${L`Создано командой Dreftian Devs`}</span>
         ${isAdmin ? `<a class="settings-link" id="thanksLink">github.com/Dreftian/Dota2-Mods</a>` : ''}
       </div>
-      <div class="settings-hint">© 2026 Dreftian Devs · GPL-3.0 · ${L`свободная программа без каких-либо гарантий`}</div>
+      <!-- The licence (NOTICE, 7b and 7c) asks for the original author's line to stay here, where
+           any user finds it without being told how, and for this version to say it was changed
+           and since when. It had been replaced by our own name alone. -->
+      <div class="settings-row spaced">
+        <span class="settings-label">${L`Основано на`}</span>
+        <span>${L`Dota 2 Mod Manager от TheFleece. Это изменённая версия, изменения с 20 сентября 2026`}</span>
+        <a class="settings-link" id="upstreamLink">github.com/TheFleece/dota2-mod-manager</a>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">${L`Исходный код`}</span>
+        <a class="settings-link" id="codeLink">github.com/Dreftian/Dota2-Mods-Releases</a>
+      </div>
+      <div class="settings-hint">© 2026 TheFleece · ${L`изменения`} © 2026 Dreftian Devs · GPL-3.0 · ${L`свободная программа без каких-либо гарантий`}</div>
     </div>
   `; });
   $('#repoLink')?.addEventListener('click', () => window.api.misc.openExternal('https://github.com/Dreftian/Dota2-Mods'));
   $('#thanksLink')?.addEventListener('click', () => window.api.misc.openExternal('https://github.com/Dreftian/Dota2-Mods'));
+  $('#upstreamLink')?.addEventListener('click', () => window.api.misc.openExternal('https://github.com/TheFleece/dota2-mod-manager'));
   // 48 MB is a real download, so it says so and waits for the press
   $('#toolInstallBtn')?.addEventListener('click', async (ev) => {
     ev.currentTarget.disabled = true;
@@ -224,10 +238,14 @@ export async function renderSettings() {
 
   // The app language, and only the app: what somebody reads Dota in was decided when they
   // installed it, and the folder mods go into no longer depends on either (see the file header).
+  // The toast names the language the way the picker does. Two fixed sentences, one Russian and
+  // one English, told a Spanish user the app had switched to English.
   $('#uiLangSelect').addEventListener('change', async (ev) => {
     const lang = ev.target.value;
+    // read before applyLanguage: it redraws this screen, and the select goes with the old markup
+    const name = ev.target.selectedOptions[0]?.textContent || lang;
     await applyLanguage(lang);
-    toast(lang === 'ru' ? L`Язык переключён на Русский` : L`Язык переключён на English`);
+    toast(L`Язык переключён: ${name}`);
     renderSettings();
   });
 
@@ -304,5 +322,8 @@ export async function renderSettings() {
     await loadCatalog(true);
     renderSettings();
   });
-  $('#srcLink')?.addEventListener('click', () => window.api.misc.openExternal('https://github.com/Dreftian/Dota2-Mods'));
+  // the catalog's own repository: this block is about the catalog, and its author is owed the credit
+  $('#srcLink')?.addEventListener('click', () => window.api.misc.openExternal('https://github.com/h6rd/Dota2PornFxWeb'));
+  // every release there carries its source archive, which is what the GPL asks to be offered
+  $('#codeLink')?.addEventListener('click', () => window.api.misc.openExternal('https://github.com/Dreftian/Dota2-Mods-Releases/releases'));
 }

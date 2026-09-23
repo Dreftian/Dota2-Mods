@@ -67,10 +67,21 @@ export const COSMETIC_SLOTS = {
   announcer: { label: 'Комментатор', icon: 'campaign' },
   mega_kills: { label: 'Мега-килл', icon: 'record_voice_over' },
   streak_effect: { label: 'Серия убийств', icon: 'local_fire_department' },
+  cursor_pack: { label: 'Набор курсоров', icon: 'arrow_selector_tool' },
+  roshan: { label: 'Рошан', icon: 'skull' },
 };
 export const COSMETIC_PREFIX = 'cosmetic:';
+
+// A pick from the Arsenal (views/arsenal.js) is a cosmetic record like the ones above, keyed
+// 'hero:<npc hero>:<slot>'. There are hundreds of those keys and My mods and presets only need
+// to say where the record came from, so every one of them carries the Arsenal's own label.
+export const HERO_SLOT_PREFIX = 'hero:';
+
 export function cosmeticMeta(slot) {
-  return COSMETIC_SLOTS[slot] || { label: slot.replace(/_/g, ' '), icon: 'auto_awesome' };
+  const s = String(slot || '');
+  if (s.startsWith(HERO_SLOT_PREFIX)) return { label: 'Арсенал VIP', icon: 'diamond' };
+  // own keys only: a slot named like an Object method must not come back as that method
+  return Object.hasOwn(COSMETIC_SLOTS, s) ? COSMETIC_SLOTS[s] : { label: s.replace(/_/g, ' '), icon: 'auto_awesome' };
 }
 
 // rail sections: [label, [categoryIds]]

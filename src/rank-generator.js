@@ -7,6 +7,7 @@ const { t } = require('./i18n');
 const {
   renderRankPlaqueDigits,
   renderHeroBadgeDigits,
+  compositeVtexLayer,
 } = require('./rank-drawing');
 
 const ASSETS_ROOT = path.join(__dirname, 'assets', 'ranks');
@@ -50,9 +51,12 @@ function readAssetSafe(subfolder, fileName) {
  * @param {object} opts
  * @param {string} [opts.medal] e.g. 'rank8c', 'rank3'
  * @param {string} [opts.baseRank] Target account base slot ('rank0' default, or 'rank1'..'rank8', or 'all')
- * @param {number} [opts.stars] e.g. 1 to 5 (0 for none)
- * @param {number} [opts.mmr] e.g. 12620
- * @param {number} [opts.immortalRank] Leaderboard rank number (1-50000)
+ * @param {number} [opts.stars] 1 to 5 (0 for none). Drawn into the medal for a single base slot,
+ *   written to the shared pip slots for 'all'
+ * @param {number} [opts.mmr] Only a label for the library name: the game shows no MMR, so
+ *   nothing in the VPK depends on it
+ * @param {number|null} [opts.immortalRank] Leaderboard place (1-6000). With plain 'rank8' a number
+ *   picks the Top 10/100/1000 medal it belongs to; null keeps plain Immortal with an empty plate
  * @param {number} [opts.heroTier] 0 to 5, or null to keep original
  * @param {number} [opts.heroLevel] 1 to 99
  * @returns {{ buffer: Buffer, name: string, medalInfo: object, baseRank?: string, stars?: number, mmr?: number, immortalRank?: number|null, heroTier?: number|null, heroLevel?: number }}
@@ -133,8 +137,13 @@ function generateRankVpk({
     'pip7_psd',
   ];
 
+  // Immortal medals carry a leaderboard plate instead of stars, whatever was picked
+  const numStars = isImmortal ? 0 : Math.max(0, Math.min(5, Number(stars) || 0));
+  const starPip = numStars > 0 ? readAssetSafe('ranks', `pip${numStars}_psd.vtex_c`) : null;
+
   // 1. Rank Medals: Generate full-size rank textures with baked plaque digits
   const medalAssetFile = `${targetMedalId}_psd.vtex_c`;
+  /** @type {Buffer} the drawing steps hand back plain Buffers, not the file read's narrower type */
   let medalBuf = readAssetSafe('ranks', medalAssetFile);
   if (!medalBuf) {
     medalBuf = readAssetSafe('ranks', 'rank8c_psd.vtex_c') || readAssetSafe('ranks', 'rank0_psd.vtex_c');
@@ -143,6 +152,12 @@ function generateRankVpk({
   if (medalBuf) {
     if (isImmortal && numImmortalRank) {
       medalBuf = renderRankPlaqueDigits(medalBuf, numImmortalRank);
+    }
+    // A pip slot is every player's with that many stars, so a mod for one profile's medal
+    // cannot use one: the stars are drawn into the medal. Until this, the only pip written for
+    // a single base slot was custom_profile_pips_psd, which nothing in the game reads.
+    if (baseRank !== 'all' && starPip) {
+      medalBuf = compositeVtexLayer(medalBuf, starPip);
     }
     const medalCrc = crc32(medalBuf);
 
@@ -172,15 +187,6 @@ function generateRankVpk({
         data: medalBuf,
       });
     }
-
-    entries.push({
-      ext: 'vtex_c',
-      folder: 'panorama/images/rank_tier_icons',
-      name: 'custom_profile_rank_psd',
-      crc: medalCrc,
-      preload: Buffer.alloc(0),
-      data: medalBuf,
-    });
 
     // Mini medal icons
     let miniAsset = null;
@@ -247,35 +253,23 @@ function generateRankVpk({
           data: miniAsset,
         });
       }
-
-      entries.push({
-        ext: 'vtex_c',
-        folder: 'panorama/images/rank_tier_icons/mini',
-        name: 'custom_profile_rank_mini_psd',
-        crc: miniCrc,
-        preload: Buffer.alloc(0),
-        data: miniAsset,
-      });
     }
   }
 
-  // 2. Star Pips: If stars > 0 render matching pips; if Immortal or 0 stars, render transparent pips
-  const numStars = isImmortal ? 0 : Math.max(0, Math.min(5, Number(stars) || 0));
-  let pipBuf = null;
-  if (numStars > 0) {
-    pipBuf = readAssetSafe('ranks', `pip${numStars}_psd.vtex_c`);
-  }
-  if (!pipBuf) {
-    const basePip = readAssetSafe('ranks', 'pip1_psd.vtex_c');
-    if (basePip) {
-      const headerSize = basePip.readUInt32LE(0);
-      pipBuf = Buffer.concat([basePip.subarray(0, headerSize), Buffer.alloc(262144, 0)]);
+  // 2. Star Pips: with every medal replaced, every pip slot is too. The chosen stars for a
+  // ranked medal; transparent ones for Immortal or none, so no stars float over a medal that
+  // has none.
+  if (baseRank === 'all') {
+    let pipBuf = starPip;
+    if (!pipBuf) {
+      const basePip = readAssetSafe('ranks', 'pip1_psd.vtex_c');
+      if (basePip) {
+        const headerSize = basePip.readUInt32LE(0);
+        pipBuf = Buffer.concat([basePip.subarray(0, headerSize), Buffer.alloc(262144, 0)]);
+      }
     }
-  }
-
-  if (pipBuf) {
-    const pipCrc = crc32(pipBuf);
-    if (baseRank === 'all') {
+    if (pipBuf) {
+      const pipCrc = crc32(pipBuf);
       for (const slot of ALL_PIP_SLOTS) {
         entries.push({
           ext: 'vtex_c',
@@ -287,14 +281,6 @@ function generateRankVpk({
         });
       }
     }
-    entries.push({
-      ext: 'vtex_c',
-      folder: 'panorama/images/rank_tier_icons',
-      name: 'custom_profile_pips_psd',
-      crc: pipCrc,
-      preload: Buffer.alloc(0),
-      data: pipBuf,
-    });
   }
 
   // 3. Dota Plus Hero Badges: Render level digits directly onto badge textures with authentic Radiance typography
@@ -377,6 +363,8 @@ function generateRankVpk({
     : (isImmortal ? (numImmortalRank ? `#${numImmortalRank}` : '') : '');
   const tierInfo = HERO_TIERS.find((t) => t.id === heroTier);
   const tierLabel = tierInfo ? `${tierInfo.nameEn} Lv ${heroLevel}` : '';
+  // The MMR lives here and nowhere else: the game shows no MMR number to replace, so the
+  // customizer says the field only names the mod.
   const modTitle = `Rank Changer (${medalMeta.nameEn} ${starsLabel} · ${mmr} MMR · ${tierLabel})`;
 
   return {

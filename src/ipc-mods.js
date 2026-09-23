@@ -10,11 +10,62 @@ const path = require('path');
 const { dialog, ipcMain } = require('electron');
 
 const { t } = require('./i18n');
+const { SLOT_CAPACITY } = require('./slots');
+const { isLocked } = require('./master-switch');
+
+// What the Rank Customizer generated, and nothing else. Every 'ranks' record used to count, so
+// Apply and Reset uninstalled the catalog's medal packs along with it.
+const isGeneratedRank = (r) => !!r.customRank || String(r.fileRef || '').startsWith('generator:');
+const fileKey = (f) => `${f.root}/${f.relPath}`.toLowerCase();
+
+// The game holding a file is the usual reason a change to the folder fails, and "EBUSY: resource
+// busy or locked" tells nobody what to do about it.
+const forPeople = (err) => (isLocked(err) ? t('Закрой Dota 2 перед изменением файлов игры') : String((err && err.message) || err));
 
 /** @param {object} ctx  the services and main-process callbacks these channels use */
 function registerModsIpc({
-  applyMasterToCursors, blocked, catalog, diag, disableOtherCursors, fingerprints, importVpkBuffers, importVpkPaths, installer, isCursorRecord, library, refreshPresence, schemaService, sendProgress, verifyStuck, win,
+  applyMasterToCursors, blocked, catalog, diag, disableOtherCursors, fingerprints, importVpkBuffers, importVpkPaths, installer, isCursorRecord, library, refreshPresence, schemaService, sendProgress, settings, verifyStuck, win,
 }) {
+  /* Up to 1.0.14 every 'ranks' install was generated, the catalog's eight medal cards included,
+   * and recorded under the card's own fileRef without customRank. isGeneratedRank does not know
+   * those, so a rank applied over one lost to it and Reset left it in the game. They are marked
+   * once, on the first start after, which leaves alone a medal pack downloaded since. Not by
+   * their bytes: the generator changed between 1.0.12 and 1.0.14. Here beside the rule rather
+   * than with main.js's startup repairs, and registering runs once, before any channel answers. */
+  try {
+    if (!settings.get('legacyRanksMigrated')) {
+      for (const r of library.list()) {
+        if (r.categoryId === 'ranks' && r.kind !== 'pack' && !isGeneratedRank(r)) library.update(r.id, { customRank: true });
+      }
+      settings.set('legacyRanksMigrated', true);
+    }
+  } catch (err) { diag(`legacy ranks not marked: ${err && err.message}`); }
+
+  /* A mod written while mods are off goes off with the rest, or it loads while the Library says
+   * nothing does. installer.masterIsOff() is the one predicate: the user's switch, or a .moff
+   * on disk. The library's own list goes along because the note in the folder, which is what
+   * tells a pak99 of ours from Minify's, is only rewritten when the Library lists - and the mod
+   * installed a moment ago may be that pak99. */
+  const keepMasterOff = () => {
+    let off = false;
+    try { off = installer.masterIsOff(); } catch { /* no game path: nothing is loading anyway */ }
+    if (!off) return;
+    try { installer.setMasterEnabled(false, library.knownLangRelPaths()); } catch (err) { diag(`master switch after install: ${err.message}`); }
+    applyMasterToCursors(false);
+  };
+
+  /* Every generated rank out, as one change or none. A removal that failed used to be swallowed:
+   * Reset said the rank was restored with it still in the game, and Apply added a second one
+   * that the first, on its lower slot, went on beating. `keep` is what Apply just wrote: an old
+   * record whose pak was already gone from disk gave its name to the new one, and this deleted it. */
+  const removeGeneratedRanks = (keep = []) => {
+    const old = library.list().filter(isGeneratedRank);
+    const fresh = new Set(keep.map(fileKey));
+    const files = old.flatMap((r) => r.files || []).filter((f) => !fresh.has(fileKey(f)));
+    if (files.length) installer.remove(files);
+    for (const r of old) library.removeRecord(r.id);
+  };
+
   // `win` arrives as a getter, not as the window. These are registered before the window
   // is created, so a value captured here would be undefined forever - which is exactly
   // what win:isMaximized did on the first run after this file was split out.
@@ -39,12 +90,7 @@ function registerModsIpc({
       if (harvest && harvest.deltas) schemaService.refresh();
       // keep the set's own copy, so it can be switched back on later without a re-download
       if (payload.categoryId === 'cursors') { try { installer.ensureCursorStore(rec.id, files); } catch { /* noop */ } }
-      // installed while the master switch is off? sweep the fresh file off too, so the
-      // library state stays consistent (all mods off) until the user turns them back on.
-      if (installer.masterIsOff()) {
-        try { installer.setMasterEnabled(false); } catch { /* noop */ }
-        applyMasterToCursors(false);
-      }
+      keepMasterOff();
       sendProgress({ type: 'done', label: payload.name });
       return { ok: true, record: rec, replaced };
     } catch (err) {
@@ -188,13 +234,17 @@ function registerModsIpc({
         return { ...rec, ...a, match: matches };
       } catch { return rec; }
     });
+    // pak100 and above is never mounted (src/slots.js). Read off the slot rather than the
+    // notMounted that remountHighSlots leaves, which a swap or a pack rebuild can outrun.
+    const parked = (r) => installer.slotNumber(r) > 99;
     // Who is quietly covering whom. Both lists take part: a foreign file in the folder is
     // mounted by the game exactly like a managed one, so leaving it out would name the wrong
-    // winner. Only switched-on mods, because a switched-off one is renamed and never mounted.
+    // winner. Only switched-on mods, because a switched-off one is renamed and never mounted,
+    // and not a parked one, which the game never mounts either.
     let covered = new Map();
     try {
       const live = [
-        ...installed.filter((r) => r.enabled).map((r) => ({ key: r.id, name: r.name, files: r.files })),
+        ...installed.filter((r) => r.enabled && !parked(r)).map((r) => ({ key: r.id, name: r.name, files: r.files })),
         ...external.filter((f) => f.enabled).map((f) => ({ key: f.key, name: f.name, files: f.files })),
       ];
       covered = installer.coverage(live);
@@ -202,7 +252,8 @@ function registerModsIpc({
     external = external.map((f) => (covered.has(f.key) ? { ...f, coveredBy: covered.get(f.key) } : f));
 
     let slots = 0;
-    try { slots = installer.usedModSlots(); } catch { /* no game path */ }
+    let slotCeil = SLOT_CAPACITY;
+    try { ({ taken: slots, ceiling: slotCeil } = installer.slotUse(library.knownLangRelPaths())); } catch { /* no game path */ }
     /* Leave a note on disk saying which files here are ours. This handler already reconciles
      * the library against the folder and the renderer re-lists after every install, toggle,
      * preset and bulk action, so it is the one place that keeps the note honest without
@@ -217,11 +268,14 @@ function registerModsIpc({
     const schemaOn = schemaService.state().enabled;
     const listed = installed.map((rec) => {
       const by = covered.get(rec.id);
-      if (!Array.isArray(rec.schema)) return by ? { ...rec, coveredBy: by } : rec;
-      const { schema, ...rest } = rec;
-      return { ...rest, schemaCount: schema.length, schemaLive: schemaOn, ...(by ? { coveredBy: by } : {}) };
+      const own = { ...rec, notMounted: parked(rec) || undefined, ...(by ? { coveredBy: by } : {}) };
+      if (!Array.isArray(rec.schema)) return own;
+      const { schema, ...rest } = own;
+      return { ...rest, schemaCount: schema.length, schemaLive: schemaOn };
     });
-    return { installed: listed, external, slots, slotCeil: 98, verifyStuck: verifyStuck() };
+    // slotCeil is what the allocator can actually hand out, for every plan: counted in
+    // src/slots.js, because a number written here drifted from it once already
+    return { installed: listed, external, slots, slotCeil, verifyStuck: verifyStuck() };
   });
 
   ipcMain.handle('ranks:getMetadata', async () => {
@@ -230,7 +284,7 @@ function registerModsIpc({
   });
 
   ipcMain.handle('ranks:getCustom', async () => {
-    const active = library.list().find((r) => r.categoryId === 'ranks' || r.customRank);
+    const active = library.list().find(isGeneratedRank);
     if (!active) return { active: false };
     return { active: true, record: active, settings: active.rankSettings || null };
   });
@@ -241,18 +295,7 @@ function registerModsIpc({
     try {
       const { generateRankVpk } = require('./rank-generator');
       const gen = generateRankVpk(payload);
-
-      // Remove any prior rank mod to avoid pak slot conflicts
-      const oldList = library.list().filter((r) => r.categoryId === 'ranks' || r.customRank);
-      for (const old of oldList) {
-        try {
-          if (old.files) installer.remove(old.files, { recId: old.id, deployed: old.enabled !== false });
-          library.removeRecord(old.id);
-        } catch { /* proceed */ }
-      }
-
-      const files = await installer.installDirectBuffer(gen.buffer, gen.name, 'ranks');
-      const rec = library.add({
+      const record = (written) => library.add({
         categoryId: 'ranks',
         name: gen.name,
         styleLabel: null,
@@ -267,26 +310,47 @@ function registerModsIpc({
           heroTier: payload.heroTier,
           heroLevel: payload.heroLevel,
         },
-        files,
+        files: written,
       });
+
+      // The new rank goes in before the old one comes out: the other way round, an install
+      // that failed left the player with no rank at all. Except with every slot taken, where
+      // the old one has to make room first or the rank could not be changed at all.
+      let files;
+      try {
+        files = await installer.installDirectBuffer(gen.buffer, gen.name, 'ranks');
+      } catch (err) {
+        if (err.code !== 'ENOSLOT' || !library.list().some(isGeneratedRank)) throw err;
+        removeGeneratedRanks();
+        files = await installer.installDirectBuffer(gen.buffer, gen.name, 'ranks');
+      }
+      try {
+        removeGeneratedRanks(files);
+      } catch (err) {
+        // The old one is still there, on a lower slot, and would go on winning. Take the new one
+        // back out so the game is as it was; if even that fails, keep it in the library rather
+        // than leave a pak nothing points at.
+        try { installer.remove(files); } catch { record(files); }
+        throw err;
+      }
+      const rec = record(files);
+      keepMasterOff();
 
       sendProgress({ type: 'done', label: gen.name });
       return { ok: true, record: rec, name: gen.name };
     } catch (err) {
-      sendProgress({ type: 'error', label: 'Rank Changer', message: String(err.message || err) });
-      return { error: String(err.message || err) };
+      sendProgress({ type: 'error', label: 'Rank Changer', message: forPeople(err) });
+      return { error: forPeople(err) };
     }
   });
 
   ipcMain.handle('ranks:removeCustom', async () => {
-    const oldList = library.list().filter((r) => r.categoryId === 'ranks' || r.customRank);
-    for (const old of oldList) {
-      try {
-        if (old.files) installer.remove(old.files, { recId: old.id, deployed: old.enabled !== false });
-        library.removeRecord(old.id);
-      } catch { /* proceed */ }
+    try {
+      removeGeneratedRanks();
+      return { ok: true };
+    } catch (err) {
+      return { error: forPeople(err) };
     }
-    return { ok: true };
   });
 }
 

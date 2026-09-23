@@ -17,9 +17,12 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const FILES = ['README.md', 'README.ru.md'];
+// README.md is Spanish since 1.1.0, the language most people using this version read;
+// English moved to README.en.md
+const FILES = ['README.md', 'README.en.md', 'README.ru.md'];
 
 const EN = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+const ES = ['ninguna', 'una', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once', 'doce'];
 const RU = ['ни одной', 'одна', 'две', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять', 'десять', 'одиннадцать', 'двенадцать'];
 
 const code = (name) => `\`${name}\``;
@@ -33,6 +36,7 @@ function render(pkg) {
   return {
     'deps-en': `\`package.json\` lists ${EN[total] || total}: ${list(ship, 'and')} ship inside the app, ${list(build, 'and')} only build or check it.`,
     'deps-ru': `В \`package.json\` их ${RU[total] || total}: ${list(ship, 'и')} едут внутри приложения, ${list(build, 'и')} только собирают или проверяют его.`,
+    'deps-es': `\`package.json\` lista ${ES[total] || total}: ${list(ship, 'y')} van dentro de la app; ${list(build, 'y')} solo la construyen o la comprueban.`,
   };
 }
 

@@ -21,9 +21,12 @@ test('every facts block in the READMEs says what the repository says', () => {
   }
 });
 
-test('the dependency sentence is a generated block in both languages', () => {
-  const en = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+test('the dependency sentence is a generated block in every language', () => {
+  // README.md is the Spanish one since 1.1.0; English lives in README.en.md
+  const es = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const en = fs.readFileSync(path.join(ROOT, 'README.en.md'), 'utf8');
   const ru = fs.readFileSync(path.join(ROOT, 'README.ru.md'), 'utf8');
+  assert.match(es, /<!-- facts:deps-es -->/);
   assert.match(en, /<!-- facts:deps-en -->/);
   assert.match(ru, /<!-- facts:deps-ru -->/);
   assert.doesNotMatch(en, /exactly four/, 'the typed sentence is back');
@@ -36,6 +39,7 @@ test('the sentence follows package.json, not the other way round', () => {
   const four = render({ dependencies: { 'adm-zip': '1', 'electron-updater': '1' }, devDependencies: { electron: '1', 'electron-builder': '1' } });
   assert.match(four['deps-en'], /lists four/);
   assert.match(four['deps-ru'], /их четыре/);
+  assert.match(four['deps-es'], /lista cuatro/);
 });
 
 test('a README checked out on Windows is still read, not skipped', () => {

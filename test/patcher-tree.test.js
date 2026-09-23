@@ -230,3 +230,26 @@ test('a backup from an older build is replaced, or reverting would put the old b
   assert.equal(branchOf(game), BRANCH, 'reverting put the old build back');
   assert.equal(patcher.state(game, FOLDER).vanillaOk, true);
 });
+
+test('reverting ignores .bak copies beside the game files, which belong to an older build', (t) => {
+  /* No part of this app writes dota.signatures.bak or gameinfo.gi.bak; a foreign patcher or a
+     hand-made copy does, and after the next Dota update both name an older build. revert() used
+     to write them back unchecked: the list then named the old dota2.exe hash, the client
+     compared its real binaries against it and refused matchmaking, while state() reported
+     vanilla because it read that same stale list. */
+  const { game, backupDir, sig } = tree(t, true);
+  const vanilla = fs.readFileSync(patcher.paths(game).branch);
+  fs.writeFileSync(sig, Buffer.from(listFor('B', vanilla), 'latin1'));
+  patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+
+  fs.writeFileSync(sig + '.bak', Buffer.from(listFor('A', vanilla), 'latin1'));
+  const gameinfo = patcher.paths(game).gameinfo;
+  fs.writeFileSync(gameinfo + '.bak', GAMEINFO.replace('Game				core', 'Game				core_old_build'));
+
+  patcher.revert({ gamePath: game, folder: FOLDER, backupDir });
+
+  assert.equal(exeHash(fs.readFileSync(sig, 'latin1')), 'B'.repeat(40), 'the list is still the installed build\'s');
+  assert.equal(fs.readFileSync(gameinfo, 'utf8'), GAMEINFO, 'gameinfo.gi was not rolled back to the copy');
+  assert.equal(branchOf(game), BRANCH, 'the branch file is vanilla again');
+  assert.equal(patcher.state(game, FOLDER).vanillaOk, true);
+});

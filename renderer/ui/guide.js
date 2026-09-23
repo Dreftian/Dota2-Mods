@@ -27,11 +27,14 @@ export function guideIds(mod) {
   return [own, ...(GUIDE_ALSO[own] || [])].filter((id) => all[id]);
 }
 
-// The catalog ships both languages; an English reader gets the Russian only if that is all
-// there is, which is how the old screen behaved too.
+// The catalog ships Russian and English, and a language of its own wins if it ever ships one.
+// Only a Russian reader starts from the Russian: everybody else reads English before Cyrillic,
+// which is what Spanish, Japanese and Chinese readers were given until this asked "not English?"
+// where it meant "Russian?".
 function blocksOf(guide) {
   const c = guide?.content || {};
-  return (window.I18N_LANG === 'en' ? (c.en || c.ru) : (c.ru || c.en)) || [];
+  const lang = window.I18N_LANG;
+  return (lang === 'ru' ? (c.ru || c.en) : (c[lang] || c.en || c.ru)) || [];
 }
 
 /* What a guide is allowed to be made of.

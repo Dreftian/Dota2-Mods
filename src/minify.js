@@ -49,10 +49,16 @@ const MINIFY_BORROWED = 'dutch';
  * v1.14rc7 (commit 9ffc8e4, "Include the swap into main vpk"; #English Fix/manifest.json is
  * gone with it), so nothing will write there in future and the slot is ours to use. Anybody
  * still on an older release has a pak99 on disk already, which the allocator reads off the
- * folder like any other occupied slot - and MINIFY_PAKS still knows whose it is. The author
- * asked for exactly this: detect the file rather than blindly reserve the number. */
+ * folder like any other occupied slot. The author asked for exactly this: detect the file
+ * rather than blindly reserve the number.
+ *
+ * Which is also why the number alone stopped deciding whose a pak99 is. Once we hand the slot
+ * out, the 87th mod somebody installs lands there, and recognising it by number had "Mods off"
+ * leave that one live and a language move leave it behind, dropping it from the library. So
+ * 65 to 67 are Minify's by number (isMinifyFile) and 99 by who made it (isMinifyLegacyPak). */
 const MINIFY_PAKS = [65, 66, 67, 99];
 const RESERVED_PAKS = [65, 66, 67];
+const LEGACY_PAKS = MINIFY_PAKS.filter((n) => !RESERVED_PAKS.includes(n));
 
 /* The reserved range as the interface says it out loud.
  *
@@ -64,8 +70,10 @@ const RESERVED_LABEL = RESERVED_PAKS.length > 1
   ? `pak${RESERVED_PAKS[0]}-${RESERVED_PAKS[RESERVED_PAKS.length - 1]}`
   : `pak${RESERVED_PAKS[0]}`;
 
+const PAK_FILE = /^pak(\d{2})_(?:dir|\d{3})\.vpk(?:\.off|\.moff)?$/;
+
 /**
- * Is this file in the language folder one of Minify's paks?
+ * Is this file in the language folder one of Minify's paks, by its slot alone?
  *
  * Reserving the slots keeps us from writing over its work, which is only half the bargain.
  * The other half is not touching what it wrote: the master switch sweeps the folder and
@@ -74,12 +82,13 @@ const RESERVED_LABEL = RESERVED_PAKS.length > 1
  * people to make, so in that arrangement both of those would reach into another program.
  *
  * Matches the dir file and its data volumes: pak66_dir.vpk, pak66_000.vpk, and the same with
- * an .off or .moff already on the end.
+ * an .off or .moff already on the end. Only the reserved slots: pak99 is a slot we hand out,
+ * so its number says nothing about whose it is - that is isMinifyLegacyPak.
  * @param {string} baseLower a file name, lowercased
  */
 function isMinifyFile(baseLower) {
-  const m = String(baseLower).match(/^pak(\d{2})_(?:dir|\d{3})\.vpk(?:\.off|\.moff)?$/);
-  return !!m && MINIFY_PAKS.includes(Number(m[1]));
+  const m = String(baseLower).match(PAK_FILE);
+  return !!m && RESERVED_PAKS.includes(Number(m[1]));
 }
 
 /* How Minify marks its own work, and how it recognises it again.
@@ -104,6 +113,60 @@ function isMinifyPak(file) {
   } catch {
     return false; // unreadable, half-written, or not a VPK: not something to claim
   }
+}
+
+/* Which files in the language folder are ours, written where another program can read it.
+ *
+ * Minify marks its work by packing metadata into the VPKs it builds, and checks for that
+ * before deleting one. The same courtesy in the other direction cannot be done the same way:
+ * mods from the catalog are copied byte for byte and identified by a hash of their contents,
+ * and the project is building integrity guarantees on the file being exactly what the catalog
+ * published - sha256 on download, a signed catalog after that. Repacking every install to
+ * insert a marker is cheap enough (35ms against 15ms for a plain copy of a 46 MB mod, and the
+ * hash survives if marker names are left out of it), but it would end byte-identity, which is
+ * worth more than the convenience.
+ *
+ * So the marker is one file beside the mods instead of a marker inside each one. Anything
+ * reading it learns which files in the folder belong to this app, which is the question a
+ * second mod manager actually needs answered before it deletes anything - and the question
+ * this app needs answered about a pak99, in the places that walk the folder without the
+ * library to ask. src/installer.js writes it (writeOwnership).
+ */
+const OWNERSHIP_FILE = 'dota2modmanager.json';
+
+/**
+ * What the note in a language folder says is ours.
+ * @param {string} dir  the language folder
+ * @returns {Set<string>|null}  lowercased relative paths, or null when there is no note to read
+ */
+function ownedByNote(dir) {
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(dir, OWNERSHIP_FILE), 'utf-8'));
+    return new Set((Array.isArray(raw.files) ? raw.files : []).map((f) => String(f).replace(/\\/g, '/').toLowerCase()));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Is this pak99 Minify's? Releases up to v1.14rc6 wrote their English fix there, and we hand
+ * the slot out today, so the two are told apart by who made the file rather than where it is.
+ *
+ * Ours when we say so: the library, or the note we leave in the folder, names it. Anything in
+ * that slot we do not claim is taken for Minify's, as it always was, because the English fix
+ * it copied there may carry no marker. With nothing known about ownership at all, only its
+ * marker makes it Minify's.
+ * @param {string} full  full path to the file
+ * @param {Set<string>|null} [ours]  lowercased relative paths this app installed there
+ */
+function isMinifyLegacyPak(full, ours = null) {
+  const m = path.basename(String(full)).toLowerCase().match(PAK_FILE);
+  if (!m || !LEGACY_PAKS.includes(Number(m[1]))) return false;
+  // a data volume belongs to whoever owns its index
+  const index = `pak${m[1]}_dir.vpk`;
+  if (ours) return !ours.has(index);
+  const dir = path.dirname(String(full));
+  return ['', '.off', '.moff'].some((s) => isMinifyPak(path.join(dir, index + s)));
 }
 
 /** Where Minify keeps the settings it publishes about itself. */
@@ -231,4 +294,7 @@ function readMinify({
   };
 }
 
-module.exports = { readMinify, readConfig, configPath, folderOfPath, isMinifyFile, isMinifyPak, MINIFY_MARKERS, MINIFY_FOLDER, MINIFY_BORROWED, RESERVED_PAKS, RESERVED_LABEL, MINIFY_PAKS, prelaunchHook };
+module.exports = {
+  readMinify, readConfig, configPath, folderOfPath, isMinifyFile, isMinifyPak, isMinifyLegacyPak, ownedByNote, OWNERSHIP_FILE,
+  MINIFY_MARKERS, MINIFY_FOLDER, MINIFY_BORROWED, RESERVED_PAKS, RESERVED_LABEL, MINIFY_PAKS, prelaunchHook,
+};

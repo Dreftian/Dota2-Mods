@@ -2,6 +2,21 @@
 
 Novedades de cada versión. La aplicación se actualiza de forma automática para que disfrutes de todas las mejoras sin necesidad de reinstalar.
 
+## 1.1.0
+
+### Arsenal VIP: todos los inmortales, arcanas y exclusivos en cualquier héroe, y una ronda de correcciones
+
+**Arsenal VIP** es una pestaña nueva (Ctrl+5). Elige un héroe y luego lo que lleva cada espacio: todas las arcanas, todos los inmortales y cualquier otro cosmético que conozca tu juego instalado, con sus estilos, sus variantes (Golden, Crimson...) y sets completos en un clic. Un filtro muestra los exclusivos que la tienda nunca vendió (cofres, pases de batalla y eventos), como Dragonclaw Hook, Phantom Advent o Planetfall. La lista se lee de tu propio juego, así que lo que Valve añada después aparece sin actualizar. Solo tú ves los aspectos. Requiere desactivar el modo seguro y una cuenta VIP.
+
+- **Más cosméticos gratis**: ahora se ofrecen los packs de cursores y las skins de Roshan, junto a mensajeros, guardianes, HUDs, clima, terrenos, pantallas de carga, locutores y el resto. Faltaban por una confusión de espacios en la tabla de objetos.
+- **Catálogo**: se quitaron 41 entradas de relleno cuyos archivos nunca existieron (todas fallaban al instalar) y dos tarjetas de rango duplicadas. Los duplicados exactos del catálogo se muestran una sola vez. Un mod con el mismo nombre que otro de otra categoría ya no se instala en su lugar.
+- **Rangos**: los packs de medallas del catálogo vuelven a instalar sus propios archivos (los ocho instalaban la medalla generada). Inmortal a secas ya no recibe un número Top, las estrellas elegidas se integran en la medalla y el personalizador está traducido. El campo MMR se explica como lo que es: un nombre en Mis mods, no un número en el juego.
+- **Cuentas**: la contraseña de administrador ya no forma parte de la app y cada inicio de sesión comprueba la contraseña guardada. La cuenta de administrador que creaban las versiones anteriores se elimina en el primer arranque, así que su contraseña antigua ya no abre nada; su dueño se registra de nuevo. Puedes cambiar tu contraseña en el perfil. Premium termina cuando vence su fecha. Un archivo de cuentas dañado se aparta en lugar de borrarse. El perfil ya no promete una sincronización en la nube que no existe.
+- **Archivos del juego**: reactivar el modo seguro ya nunca restaura una copia .bak antigua de los archivos de Valve, que podía romper el matchmaking. Una reconstrucción fallida de la tabla de objetos se avisa y se reintenta en vez de darse por hecha. El interruptor de Mods funciona como una sola transacción, los mods instalados con los mods apagados quedan apagados, tu propio pak99 ya no se confunde con Minify y los mods que versiones antiguas dejaron en pak100+ vuelven a espacios que el juego carga.
+- **Velocidad**: reconstruir la tabla de objetos con muchos aspectos pasó de unos 30 segundos a menos de uno.
+- **Español en todas partes**: se añadieron unos 340 textos que faltaban, las guías se muestran en inglés en vez de ruso y las ventanas de rango, inicio de sesión y pago siguen el idioma elegido.
+- **Actualizaciones**: ahora llegan desde el repositorio público Dreftian/Dota2-Mods-Releases, que también publica el código fuente de cada versión. Configuración enlaza allí.
+
 ## 1.0.14
 
 ### Medallas Inmortal Oficiales de Valve, Persistencia de Mods en el Juego y Perfeccionamiento de Dígitos
