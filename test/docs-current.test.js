@@ -24,7 +24,7 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const pkg = JSON.parse(read('package.json'));
 
 /** The documents that describe the project, as opposed to its history. */
-const DOCS = ['README.md', 'README.ru.md', 'ARCHITECTURE.md', 'DECISIONS.md', 'CONTRIBUTING.md',
+const DOCS = ['README.md', 'README.en.md', 'README.ru.md', 'ARCHITECTURE.md', 'DECISIONS.md', 'CONTRIBUTING.md',
   'AGENTS.md', 'SECURITY.md', 'PRIVACY.md', 'MENTIONS.md', 'SUPPORT.md', 'CODE_OF_CONDUCT.md', 'RELEASING.md'].filter((f) => fs.existsSync(path.join(ROOT, f)));
 
 test('the documents agree with package.json about whether there is a linter', () => {

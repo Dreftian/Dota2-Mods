@@ -28,6 +28,7 @@ import { refreshSidebarStatus } from '../ui/statusbar.js';
 import { modGuidesHtml, bindGuides } from '../ui/guide.js';
 import { refreshNotices, noticeBannerHtml, bindNotice } from '../ui/notice.js';
 import { initRankCustomizer, rankCustomizerHtml, bindRankCustomizer } from '../ui/rank-customizer.js';
+import { indexCatalog, modInCategory, starredMods } from '../core/mod-index.js';
 
 const viewRoot = pane('catalog');
 
@@ -51,23 +52,17 @@ async function toggleFavorite(cat, name) {
   return state.favorites.has(key);
 }
 
-// starred mods resolved back to catalog entries (a mod dropped from the catalog is skipped)
+// starred mods resolved back to catalog entries, in the category they were starred in (a
+// starred look is not a mod — see favoriteCosmetics())
 function favoriteMods() {
-  const out = [];
-  for (const key of state.favorites) {
-    if (key.startsWith(COSMETIC_PREFIX)) continue; // a look, not a mod — see favoriteCosmetics()
-    const cut = key.indexOf('|');
-    if (cut < 0) continue;
-    const mod = findModByName(key.slice(0, cut), key.slice(cut + 1));
-    if (mod) out.push(mod);
-  }
-  return out;
+  return starredMods(state.favorites, findModByName, COSMETIC_PREFIX);
 }
 
 // Cosmetics only work with the schema patch on, so with safe mode they are not offered
-// anywhere — the rail, the favourites, the search all ask here first.
+// anywhere — the rail, the favourites, the search all ask here first. A hero's own items
+// ('hero:' slots) are picked per hero in the Arsenal, not browsed here as one more slot.
 function cosmeticSlotList() {
-  return state.settings?.schemaPatch ? (state.cosmeticSlots || []) : [];
+  return state.settings?.schemaPatch ? (state.cosmeticSlots || []).filter((s) => !String(s.slot).startsWith('hero:')) : [];
 }
 
 function slotData(slot) {
@@ -167,13 +162,10 @@ function visibleCategories() {
   return cats.filter((c) => !CATALOG_EXCLUDE.includes(c.id) && categoryMods(c.id).length && (isAdmin || !['tools', 'guides', 'sites'].includes(c.id)));
 }
 
+// by category and name for everything that knows the category, by name for what does not
+// (see core/mod-index.js for the nine names that made the difference)
 function buildModIndex() {
-  state.modIndex.clear();
-  for (const c of state.catalog?.constants?.categories || []) {
-    for (const m of categoryMods(c.id)) {
-      if (m.name) state.modIndex.set(m.name.toLowerCase(), { categoryId: c.id, mod: m });
-    }
-  }
+  indexCatalog(state.catalog?.constants?.categories, categoryMods, state.modIndex);
 }
 
 
@@ -426,7 +418,7 @@ async function renderCatalog() {
 
   if (!state.currentUser?.isAdmin && ['tools', 'guides', 'sites'].includes(state.activeCategory)) {
     state.activeCategory = 'all';
-    toast(L`Esta sección está restringida exclusivamente al administrador.`, 'warn');
+    toast(L`Этот раздел доступен только администратору`, 'warn');
   }
 
   const searching = state.search.trim().length > 0;
@@ -524,14 +516,12 @@ async function renderFavorites() {
 
 async function renderHome() {
   const cats = visibleCategories();
+  // in the category the catalog names and nowhere else: a same-named mod from another one is
+  // not what was added
   const recent = (state.catalog.mods.recentlyAddedMods || [])
-    .map((r) => {
-      const hit = state.modIndex.get(r.name.toLowerCase());
-      return hit && hit.categoryId === (r.category === 'effects-packs' ? 'ti-bp-effects' : r.category)
-        ? { ...hit.mod, _cat: hit.categoryId }
-        : (state.modIndex.get(r.name.toLowerCase()) ? { ...state.modIndex.get(r.name.toLowerCase()).mod, _cat: state.modIndex.get(r.name.toLowerCase()).categoryId } : null);
-    })
-    .filter(Boolean)
+    .map((r) => modInCategory(r.category === 'effects-packs' ? 'ti-bp-effects' : r.category, r.name))
+    .filter((hit) => hit && cats.some((c) => c.id === hit.categoryId)) // admin-only ones stay hidden here too
+    .map((hit) => ({ ...hit.mod, _cat: hit.categoryId }))
     .slice(0, 12);
 
   // No heading over any of it: the window says Каталог in the tab strip, and a title
@@ -1029,7 +1019,7 @@ function findModByName(cat, name) {
     const custom = customPacks().find((p) => p.name === name);
     if (custom) return { ...custom, _cat: 'packs' };
   }
-  const hit = state.modIndex.get(name.toLowerCase());
+  const hit = modInCategory(cat, name);
   return hit ? { ...hit.mod, _cat: hit.categoryId } : null;
 }
 
@@ -1121,7 +1111,7 @@ $('#modalOverlay').addEventListener('click', (e) => {
   if (e.target === $('#modalOverlay')) closeModal();
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Escape' && !document.querySelector('.confirm-overlay, .checkout-modal-overlay')) closeModal(); // a dialog above the window takes its own Escape
 });
 
 const LINK_LABEL = {
@@ -1419,10 +1409,12 @@ async function doInstall(categoryId, mod, styleLabel, fileRef, preview, { batch 
       if (!go) return { cancelled: true };
     }
   }
-  const isPremiumUser = !!(state.currentUser?.isPremium || state.currentUser?.isAdmin || state.currentUser?.role === 'admin' || state.currentUser?.email === 'dreftian@gmail.com');
-  const currentModCount = state.installedIndex ? state.installedIndex.size : 0;
-  if (!isPremiumUser && currentModCount >= 100) {
-    toast(L`Достигнут лимит в 100 модов для бесплатного тарифа. Перейди на Premium для неограниченного места.`, 'warn', 7000);
+  // Counted the way the Library counts its tab: a tool is a program in the app's own folder,
+  // not a mod, so it neither counts towards the free limit nor is refused by it.
+  const isPremiumUser = !!(state.currentUser?.isPremium || state.currentUser?.isAdmin);
+  const modCount = [...state.installedIndex.values()].filter((r) => r.categoryId !== 'tools').length;
+  if (!isPremiumUser && categoryId !== 'tools' && modCount >= 100) {
+    toast(L`Достигнут лимит в 100 модов для бесплатного тарифа. На Premium этого лимита нет.`, 'warn', 7000);
     return { cancelled: true };
   }
 
@@ -1601,9 +1593,9 @@ function drawCosmeticModal() {
       </div>
       <div class="modal-note">
         ${isLive
-          ? L`Этот вид сейчас стоит в слоте «${tr(meta.label)}». Убрать — вернуть то, что даёт игра; включить обратно можно в «Моих модах».`
+          ? L`Этот вид сейчас стоит в слоте «${esc(tr(meta.label))}». Убрать — вернуть то, что даёт игра; включить обратно можно в «Моих модах».`
           : live
-            ? L`На один слот — только один вид: этот заменит «${live.name}». Прошлый выбор останется в «Моих модах» выключенным.`
+            ? L`На один слот — только один вид: этот заменит «${esc(live.name)}». Прошлый выбор останется в «Моих модах» выключенным.`
             : L`Вид подставляется в схему предметов игры — стандартный предмет просто рисуется как выбранный. Файлы модов это не трогает, и видно только тебе.`}
       </div>
     </div>`;
@@ -1617,7 +1609,9 @@ function drawCosmeticModal() {
 
 /**
  * Put a look on (or take the live one off) and repaint whatever is on screen.
- * @param {boolean} remove  true = back to what the game gives
+ * @param {boolean} remove  true = back to what the game gives. The pick is switched off, not
+ *   deleted: the note under the button promises it can be switched back on in My mods, and a
+ *   preset may still point at it - the same rule as the look a new pick replaces.
  */
 async function pickCosmetic(slot, o, remove) {
   const k = COSMETIC_PREFIX + slot + '|' + o.id;
@@ -1628,7 +1622,7 @@ async function pickCosmetic(slot, o, remove) {
   let r;
   try {
     r = remove
-      ? (live ? await window.api.mods.remove(live.id) : { ok: true })
+      ? (live ? await window.api.mods.setEnabled(live.id, false) : { ok: true })
       : await window.api.cosmetics.pick(slot, o.id, o.name);
   } catch (err) {
     r = { error: String(err?.message || err) };
@@ -1676,6 +1670,10 @@ async function renderCosmeticCategory(slot) {
     grid.innerHTML = shown.length
       ? shown.map(({ o }, i) => cosmeticCardHtml(slot, o, i)).join('')
       : `<div class="empty-note">${L`Ничего не найдено — сбрось фильтры`}</div>`;
+    // a list that stops without saying so reads as the whole list: 1764 of 2164 loading
+    // screens were past the cut, and a look missing from it looked like one the game lacks
+    $('#cosMore').innerHTML = list.length > shown.length
+      ? `<div class="search-more">${L`…и ещё ${list.length - shown.length} — уточни запрос`}</div>` : '';
     if (io) io.disconnect();
     io = bindCosmeticCards(grid);
   };
@@ -1697,7 +1695,8 @@ async function renderCosmeticCategory(slot) {
       <button class="fchip ${f.favOnly ? 'active' : ''}" id="cosFavChip"><span class="ms">favorite</span>${L`Избранное`}</button>
       <span class="count" id="cosCount"></span>
     </div>
-    <div class="grid" id="cosGrid"></div>`; });
+    <div class="grid" id="cosGrid"></div>
+    <div id="cosMore"></div>`; });
 
   $('#cosSort').addEventListener('change', (e) => { f.sort = e.target.value; paintGrid(); });
   $('#cosSearch').addEventListener('input', (e) => { cosSearch = e.target.value; paintGrid(); });

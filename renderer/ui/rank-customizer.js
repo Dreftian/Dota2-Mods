@@ -1,10 +1,13 @@
-// Interactive Dota 2 Rank Medal, Stars, MMR, and Hero Tier Customizer
+// Interactive Dota 2 Rank Medal, Stars and Hero Tier Customizer
 // Matches the visual layout and feature set from Dota2Changer with authentic Dota 2 graphics.
 
 import { $ } from '../core/dom.js';
 import { toast } from './toast.js';
 import { confirmDialog } from './dialog.js';
 import { refreshInstalledIndex } from '../core/installed.js';
+import {
+  baseRankLabel, clampImmortalRank, hasLeaderboard, localizedName, rankApplyPayload, realStarsDrawn,
+} from './rank-rules.js';
 
 export const RANK_DATA = [
   { id: 'rank0', nameEs: 'Sin calibrar', nameEn: 'Not Calibrated', nameRu: 'Без калибровки', badge: 'FREE', badgeType: 'free', defaultMmr: 0 },
@@ -42,12 +45,7 @@ let customState = {
 };
 
 function getLocalizedName(item) {
-  if (!item) return '';
-  const lang = window.I18N_LANG || 'es';
-  if (lang === 'es') return item.nameEs || item.nameEn;
-  if (lang === 'en') return item.nameEn;
-  if (lang === 'ru') return item.nameRu || item.nameEn;
-  return item.nameEs || item.nameEn;
+  return localizedName(item, window.I18N_LANG || 'es');
 }
 
 export async function initRankCustomizer() {
@@ -68,68 +66,94 @@ export async function initRankCustomizer() {
   }
 }
 
-function clampImmortalRank(val, medalId) {
-  const n = Math.round(Number(val)) || 1;
-  if (medalId === 'rank8c') return Math.max(1, Math.min(10, n));
-  if (medalId === 'rank8b') return Math.max(11, Math.min(100, n));
-  if (medalId === 'rank8a') return Math.max(101, Math.min(6000, n));
-  return n;
+/** The input range, default and hint for a Top medal's leaderboard place. */
+function leaderboardRange(medalId) {
+  if (medalId === 'rank8b') {
+    return { min: 11, max: 100, def: 50, hint: L`Топ 100: число от 11 до 100 на табличке рейтинга.` };
+  }
+  if (medalId === 'rank8a') {
+    return { min: 101, max: 6000, def: 1000, hint: L`Топ 1000: число от 101 до 6000 на табличке рейтинга.` };
+  }
+  return { min: 1, max: 10, def: 10, hint: L`Топ 10: число от 1 до 10 на табличке рейтинга.` };
+}
+
+/** Why the stars picker will not show exactly what was picked, or '' when it will. */
+function starsHint(isImmortal, baseRank) {
+  if (isImmortal) return L`У медалей Титана вместо звёзд место в рейтинге.`;
+  if (realStarsDrawn(baseRank)) {
+    return L`С этим базовым рангом игра рисует поверх медали твои настоящие звёзды: выбери столько же, сколько у тебя сейчас, или базу «Без калибровки».`;
+  }
+  return '';
+}
+
+function activeBadgeHtml() {
+  return `
+    <div class="rc-active-badge">
+      <span class="ms ms-sm">verified</span>
+      <span>${L`Мод ранга установлен в игре`}</span>
+    </div>
+  `;
+}
+
+// The header is drawn once per visit and the router does not redraw the view the user is on,
+// so Apply and Reset have to put the badge in or take it out themselves.
+function syncActiveBadge(container) {
+  const header = container.querySelector('.rc-header');
+  if (!header) return;
+  const badge = header.querySelector('.rc-active-badge');
+  if (customState.activeInstalled && !badge) header.insertAdjacentHTML('beforeend', activeBadgeHtml());
+  else if (!customState.activeInstalled && badge) badge.remove();
+}
+
+function syncStarsHint(container) {
+  const hintEl = container.querySelector('#rcStarsHint');
+  if (!hintEl) return;
+  const hint = starsHint(customState.medal.startsWith('rank8'), customState.baseRank);
+  hintEl.textContent = hint;
+  hintEl.classList.toggle('hidden', !hint);
 }
 
 export function rankCustomizerHtml() {
+  const lang = window.I18N_LANG || 'es';
   const currentMedal = RANK_DATA.find((m) => m.id === customState.medal) || RANK_DATA[11];
   const currentTier = HERO_TIER_DATA.find((t) => t.id === customState.heroTier) || HERO_TIER_DATA[5];
   const isImmortal = currentMedal.id.startsWith('rank8');
-  const hasLeaderboard = ['rank8a', 'rank8b', 'rank8c'].includes(currentMedal.id);
-
-  let immMin = 1, immMax = 10, immHint = L`Top 10: Número del 1 al 10 para la placa de clasificación.`;
-  if (currentMedal.id === 'rank8b') {
-    immMin = 11; immMax = 100; immHint = L`Top 100: Número del 11 al 100 para la placa de clasificación.`;
-  } else if (currentMedal.id === 'rank8a') {
-    immMin = 101; immMax = 6000; immHint = L`Top 1000: Número del 101 al 6000 para la placa de clasificación.`;
-  }
+  const showLeaderboard = hasLeaderboard(currentMedal.id);
+  const imm = leaderboardRange(currentMedal.id);
+  const hintForStars = starsHint(isImmortal, customState.baseRank);
+  const heroLevel = customState.heroLevel || 30;
+  const heroSubLevel = `<span id="rcPreviewHeroSubLvl">${heroLevel}</span>`;
 
   return `
     <section class="rank-customizer-container" id="rankCustomizerSection">
       <div class="rc-header">
         <div class="rc-title-group">
-          <h2 class="rc-title">${L`Elección de Rango y MMR de Dota 2`}</h2>
-          <p class="rc-subtitle">${L`Personaliza tu medalla de rango, estrellas, número de MMR e insignia de Dota Plus de forma local sin alterar tus partidas.`}</p>
+          <h2 class="rc-title">${L`Медаль ранга и значок героя`}</h2>
+          <p class="rc-subtitle">${L`Меняет медаль ранга, звёзды и значок героя Dota Plus только у тебя в клиенте: матчи и настоящий рейтинг не затрагиваются.`}</p>
         </div>
-        ${customState.activeInstalled ? `
-          <div class="rc-active-badge">
-            <span class="ms ms-sm">verified</span>
-            <span>${L`Mod de Rango Activo en el Juego`}</span>
-          </div>
-        ` : ''}
+        ${customState.activeInstalled ? activeBadgeHtml() : ''}
       </div>
 
       <!-- Base Rank Target Selector -->
       <div class="rc-controls-row" style="margin-bottom: 20px;">
         <div class="rc-control-group" style="max-width: 480px;">
-          <label class="rc-label" for="rcBaseRankSelect">${L`Rango base de tu cuenta (Mod exclusivo para tu perfil)`}</label>
+          <label class="rc-label" for="rcBaseRankSelect">${L`Базовый ранг аккаунта (мод только для твоего профиля)`}</label>
           <div class="rc-mmr-input-wrap">
             <select id="rcBaseRankSelect" class="rc-input" style="width: 100%; cursor: pointer;">
-              <option value="rank0" ${customState.baseRank === 'rank0' ? 'selected' : ''}>${L`Sin calibrar — Mi perfil (Recomendado)`}</option>
-              <option value="rank1" ${customState.baseRank === 'rank1' ? 'selected' : ''}>${L`Heraldo (Herald)`}</option>
-              <option value="rank2" ${customState.baseRank === 'rank2' ? 'selected' : ''}>${L`Guardián (Guardian)`}</option>
-              <option value="rank3" ${customState.baseRank === 'rank3' ? 'selected' : ''}>${L`Cruzado (Crusader)`}</option>
-              <option value="rank4" ${customState.baseRank === 'rank4' ? 'selected' : ''}>${L`Arconte (Archon)`}</option>
-              <option value="rank5" ${customState.baseRank === 'rank5' ? 'selected' : ''}>${L`Leyenda (Legend)`}</option>
-              <option value="rank6" ${customState.baseRank === 'rank6' ? 'selected' : ''}>${L`Ancestral (Ancient)`}</option>
-              <option value="rank7" ${customState.baseRank === 'rank7' ? 'selected' : ''}>${L`Divino (Divine)`}</option>
-              <option value="rank8" ${customState.baseRank === 'rank8' ? 'selected' : ''}>${L`Inmortal (Immortal)`}</option>
-              <option value="all" ${customState.baseRank === 'all' ? 'selected' : ''}>${L`Todas las medallas (Global)`}</option>
+              <option value="rank0" ${customState.baseRank === 'rank0' ? 'selected' : ''}>${L`Без калибровки — мой профиль (рекомендуется)`}</option>
+              ${RANK_DATA.slice(1, 9).map((m) => `
+              <option value="${m.id}" ${customState.baseRank === m.id ? 'selected' : ''}>${baseRankLabel(m, lang)}</option>`).join('')}
+              <option value="all" ${customState.baseRank === 'all' ? 'selected' : ''}>${L`Все медали (глобально)`}</option>
             </select>
           </div>
-          <div class="rc-hint">${L`Sustituye únicamente la medalla de tu perfil. Los demás competidores de la partida conservarán sus medallas reales sin verse afectados.`}</div>
+          <div class="rc-hint">${L`Заменяет только медаль твоего профиля. Остальные игроки в матче сохранят свои настоящие медали.`}</div>
         </div>
       </div>
 
       <!-- Medals Grid -->
       <div class="rc-section-header-wrap">
-        <div class="rc-section-title">${L`1. Selecciona tu Medalla de Rango`}</div>
-        <div class="rc-tier-rules">${L`Selecciona la medalla que deseas visualizar en tu perfil.`}</div>
+        <div class="rc-section-title">${L`1. Выбери медаль ранга`}</div>
+        <div class="rc-tier-rules">${L`Медаль, которую ты хочешь видеть в своём профиле.`}</div>
       </div>
       <div class="rc-medals-grid" id="rcMedalsGrid">
         ${RANK_DATA.map((m) => {
@@ -140,7 +164,7 @@ export function rankCustomizerHtml() {
                 <img src="assets/ranks/${m.id}.png" alt="${m.nameEn}" class="rc-medal-img" draggable="false" />
               </div>
               <div class="rc-medal-name">${getLocalizedName(m)}</div>
-              <div class="rc-medal-sub">${m.defaultMmr ? `${m.defaultMmr.toLocaleString()} MMR` : (m.id === 'rank0' ? L`Sin calibrar` : '')}</div>
+              <div class="rc-medal-sub">${m.defaultMmr ? `${m.defaultMmr.toLocaleString()} MMR` : (m.id === 'rank0' ? L`Без калибровки` : '')}</div>
               <span class="rc-tier-pill rc-pill-${m.badgeType}">${m.badge}</span>
             </div>
           `;
@@ -151,7 +175,7 @@ export function rankCustomizerHtml() {
       <div class="rc-controls-row">
         <!-- Stars Picker -->
         <div class="rc-control-group rc-stars-group ${isImmortal ? 'disabled' : ''}">
-          <label class="rc-label">${L`2. Estrellas de Rango`}</label>
+          <label class="rc-label">${L`2. Звёзды ранга`}</label>
           <div class="rc-stars-selector" id="rcStarsSelector">
             ${[1, 2, 3, 4, 5].map((s) => {
               const active = (!isImmortal && customState.stars === s) ? 'active' : '';
@@ -163,36 +187,36 @@ export function rankCustomizerHtml() {
               `;
             }).join('')}
           </div>
-          ${isImmortal ? `<div class="rc-hint">${L`Las medallas Inmortal muestran puesto en el ranking en vez de estrellas.`}</div>` : ''}
+          <div class="rc-hint ${hintForStars ? '' : 'hidden'}" id="rcStarsHint">${hintForStars}</div>
         </div>
 
-        <!-- MMR Input -->
+        <!-- MMR Input: a label for the library name only, the game has no MMR on screen to replace -->
         <div class="rc-control-group rc-mmr-group">
-          <label class="rc-label" for="rcMmrInput">${L`3. MMR del Perfil (Hasta 15,000)`}</label>
+          <label class="rc-label" for="rcMmrInput">${L`3. MMR в названии мода (до 15 000)`}</label>
           <div class="rc-mmr-input-wrap">
             <input type="number" id="rcMmrInput" class="rc-input" min="0" max="15000" step="10" value="${customState.mmr}" />
             <span class="rc-input-unit">MMR</span>
           </div>
-          <div class="rc-hint">${L`El MMR se autocompleta con el rango pero puedes escribir cualquier número que desees.`}</div>
+          <div class="rc-hint">${L`Игра не показывает MMR, так что в ней это число ничего не меняет: оно попадает только в название мода в библиотеке. Подставляется по медали, но можно вписать любое.`}</div>
         </div>
       </div>
 
       <!-- Immortal Rank Leaderboard Digit (Visible when Top 10, Top 100, or Top 1000 is selected) -->
-      <div class="rc-controls-row ${hasLeaderboard ? '' : 'hidden'}" id="rcImmortalRow" style="margin-top: -6px; margin-bottom: 18px;">
+      <div class="rc-controls-row ${showLeaderboard ? '' : 'hidden'}" id="rcImmortalRow" style="margin-top: -6px; margin-bottom: 18px;">
         <div class="rc-control-group rc-immortal-group" style="max-width: 360px;">
-          <label class="rc-label" for="rcImmortalRankInput">${L`Posición / Dígito de Clasificación Inmortal`}</label>
+          <label class="rc-label" for="rcImmortalRankInput">${L`Место в рейтинге Титана`}</label>
           <div class="rc-mmr-input-wrap">
-            <input type="number" id="rcImmortalRankInput" class="rc-input" min="${immMin}" max="${immMax}" value="${customState.immortalRank || 10}" />
+            <input type="number" id="rcImmortalRankInput" class="rc-input" min="${imm.min}" max="${imm.max}" value="${customState.immortalRank || 10}" />
             <span class="rc-input-unit">RANK</span>
           </div>
-          <div class="rc-hint" id="rcImmortalHint">${immHint}</div>
+          <div class="rc-hint" id="rcImmortalHint">${imm.hint}</div>
         </div>
       </div>
 
       <!-- Dota Plus Hero Tier Changer -->
       <div class="rc-section-header-wrap">
-        <div class="rc-section-title">${L`4. Insignia de Nivel de Héroe (Dota Plus Hero Tier)`}</div>
-        <div class="rc-tier-rules">${L`Selecciona la insignia y el nivel que deseas visualizar en tus héroes.`}</div>
+        <div class="rc-section-title">${L`4. Значок уровня героя (Dota Plus Hero Tier)`}</div>
+        <div class="rc-tier-rules">${L`Значок и уровень, которые ты хочешь видеть на своих героях.`}</div>
       </div>
       <div class="rc-hero-tier-grid" id="rcHeroTierGrid">
         ${HERO_TIER_DATA.map((t) => {
@@ -203,7 +227,7 @@ export function rankCustomizerHtml() {
                 <img src="assets/herotier/tier${t.id}.png" class="rc-tier-img" alt="${t.nameEn}" draggable="false" />
               </div>
               <div class="rc-tier-name">${getLocalizedName(t)}</div>
-              <div class="rc-tier-sub">Nivel ${t.levels}</div>
+              <div class="rc-tier-sub">${L`Уровень ${t.levels}`}</div>
               <span class="rc-tier-pill rc-pill-${t.badgeType}">${t.badge}</span>
             </div>
           `;
@@ -213,37 +237,36 @@ export function rankCustomizerHtml() {
       <!-- Hero Tier Level Digit Picker -->
       <div class="rc-controls-row" style="margin-top: -6px; margin-bottom: 18px;">
         <div class="rc-control-group rc-hero-level-group" style="max-width: 360px;">
-          <label class="rc-label" for="rcHeroLevelInput">${L`Dígito de Nivel de Insignia de Héroe (Dota Plus)`}</label>
+          <label class="rc-label" for="rcHeroLevelInput">${L`Число уровня на значке героя (Dota Plus)`}</label>
           <div class="rc-mmr-input-wrap">
-            <input type="number" id="rcHeroLevelInput" class="rc-input" min="1" max="99" value="${customState.heroLevel || 30}" />
+            <input type="number" id="rcHeroLevelInput" class="rc-input" min="1" max="99" value="${heroLevel}" />
             <span class="rc-input-unit">LVL</span>
           </div>
-          <div class="rc-hint">${L`Nivel del héroe que se mostrará en las insignias de héroes (ej. 30 para Gran Maestro).`}</div>
+          <div class="rc-hint">${L`Уровень, который будет нарисован на значках героев (например, 30 для Грандмастера).`}</div>
         </div>
       </div>
 
-      <!-- Live Preview Card -->
+      <!-- Live Preview Card: only what the game will draw, so no MMR -->
       <div class="rc-preview-box" id="rcPreviewBox">
         <div class="rc-preview-badge-col">
           <div class="rc-preview-medal-wrap" id="rcPreviewMedalWrap">
             <img src="assets/ranks/${customState.medal}.png" class="rc-preview-medal-img" id="rcPreviewMedalImg" alt="Medal" draggable="false" />
             <img src="assets/ranks/stars${customState.stars || 1}.png" class="rc-preview-stars-img ${isImmortal ? 'hidden' : ''}" id="rcPreviewStarsImg" alt="Stars" draggable="false" />
-            <div class="rc-preview-immortal-rank ${isImmortal ? '' : 'hidden'}" id="rcPreviewImmortalRank">
+            <div class="rc-preview-immortal-rank ${showLeaderboard ? '' : 'hidden'}" id="rcPreviewImmortalRank">
               <span id="rcPreviewImmortalNum">${customState.immortalRank || 10}</span>
             </div>
           </div>
         </div>
         <div class="rc-preview-info-col">
           <div class="rc-preview-title" id="rcPreviewTitle">${getLocalizedName(currentMedal)}</div>
-          <div class="rc-preview-mmr" id="rcPreviewMmr">${customState.mmr.toLocaleString()} MMR</div>
           <div class="rc-preview-hero-badge" id="rcPreviewHeroBadge">
             <div class="rc-preview-hero-icon-wrap">
               <img src="assets/herotier/tier${customState.heroTier}.png" class="rc-preview-hero-img" id="rcPreviewHeroImg" alt="Hero Tier" draggable="false" />
-              <span class="rc-preview-hero-lvl-badge" id="rcPreviewHeroLvlBadge">${customState.heroLevel || 30}</span>
+              <span class="rc-preview-hero-lvl-badge" id="rcPreviewHeroLvlBadge">${heroLevel}</span>
             </div>
             <div class="rc-preview-hero-text">
               <span class="rc-preview-hero-title" id="rcPreviewHeroTitle">${getLocalizedName(currentTier)}</span>
-              <span class="rc-preview-hero-sub">${L`Insignia de Héroe Dota Plus`} (Nivel <span id="rcPreviewHeroSubLvl">${customState.heroLevel || 30}</span>)</span>
+              <span class="rc-preview-hero-sub">${L`Значок героя Dota Plus`} (${L`Уровень ${heroSubLevel}`})</span>
             </div>
           </div>
         </div>
@@ -253,33 +276,33 @@ export function rankCustomizerHtml() {
       <div class="rc-actions-bar">
         <button type="button" class="btn btn-primary rc-apply-btn" id="rcApplyBtn">
           <span class="ms">save</span>
-          <span>${L`Aplicar e Instalar Rango`}</span>
+          <span>${L`Применить и установить ранг`}</span>
         </button>
         <button type="button" class="btn btn-outline rc-reset-btn" id="rcResetBtn">
           <span class="ms">restore</span>
-          <span>${L`Restablecer Medalla Original`}</span>
+          <span>${L`Вернуть настоящую медаль`}</span>
         </button>
       </div>
 
       <!-- FAQ Section -->
       <div class="rc-faq-container">
-        <h3 class="rc-faq-title">${L`Preguntas Frecuentes`}</h3>
+        <h3 class="rc-faq-title">${L`Частые вопросы`}</h3>
         <div class="rc-faq-list">
           <details class="rc-faq-item">
-            <summary>${L`¿Se puede cambiar la medalla de rango en Dota 2?`}</summary>
-            <p>${L`Sí. Mod Assistant sustituye localmente las texturas de la medalla en tu cliente. Tu rango real y emparejamiento no se alteran en los servidores de Valve.`}</p>
+            <summary>${L`Можно ли поменять медаль ранга в Dota 2?`}</summary>
+            <p>${L`Да. Mod Assistant подменяет текстуры медали у тебя в клиенте. Настоящий ранг и подбор игроков на серверах Valve не меняются.`}</p>
           </details>
           <details class="rc-faq-item">
-            <summary>${L`¿Es seguro? ¿Pueden banearme por cambiar la medalla?`}</summary>
-            <p>${L`La medalla se reemplaza mediante un paquete de mods (VPK) exactamente igual que las apariencias de héroes. No inyecta código en memoria ni altera el juego.`}</p>
+            <summary>${L`Это безопасно? Могут ли забанить за смену медали?`}</summary>
+            <p>${L`Медаль заменяется пакетом модов (VPK), точно так же как облики героев. В память ничего не внедряется, и сама игра не меняется.`}</p>
           </details>
           <details class="rc-faq-item">
-            <summary>${L`¿Verán otros jugadores mi medalla o nivel de héroe?`}</summary>
-            <p>${L`No. Solo funciona en tu pantalla: perfil, marcador y pantalla de carga.`}</p>
+            <summary>${L`Увидят ли другие игроки мою медаль или уровень героя?`}</summary>
+            <p>${L`Нет. Это видно только на твоём экране: в профиле, таблице счёта и на экране загрузки.`}</p>
           </details>
           <details class="rc-faq-item">
-            <summary>${L`¿Cómo recupero mi medalla real?`}</summary>
-            <p>${L`Pulsa el botón «Restablecer Medalla Original» o desinstala el mod desde tu Biblioteca en cualquier momento.`}</p>
+            <summary>${L`Как вернуть настоящую медаль?`}</summary>
+            <p>${L`Нажми «${L`Вернуть настоящую медаль`}» или удали мод в библиотеке в любой момент.`}</p>
           </details>
         </div>
       </div>
@@ -290,7 +313,6 @@ export function rankCustomizerHtml() {
 function updatePreview() {
   const currentMedal = RANK_DATA.find((m) => m.id === customState.medal) || RANK_DATA[0];
   const isImmortal = currentMedal.id.startsWith('rank8');
-  const hasLeaderboard = ['rank8a', 'rank8b', 'rank8c'].includes(currentMedal.id);
 
   const previewMedalImg = $('#rcPreviewMedalImg');
   if (previewMedalImg) previewMedalImg.src = `assets/ranks/${customState.medal}.png`;
@@ -307,14 +329,11 @@ function updatePreview() {
 
   const previewImmortalRank = $('#rcPreviewImmortalRank');
   const previewImmortalNum = $('#rcPreviewImmortalNum');
-  if (previewImmortalRank) previewImmortalRank.classList.toggle('hidden', !hasLeaderboard);
+  if (previewImmortalRank) previewImmortalRank.classList.toggle('hidden', !hasLeaderboard(currentMedal.id));
   if (previewImmortalNum) previewImmortalNum.textContent = customState.immortalRank || 10;
 
   const previewTitleEl = $('#rcPreviewTitle');
   if (previewTitleEl) previewTitleEl.textContent = getLocalizedName(currentMedal);
-
-  const previewMmrEl = $('#rcPreviewMmr');
-  if (previewMmrEl) previewMmrEl.textContent = `${Number(customState.mmr).toLocaleString()} MMR`;
 
   const tier = HERO_TIER_DATA[customState.heroTier] || HERO_TIER_DATA[5];
   const previewHeroImg = $('#rcPreviewHeroImg');
@@ -338,6 +357,7 @@ export function bindRankCustomizer(container) {
   if (baseRankSelect) {
     baseRankSelect.addEventListener('change', () => {
       customState.baseRank = baseRankSelect.value || 'rank0';
+      syncStarsHint(container);
     });
   }
 
@@ -365,29 +385,22 @@ export function bindRankCustomizer(container) {
       }
 
       // Toggle immortal rank input row
-      const hasLeaderboard = ['rank8a', 'rank8b', 'rank8c'].includes(medalId);
+      const showLeaderboard = hasLeaderboard(medalId);
       const immortalRow = container.querySelector('#rcImmortalRow');
-      if (immortalRow) immortalRow.classList.toggle('hidden', !hasLeaderboard);
+      if (immortalRow) immortalRow.classList.toggle('hidden', !showLeaderboard);
 
       const immInput = container.querySelector('#rcImmortalRankInput');
       const immHint = container.querySelector('#rcImmortalHint');
-      if (hasLeaderboard && immInput) {
-        let minVal = 1, maxVal = 10, defaultVal = 10, hintText = L`Top 10: Número del 1 al 10 para la placa de clasificación.`;
-        if (medalId === 'rank8b') {
-          minVal = 11; maxVal = 100; defaultVal = 50;
-          hintText = L`Top 100: Número del 11 al 100 para la placa de clasificación.`;
-        } else if (medalId === 'rank8a') {
-          minVal = 101; maxVal = 6000; defaultVal = 1000;
-          hintText = L`Top 1000: Número del 101 al 6000 para la placa de clasificación.`;
-        }
-        immInput.min = minVal;
-        immInput.max = maxVal;
-        if (immHint) immHint.textContent = hintText;
+      if (showLeaderboard && immInput) {
+        const range = leaderboardRange(medalId);
+        immInput.min = range.min;
+        immInput.max = range.max;
+        if (immHint) immHint.textContent = range.hint;
 
         const curVal = Number(immInput.value);
-        if (!curVal || curVal < minVal || curVal > maxVal) {
-          customState.immortalRank = defaultVal;
-          immInput.value = defaultVal;
+        if (!curVal || curVal < range.min || curVal > range.max) {
+          customState.immortalRank = range.def;
+          immInput.value = range.def;
         } else {
           customState.immortalRank = curVal;
         }
@@ -399,6 +412,7 @@ export function bindRankCustomizer(container) {
         starsGroup.classList.toggle('disabled', isImmortal);
         starsGroup.querySelectorAll('button').forEach((b) => { b.disabled = isImmortal; });
       }
+      syncStarsHint(container);
 
       updatePreview();
     });
@@ -487,7 +501,7 @@ export function bindRankCustomizer(container) {
         customState.baseRank = liveBaseRank.value;
       }
       const liveImmortal = container.querySelector('#rcImmortalRankInput');
-      if (liveImmortal && liveImmortal.value && ['rank8a', 'rank8b', 'rank8c'].includes(customState.medal)) {
+      if (liveImmortal && liveImmortal.value && hasLeaderboard(customState.medal)) {
         customState.immortalRank = clampImmortalRank(liveImmortal.value, customState.medal);
       }
       const liveMmr = container.querySelector('#rcMmrInput');
@@ -500,31 +514,24 @@ export function bindRankCustomizer(container) {
       }
 
       applyBtn.disabled = true;
-      applyBtn.innerHTML = `<span class="spinner-sm"></span> <span>${L`Instalando...`}</span>`;
+      applyBtn.innerHTML = `<span class="spinner-sm"></span> <span>${L`Установка…`}</span>`;
 
       try {
-        const res = await window.api.ranks.applyCustom({
-          medal: customState.medal,
-          baseRank: customState.baseRank || 'rank0',
-          stars: customState.stars,
-          mmr: customState.mmr,
-          immortalRank: customState.immortalRank,
-          heroTier: customState.heroTier,
-          heroLevel: customState.heroLevel,
-        });
+        const res = await window.api.ranks.applyCustom(rankApplyPayload(customState));
 
         if (res.error) {
           toast(res.error, 'error', 6000);
         } else {
           customState.activeInstalled = res.record;
-          toast(L`¡Rango y nivel de héroe actualizados e instalados con éxito!`, 'ok');
+          syncActiveBadge(container);
+          toast(L`Ранг и уровень героя установлены`, 'ok');
           await refreshInstalledIndex();
         }
       } catch (err) {
         toast(String(err?.message || err), 'error', 6000);
       } finally {
         applyBtn.disabled = false;
-        applyBtn.innerHTML = `<span class="ms">save</span> <span>${L`Aplicar e Instalar Rango`}</span>`;
+        applyBtn.innerHTML = `<span class="ms">save</span> <span>${L`Применить и установить ранг`}</span>`;
       }
     });
   }
@@ -533,14 +540,21 @@ export function bindRankCustomizer(container) {
   const resetBtn = container.querySelector('#rcResetBtn');
   if (resetBtn) {
     resetBtn.addEventListener('click', async () => {
-      const ok = await confirmDialog(L`¿Deseas restablecer tu rango al original de Dota 2?`, { okLabel: L`Restablecer` });
+      const ok = await confirmDialog(L`Вернуть настоящий ранг Dota 2?`, { okLabel: L`Сбросить` });
       if (!ok) return;
 
       resetBtn.disabled = true;
       try {
-        await window.api.ranks.removeCustom();
+        const res = await window.api.ranks.removeCustom();
+        // A pak the game still holds open cannot be removed; saying so beats a toast that
+        // claims the real medal is back while the mod is still in the folder.
+        if (res && res.error) {
+          toast(res.error, 'error', 6000);
+          return;
+        }
         customState.activeInstalled = null;
-        toast(L`Rango restablecido a los valores por defecto del juego.`, 'ok');
+        syncActiveBadge(container);
+        toast(L`Ранг возвращён к значениям игры`, 'ok');
         await refreshInstalledIndex();
         updatePreview();
       } catch (err) {

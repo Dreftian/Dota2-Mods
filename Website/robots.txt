@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dota2-mods.vercel.app/sitemap.xml

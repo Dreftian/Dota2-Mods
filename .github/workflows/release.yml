@@ -119,8 +119,8 @@ jobs:
           TAG: ${{ github.ref_name }}
           REPO: ${{ github.repository }}
         run: |
-          node tools/portable-manifest.js dist "${TAG#v}"
-          gh release upload "$TAG" dist/portable.yml --repo "$REPO" --clobber
+          node tools/portable-manifest.js Install "${TAG#v}"
+          gh release upload "$TAG" Install/portable.yml --repo "$REPO" --clobber
 
       # A second release on the same tag is what broke 2.2.0, and nothing showed it until somebody
       # read the API by hand. Checked here on the draft; whether it became the latest is checked

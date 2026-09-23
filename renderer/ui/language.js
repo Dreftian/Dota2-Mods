@@ -9,7 +9,7 @@
  */
 import { state } from '../core/store.js';
 import { render } from '../core/router.js';
-import { paintMasterSwitch, refreshSidebarStatus } from './statusbar.js';
+import { paintMasterSwitch, paintSafeModeSwitch, refreshSidebarStatus } from './statusbar.js';
 import { paintPanels, syncNavOverflow } from './chrome.js';
 
 // translate the static app chrome (index.html markup) in place, preserving child nodes
@@ -37,7 +37,11 @@ export async function applyLanguage(lang) {
   try { localStorage.setItem('uiLang', lang); } catch { /* ignore */ }
   await window.api.settings.set('uiLang', lang);
   applyStaticI18n();
+  // Both status-bar switches print their state as a word, and render() redraws only the
+  // current screen: without these the old language stays in the bar until something else
+  // happens to repaint it (for the safe-mode word, until My mods is opened).
   paintMasterSwitch();
+  paintSafeModeSwitch();
   await refreshSidebarStatus();
   render();
 }
@@ -50,7 +54,7 @@ export function showLanguagePicker() {
     overlay.innerHTML = `
       <div class="lang-pick-box">
         <div class="lang-pick-logo">
-          <svg viewBox="0 0 24 24" width="40" height="40" fill="#e33d26"><path d="M19.43 6.97c.18-.96.32-1.78.32-1.82s-.25-.25-.68-.55l-.73-.51c-.05-.03-3.9.98-3.9 1.05s4.64 3.6 4.66 3.58c.01-.01.15-.8.33-1.75zM7.28 19.92c1.01-.38 1.84-.7 1.84-.7s-3.93-3.82-4.44-4.31l-.29-.23c-.01.01-.33.86-.71 1.89-.42 1.14-.68 1.9-.66 1.93.03.04 2.4 2.09 2.42 2.1.01 0 .83-.31 1.84-.68zm13.52-2.09c.52-1.27.93-2.31.92-2.33-.02-.02-9.83-6.64-16.7-11.27l-.55-.37-.9.41c-.5.22-.9.42-.89.45.01.03 3.33 3.51 7.38 7.74l7.37 7.69h2.41l.96-2.32z"/></svg>
+          <svg viewBox="0 0 24 24" width="40" height="40" fill="#29cfe6"><path d="M19.43 6.97c.18-.96.32-1.78.32-1.82s-.25-.25-.68-.55l-.73-.51c-.05-.03-3.9.98-3.9 1.05s4.64 3.6 4.66 3.58c.01-.01.15-.8.33-1.75zM7.28 19.92c1.01-.38 1.84-.7 1.84-.7s-3.93-3.82-4.44-4.31l-.29-.23c-.01.01-.33.86-.71 1.89-.42 1.14-.68 1.9-.66 1.93.03.04 2.4 2.09 2.42 2.1.01 0 .83-.31 1.84-.68zm13.52-2.09c.52-1.27.93-2.31.92-2.33-.02-.02-9.83-6.64-16.7-11.27l-.55-.37-.9.41c-.5.22-.9.42-.89.45.01.03 3.33 3.51 7.38 7.74l7.37 7.69h2.41l.96-2.32z"/></svg>
         </div>
         <h2>Selecciona tu idioma / Choose language</h2>
         <p>Puedes cambiarlo en cualquier momento desde Configuración</p>

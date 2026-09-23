@@ -49,7 +49,12 @@ function readToken(text, i) {
   return { value: text.slice(i, end), start: i, next: end };
 }
 
-// Bounds of the { ... } block that starts at (or after) i. Returns [open, close+1].
+/**
+ * Bounds of the { ... } block that starts at (or after) i.
+ * @param {string} text
+ * @param {number} i
+ * @returns {[number, number]}  [open, close+1]
+ */
 function blockBounds(text, i) {
   const open = text.indexOf('{', i);
   if (open === -1) throw new Error(t('items_game: не найдено открытие блока'));
@@ -67,7 +72,8 @@ function blockBounds(text, i) {
  * Walk the direct children of a block.
  * @param {string} text
  * @param {[number, number]} bounds  from blockBounds()
- * @param {(child: {key: string, start: number, end: number, isBlock: boolean, value: string|null}) => void} fn
+ * @param {(child: {key: string, start: number, end: number, isBlock: boolean, value: string|null, body: [number, number]|null}) => void} fn
+ *   `body` is the child block's own bounds, null for a plain key-value pair
  */
 function eachChild(text, bounds, fn) {
   let i = bounds[0] + 1;
@@ -86,6 +92,36 @@ function eachChild(text, bounds, fn) {
       fn({ key: key.value, start: key.start, end: val.next, isBlock: false, value: val.value, body: null });
       i = val.next;
     }
+  }
+}
+
+/**
+ * A top-level section of items_game.txt by name, or null. Stops at the first match: the small
+ * sections ("prefabs", "item_sets") are asked about by themselves, and walking on past the
+ * 50 MB "items" block to finish the list would cost more than finding them did.
+ * @param {string} text
+ * @param {string} name  lower case
+ * @returns {[number, number]|null}
+ */
+function sectionOf(text, name) {
+  const rootKey = readToken(text, 0);
+  if (!rootKey) return null;
+  let i = skipGap(text, rootKey.next);
+  if (text[i] !== '{') return null;
+  i++;
+  for (;;) {
+    const key = readToken(text, i);
+    if (!key) return null;
+    const at = skipGap(text, key.next);
+    if (text[at] !== '{') {
+      const val = readToken(text, at);
+      if (!val) return null;
+      i = val.next;
+      continue;
+    }
+    const b = blockBounds(text, at);
+    if (key.value.toLowerCase() === name) return b;
+    i = b[1];
   }
 }
 
@@ -110,8 +146,7 @@ function findItem(text, id, section) {
   // Walking all 25 000 children instead cost about 200 ms a call, and dressing one cosmetic
   // slot makes two of them.
   if (!section) {
-    const want = String(id);
-    const item = listItems(text).find((i) => i.id === want);
+    const item = itemIndex(text).get(String(id));
     if (item) return { id: item.id, start: item.start, end: item.end, text: text.slice(item.start, item.end) };
   }
   // A named section, or an id the item list does not carry (it keeps numbered items only).
@@ -155,8 +190,27 @@ function itemFields(text, item) {
 const ITEMS_CACHE_SIZE = 2;
 let itemsCache = [];
 
+/* A lookup in one of the caches keyed by a table's text.
+ *
+ * Most recent first. Without the move, the second rebuild's merged table pushed the game's own
+ * out - it was asked for last in the first rebuild but still sat at the back - and every other
+ * rebuild walked it again.
+ *
+ * And the hit takes the caller's string. Two strings with the same 50 MB in them are === only
+ * after every byte is compared: the game's table read twice (game-icons reads its own copy, a
+ * pak re-read after Steam touched it) is such a pair. Kept on the old string, each question
+ * with the new one paid that compare - and slotOf asks once per item, 26 000 times a slot. */
+function cacheHit(cache, text) {
+  const at = cache.findIndex((e) => e.text === text);
+  if (at === -1) return null;
+  const hit = cache.splice(at, 1)[0];
+  hit.text = text;
+  cache.unshift(hit);
+  return hit;
+}
+
 function listItems(text) {
-  const hit = itemsCache.find((e) => e.text === text);
+  const hit = cacheHit(itemsCache, text);
   if (hit) return hit.list;
   const section = itemsSection(text);
   const out = [];
@@ -186,6 +240,26 @@ function listItems(text) {
   return out;
 }
 
+// id -> item, beside the list it indexes: the hero map and the merge ask for hundreds of ids
+// in a row, and a find() over 26 000 records each time was the same walk paid per question.
+const indexCache = new WeakMap();
+
+/**
+ * Every numbered item by id. The first definition of an id wins, as it does in findItem.
+ * @param {string} text
+ * @returns {Map<string, {id: string, name: string, slot: string, prefab: string, image: string, baseitem: boolean, hasVisuals: boolean, start: number, end: number}>}
+ */
+function itemIndex(text) {
+  const list = listItems(text);
+  let map = indexCache.get(list);
+  if (!map) {
+    map = new Map();
+    for (const it of list) if (!map.has(it.id)) map.set(it.id, it);
+    indexCache.set(list, map);
+  }
+  return map;
+}
+
 // The table is read as latin1 so every splice stays byte-exact, which leaves names with
 // non-ASCII characters (curly quotes, accents) as raw UTF-8 bytes. Anything shown to a
 // person goes back through UTF-8 first.
@@ -193,9 +267,57 @@ function toUtf8(s) {
   return /[\x80-\xff]/.test(s) ? Buffer.from(s, 'latin1').toString('utf8') : s;
 }
 
-// Which slot an item belongs to. Wearables say it outright; the whole-match cosmetics
-// (weather, terrain, HUD...) leave item_slot out and only name their prefab.
-function slotOf(item) {
+const prefabCache = [];
+
+/**
+ * The item_slot each prefab in the "prefabs" block declares ("cursor_pack" -> "cursor_pack",
+ * "wearable" -> "weapon", "misc" -> "none"). Empty for a table with no prefabs block.
+ * @param {string} text
+ * @returns {Map<string, string>}
+ */
+function prefabSlots(text) {
+  const hit = cacheHit(prefabCache, text);
+  if (hit) return hit.map;
+  const map = new Map();
+  const section = sectionOf(text, 'prefabs');
+  if (section) {
+    eachChild(text, section, (p) => {
+      if (!p.isBlock) return;
+      eachChild(text, p.body, (f) => {
+        if (!f.isBlock && f.key.toLowerCase() === 'item_slot') map.set(p.key, f.value.toLowerCase());
+      });
+    });
+  }
+  prefabCache.unshift({ text, map });
+  prefabCache.length = Math.min(prefabCache.length, ITEMS_CACHE_SIZE);
+  return map;
+}
+
+/**
+ * Which slot an item belongs to. Wearables say it outright; the whole-match cosmetics
+ * (weather, terrain, HUD...) leave item_slot out and only name their prefab.
+ *
+ * A few base items carry a stray item_slot copied from the wearable they were cloned from:
+ * 202 Default Cursor Pack and 801 Default Roshan say "weapon", a loading screen says "head".
+ * Believing it filed them under a slot nothing else is in, so cursor packs and Roshan were
+ * never offered. The prefabs block settles it - a prefab that fixes a slot of its own
+ * (cursor_pack, roshan, loading_screen) decides, and "weapon" there is only the wearable's
+ * default, "none" leaves the choice to the item (announcer vs mega_kills, misc). The key stays
+ * the prefab's name, because that is what the slot-less items of those prefabs were always
+ * filed under and what existing picks are stored as ("radiantcreeps", not "radiant_creeps").
+ * @param {{slot: string, prefab: string}} item  a record from listItems()
+ * @param {string} [text]  the table it came from; without it the item's own word is taken
+ * @returns {string}
+ */
+function slotOf(item, text) {
+  return slotIn(item, text ? prefabSlots(text) : null);
+}
+
+// slotOf with the prefab map already in hand: the callers that file every item of the table
+// look it up once, not once per item
+function slotIn(item, prefabs) {
+  const fixed = prefabs && item.prefab ? prefabs.get(item.prefab) : undefined;
+  if (fixed && fixed !== 'none' && fixed !== 'weapon') return item.prefab;
   return item.slot || item.prefab || '';
 }
 
@@ -205,7 +327,8 @@ function slotOf(item) {
  * cosmetic the default one.
  */
 function baseItemFor(text, slot) {
-  return listItems(text).find((i) => i.baseitem && slotOf(i) === slot) || null;
+  const prefabs = prefabSlots(text);
+  return listItems(text).find((i) => i.baseitem && slotIn(i, prefabs) === slot) || null;
 }
 
 /**
@@ -214,8 +337,9 @@ function baseItemFor(text, slot) {
  * @returns {Array<{id, name}>}  name is the schema's own English name, sorted A-Z
  */
 function cosmeticOptions(text, slot) {
+  const prefabs = prefabSlots(text);
   return listItems(text)
-    .filter((i) => slotOf(i) === slot && !i.baseitem && i.hasVisuals && i.name)
+    .filter((i) => slotIn(i, prefabs) === slot && !i.baseitem && i.hasVisuals && i.name)
     .map((i) => ({ id: i.id, name: toUtf8(i.name) }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -447,18 +571,31 @@ function mergeSchema(baseText, patches) {
     }
     seen.set(String(p.id), p);
   }
-  const section = itemsSection(baseText);
+  /* Every lookup used to walk the whole items section, and every edit copied the whole 50 MB
+   * string again: 350 patched blocks took 72 s, synchronously, on each mod switched on or off
+   * (research D1). The id index answers numbered items in one step; only an id it does not
+   * carry still walks the section, the way findItem always did. The splice is one join over
+   * the edits in file order, and the bytes come out the same as the tail-first loop's. */
+  const index = itemIndex(baseText);
+  let section = null;
   for (const p of seen.values()) {
-    const item = findItem(baseText, p.id, section);
+    /** @type {{start: number, end: number}|null} */
+    let item = index.get(String(p.id)) || null;
+    if (!item) item = findItem(baseText, p.id, section || (section = itemsSection(baseText)));
     if (!item) { missing.push(String(p.id)); continue; }
     edits.push({ start: item.start, end: item.end, text: reindent(p.block, '\t\t') });
     applied.push({ id: String(p.id), source: p.source || '' });
   }
 
-  edits.sort((a, b) => b.start - a.start); // splice from the tail so offsets stay valid
-  let text = baseText;
-  for (const e of edits) text = text.slice(0, e.start) + e.text + text.slice(e.end);
-  return { text, applied, missing, conflicts };
+  edits.sort((a, b) => a.start - b.start);
+  const parts = [];
+  let at = 0;
+  for (const e of edits) {
+    parts.push(baseText.slice(at, e.start), e.text);
+    at = e.end;
+  }
+  parts.push(baseText.slice(at));
+  return { text: parts.join(''), applied, missing, conflicts };
 }
 
 /**
@@ -556,10 +693,22 @@ module.exports = {
   readGameSchema,
   gameSchemaStamp,
   listItems,
+  itemIndex,
   baseItemFor,
   cosmeticOptions,
+  slotOf,
+  prefabSlots,
   findItem,
   itemFields,
+  // the KeyValues reader itself, for src/hero-items.js: one reader, not a copy that drifts
+  skipGap,
+  readToken,
+  blockBounds,
+  eachChild,
+  sectionOf,
+  itemsSection,
+  stripKeyBlocks,
+  toUtf8,
   extractDeltas,
   deltaTable,
   ownedAssetNeedles,

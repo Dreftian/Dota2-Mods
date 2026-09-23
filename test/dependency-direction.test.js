@@ -26,6 +26,7 @@ const ROOT = path.resolve(__dirname, '..');
 
 const ELECTRON_USERS = [
   'src/discord-auth.js',
+  'src/ipc-arsenal.js',
   'src/ipc-auth.js',
   'src/ipc-diagnostics.js',
   'src/ipc-game.js',

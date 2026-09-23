@@ -10,6 +10,7 @@
 import { $ } from '../core/dom.js';
 import { state } from '../core/store.js';
 import { HELP_LINKS } from '../core/constants.js';
+import { esc } from './format.js';
 
 const newsUrl = (re) => (state.catalog?.mods?.modsData?.news || [])
   .map((n) => n.url)
@@ -29,7 +30,7 @@ function wikiUrl() {
 
 const discordUrl = () => newsUrl(/discord\.(gg|com)/i) || HELP_LINKS.discord;
 
-const SITE = 'https://github.com/Dreftian/Dota2-Mods';
+const SITE = 'https://dota2-mods.vercel.app/';
 const siteUrl = () => SITE;
 
 export function bindHelp() {
@@ -42,24 +43,24 @@ export function bindHelp() {
     btn.setAttribute('aria-expanded', 'false');
   };
   const open = () => {
-    const isAdmin = !!(state.currentUser?.isAdmin || state.currentUser?.role === 'admin' || state.currentUser?.email === 'dreftian@gmail.com');
+    // Both addresses come from the catalog's news, which is somebody else's data: a quote in one
+    // would end the attribute and start markup of its own.
     menu.innerHTML = `
-      <button class="tb-menu-item" data-url="${wikiUrl()}" role="menuitem">
+      <button class="tb-menu-item" data-url="${esc(wikiUrl())}" role="menuitem">
         <span class="ms">menu_book</span>
         <span>${L`Вики`}</span>
         <span class="ms tb-menu-out">open_in_new</span>
       </button>
-      <button class="tb-menu-item" data-url="${discordUrl()}" role="menuitem">
+      <button class="tb-menu-item" data-url="${esc(discordUrl())}" role="menuitem">
         <span class="ms">forum</span>
         <span>Discord</span>
         <span class="ms tb-menu-out">open_in_new</span>
       </button>
-      ${isAdmin ? `
-      <button class="tb-menu-item" data-url="${siteUrl()}" role="menuitem">
+      <button class="tb-menu-item" data-url="${esc(siteUrl())}" role="menuitem">
         <span class="ms">public</span>
         <span>${L`Сайт программы`}</span>
         <span class="ms tb-menu-out">open_in_new</span>
-      </button>` : ''}`;
+      </button>`;
     menu.querySelectorAll('[data-url]').forEach((item) => {
       item.addEventListener('click', () => {
         window.api.misc.openExternal(item.dataset.url);

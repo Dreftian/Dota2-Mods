@@ -1,340 +1,259 @@
 <div align="center">
 
-<img src=".github/banner.svg" alt="Dota 2 Mod Manager" width="900">
+<img src=".github/banner-mod-assistant.es.svg" alt="Mod Assistant: gestor de mods para Dota 2" width="900">
 
 <p>
-  <img src="https://img.shields.io/badge/English-8b6ff0?style=for-the-badge&labelColor=8b6ff0&logoColor=white" alt="You are reading the English version">
-  <a href="README.ru.md"><img src="https://img.shields.io/badge/%D0%BF%D0%BE%E2%80%91%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%B8-211f26?style=for-the-badge&labelColor=211f26" alt="Читать по-русски"></a>
+  <img src="https://img.shields.io/badge/Espa%C3%B1ol-29cfe6?style=for-the-badge&labelColor=29cfe6&logoColor=white" alt="Estás leyendo la versión en español">
+  <a href="README.en.md"><img src="https://img.shields.io/badge/English-1f2a33?style=for-the-badge&labelColor=1f2a33" alt="Read in English"></a>
+  <a href="README.ru.md"><img src="https://img.shields.io/badge/%D0%BF%D0%BE%E2%80%91%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%B8-1f2a33?style=for-the-badge&labelColor=1f2a33" alt="Читать по-русски"></a>
 </p>
 
 <p>
-  <a href="https://github.com/TheFleece/dota2-mod-manager/releases/latest/download/Dota-2-Mod-Manager-Setup.exe">
-    <img src="https://img.shields.io/github/v/release/TheFleece/dota2-mod-manager?style=for-the-badge&color=8b6ff0&label=Download&logo=github&logoColor=white" alt="Download the latest release"></a>
-  <img src="https://img.shields.io/github/downloads/TheFleece/dota2-mod-manager/Dota-2-Mod-Manager-Setup.exe?style=for-the-badge&color=4f378b&label=Installs" alt="Installer downloads">
-  <img src="https://img.shields.io/badge/Windows%20%7C%20Linux-211f26?style=for-the-badge&logo=windows&logoColor=d0bcff" alt="Windows and Linux">
+  <a href="https://github.com/Dreftian/Dota2-Mods-Releases/releases/latest/download/Dota2-Mod-Setup.exe">
+    <img src="https://img.shields.io/github/v/release/Dreftian/Dota2-Mods-Releases?style=for-the-badge&color=29cfe6&label=Descargar&logo=github&logoColor=white" alt="Descargar la última versión"></a>
+  <img src="https://img.shields.io/github/downloads/Dreftian/Dota2-Mods-Releases/total?style=for-the-badge&color=8b6ff0&label=Descargas" alt="Descargas">
+  <img src="https://img.shields.io/badge/Windows%2010%20%7C%2011-1f2a33?style=for-the-badge&logo=windows&logoColor=7fd8e6" alt="Windows 10 y 11">
 </p>
 
 <p>
-  <a href="https://github.com/TheFleece/dota2-mod-manager/actions/workflows/test.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/TheFleece/dota2-mod-manager/test.yml?style=flat-square&label=tests&labelColor=211f26&color=2bffa3" alt="Test status"></a>
-  <a href="https://github.com/TheFleece/dota2-mod-manager/actions/workflows/codeql.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/TheFleece/dota2-mod-manager/codeql.yml?style=flat-square&label=codeql&labelColor=211f26&color=2bffa3" alt="CodeQL status"></a>
-  <a href="https://scorecard.dev/viewer/?uri=github.com/TheFleece/dota2-mod-manager">
-    <img src="https://img.shields.io/ossf-scorecard/github.com/TheFleece/dota2-mod-manager?style=flat-square&label=openssf%20scorecard&labelColor=211f26" alt="OpenSSF Scorecard"></a>
-  <a href="https://www.bestpractices.dev/en/projects/14721">
-    <img src="https://img.shields.io/cii/level/14721?style=flat-square&label=openssf%20best%20practices&labelColor=211f26&color=2bffa3" alt="OpenSSF Best Practices passing badge"></a>
-  <a href="https://dota2modmanager.betteruptime.com">
-    <img src="https://uptime.betterstack.com/status-badges/v1/monitor/2y6jv.svg" alt="Update feed status"></a>
-  <img src="https://img.shields.io/github/last-commit/TheFleece/dota2-mod-manager?style=flat-square&label=last%20commit&labelColor=211f26&color=8b6ff0" alt="Last commit">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-c4b5fd?style=flat-square&labelColor=211f26" alt="License"></a>
-  <a href="https://dota2modmanager.com"><img src="https://img.shields.io/badge/site-dota2modmanager.com-c4b5fd?style=flat-square&labelColor=211f26" alt="Website"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-GPL--3.0-7fd8e6?style=flat-square&labelColor=1f2a33" alt="Licencia GPL-3.0"></a>
+  <a href="https://dota2-mods.vercel.app"><img src="https://img.shields.io/badge/web-dota2--mods.vercel.app-7fd8e6?style=flat-square&labelColor=1f2a33" alt="Sitio web"></a>
+  <img src="https://img.shields.io/badge/idiomas-ES%20%C2%B7%20EN%20%C2%B7%20RU-7fd8e6?style=flat-square&labelColor=1f2a33" alt="Español, inglés y ruso">
 </p>
 
 <p>
   <b>
-  <a href="#what-it-does">What it does</a> &nbsp;·&nbsp;
-  <a href="#install">Install</a> &nbsp;·&nbsp;
-  <a href="#how-it-works">How it works</a> &nbsp;·&nbsp;
-  <a href="#alongside-dota2-minify">Alongside Minify</a> &nbsp;·&nbsp;
-  <a href="#documentation">Docs</a> &nbsp;·&nbsp;
-  <a href="#report-a-problem">Report a problem</a> &nbsp;·&nbsp;
-  <a href="#project-activity">Activity</a>
+  <a href="#qué-hace">Qué hace</a> &nbsp;·&nbsp;
+  <a href="#arsenal-vip">Arsenal VIP</a> &nbsp;·&nbsp;
+  <a href="#instalación">Instalación</a> &nbsp;·&nbsp;
+  <a href="#cómo-funciona">Cómo funciona</a> &nbsp;·&nbsp;
+  <a href="#novedades-de-la-110">Novedades</a> &nbsp;·&nbsp;
+  <a href="#desarrollo">Desarrollo</a> &nbsp;·&nbsp;
+  <a href="#licencia-y-créditos">Licencia</a>
   </b>
 </p>
 
-<img src="site/public/screenshots/dota-2-mod-manager-catalog-en.webp" alt="The catalog" width="100%">
+<img src="docs/screenshots/arsenal-juggernaut.jpg" alt="Arsenal VIP: los sets, las arcanas y los inmortales de Juggernaut" width="100%">
 
 </div>
 
 > [!NOTE]
-> Not affiliated with Valve. Every mod here is client-side: nobody else sees them, and no other
-> player's game is touched. Safe mode is on by default and keeps the app out of Dota's own files
-> entirely; the one feature that changes them asks first and reverts byte for byte.
+> Mod Assistant no está afiliado con Valve. Todo lo que instala es del lado del cliente: solo lo
+> ves tú y no toca la partida de ningún otro jugador. El modo seguro viene activado y mantiene la
+> app fuera de los archivos propios de Dota; la única función que los cambia pide permiso antes y
+> se revierte byte a byte.
 
-> **Why not just copy the files yourself?** You can, and people do. What the app adds is
-> everything after that: switching a mod off before a match without deleting it, a weather effect
-> or a courier your account never bought drawn on your own screen, a setup you send as one link,
-> and a game that still works after a Dota patch.
+> **¿Por qué no copiar los archivos a mano?** Se puede. Lo que la app añade es todo lo que viene
+> después: apagar un mod antes de una partida sin borrarlo, llevar un inmortal o un mensajero que
+> tu cuenta no tiene, pasar tu configuración en un solo enlace y que todo siga funcionando después
+> de un parche de Dota.
 
 <br>
 
-## What it does
+## Qué hace
 
 <table>
-<tr><td width="210"><b>The whole catalog</b></td><td>1000+ mods in 41 categories, read live from the <a href="https://github.com/h6rd/Dota2PornFxWeb">D2PFX</a> repository, so a mod added today installs today</td></tr>
-<tr><td><b>One click in, one click out</b></td><td>The app downloads it, picks a free pak slot and cleans up after itself. Categories that must load early get low slots by themselves</td></tr>
-<tr><td><b>Switch off, don't delete</b></td><td>Turn a mod off before a match and back on after. Your library stays, the game folder stays clean</td></tr>
-<tr><td><b>Looks for the default items</b></td><td>Weather, couriers, wards, loading screens, announcers, mega-kills: the default item every account has is drawn as any other item in the game, on your screen and nobody else's. The list comes from the game's own item table, so anything Valve adds appears by itself</td></tr>
-<tr><td><b>It says when mods collide</b></td><td>Two mods carrying the same file cannot both win. The app names the file, says which mod the game loads it from, and lets you reorder</td></tr>
-<tr><td><b>Setups by link</b></td><td>Save what you run as a preset and send it in one message. The other side opens it and gets the same look</td></tr>
-<tr><td><b>It survives Dota patches</b></td><td>The app notices a game update when it lands and puts back what the patch wiped, without ever writing while Dota is running</td></tr>
+<tr><td width="230"><b>Catálogo completo</b></td><td>Más de 1.300 mods de la comunidad en 41 categorías (héroes, efectos, terrenos, árboles, río, creeps, torres, Roshan, guardianes, mensajeros, HUDs, emblemas, iconos, cursores, fuentes, locutores, música y sonidos), leídos en vivo del repositorio <a href="https://github.com/h6rd/Dota2PornFxWeb">D2PFX</a>: un mod publicado hoy se instala hoy</td></tr>
+<tr><td><b>Arsenal VIP</b></td><td>Cualquier inmortal, arcana o cosmético de cualquier héroe, espacio por espacio, con estilos, variantes y sets completos. Incluye los <b>exclusivos que la tienda nunca vendió</b>. <a href="#arsenal-vip">Más abajo</a></td></tr>
+<tr><td><b>Cosméticos del juego, gratis</b></td><td>Clima, terreno, HUD, más de 2.000 pantallas de carga, más de 200 mensajeros, guardianes, creeps, torres, música, locutores, mega-kills, rachas de asesinatos, packs de cursores y skins de Roshan. Se leen de la tabla de objetos de tu propio juego, así que lo que Valve añada aparece solo</td></tr>
+<tr><td><b>Un clic para entrar y salir</b></td><td>La app descarga el mod, elige un espacio pak libre y limpia al quitarlo. Las categorías que deben cargar primero reciben espacios bajos solas</td></tr>
+<tr><td><b>Apagar sin borrar</b></td><td>Desactiva un mod antes de una partida y vuelve a activarlo después. Tu biblioteca queda intacta y la carpeta del juego, limpia</td></tr>
+<tr><td><b>Avisa cuando dos mods chocan</b></td><td>Dos mods con el mismo archivo no pueden ganar los dos. La app nombra el archivo, dice de qué mod lo carga el juego y te deja cambiar el orden</td></tr>
+<tr><td><b>Rango y nivel de héroe</b></td><td>Personaliza la medalla de tu perfil (incluidas Inmortal y las Top 10/100/1000 con su número) con las estrellas integradas, y las insignias de nivel de héroe</td></tr>
+<tr><td><b>Configuraciones por enlace</b></td><td>Guarda lo que usas como preset y envíalo en un mensaje o como archivo <code>.d2mm</code>. Quien lo abre obtiene el mismo aspecto</td></tr>
+<tr><td><b>Sobrevive a los parches</b></td><td>La app detecta una actualización de Dota y repone lo que el parche borró, sin escribir nunca mientras el juego está abierto</td></tr>
 </table>
 
 <details>
-<summary><b>And the rest</b></summary>
+<summary><b>Y además</b></summary>
 <br>
 <table>
-<tr><td width="210"><b>An install list</b></td><td>Put mods aside while you browse and install them all at once. The list has its own search, because people were installing eighty mods one at a time</td></tr>
-<tr><td><b>Filters and search</b></td><td>Chips for what a mod changes, a dropdown for the item slot, a list of heroes, and one search across the whole catalog</td></tr>
-<tr><td><b>Fonts and cursors</b></td><td>Installed into the game files with a backup of the originals; removing them restores vanilla</td></tr>
-<tr><td><b>Combined packs</b></td><td>Merge several mods into one pak slot, and take them apart again</td></tr>
-<tr><td><b>Your own files</b></td><td>Import a <code>.vpk</code>, or adopt what somebody else's tool left in the folder. The app fingerprints it against the catalog and tells you what it is</td></tr>
-<tr><td><b>Auto-updates</b></td><td>The app checks GitHub Releases and installs new versions itself</td></tr>
-<tr><td><b>Windows and Linux</b></td><td>Both ship with every release: an installer and a portable build for Windows, an AppImage for Linux. Steam is found wherever your distribution keeps it, flatpak included</td></tr>
-<tr><td><b>No account, no telemetry</b></td><td>Nothing is collected and nothing is sent. Signing in with Discord is optional and only puts your name on a setup you share</td></tr>
+<tr><td width="230"><b>Lista de instalación</b></td><td>Aparta mods mientras navegas e instálalos todos juntos</td></tr>
+<tr><td><b>Filtros y búsqueda</b></td><td>Etiquetas de lo que cambia cada mod, el espacio del objeto, la lista de héroes y una búsqueda sobre todo el catálogo y los cosméticos</td></tr>
+<tr><td><b>Fuentes y cursores</b></td><td>Se instalan en los archivos del juego con copia de los originales; al quitarlos vuelve todo a como estaba</td></tr>
+<tr><td><b>Packs combinados</b></td><td>Une varios mods en un solo espacio pak y sepáralos de nuevo cuando quieras</td></tr>
+<tr><td><b>Tus propios archivos</b></td><td>Importa un <code>.vpk</code> o un <code>.zip</code>, o adopta lo que otra herramienta dejó en la carpeta. La app lo identifica contra el catálogo</td></tr>
+<tr><td><b>Actualizaciones automáticas</b></td><td>La app instalada busca versiones nuevas en <a href="https://github.com/Dreftian/Dota2-Mods-Releases">Dota2-Mods-Releases</a> y se actualiza sola</td></tr>
+<tr><td><b>Sin telemetría</b></td><td>No se recopila ni se envía nada. La cuenta es local, en tu PC</td></tr>
 </table>
 </details>
 
 <div align="center">
-  <img src="site/public/screenshots/dota-2-mod-manager-heroes-en.webp" alt="Mods grouped hero by hero" width="49%">
-  <img src="site/public/screenshots/dota-2-mod-manager-my-mods-en.webp" alt="Installed mods, with the load order" width="49%">
+  <img src="docs/screenshots/catalogo.jpg" alt="El catálogo" width="49%">
+  <img src="docs/screenshots/mis-mods.jpg" alt="Mis mods, con el orden de carga" width="49%">
 </div>
 
 <br>
 
-## Install
+## Arsenal VIP
 
-1. Download **[Dota 2 Mod Manager Setup](https://github.com/TheFleece/dota2-mod-manager/releases/latest/download/Dota-2-Mod-Manager-Setup.exe)** — direct link, always the latest version
-2. Run it. The app installs, creates a shortcut and starts
-3. It finds Dota on its own. No launch options, no Steam properties to edit
+<img src="docs/screenshots/arsenal-heroes.jpg" alt="Arsenal VIP: los 125 héroes con sus inmortales y arcanas" width="100%">
 
-**On Linux** the same app ships as an
-[AppImage](https://github.com/TheFleece/dota2-mod-manager/releases/latest/download/Dota-2-Mod-Manager.AppImage):
-`chmod +x` it and run it.
+El Arsenal reescribe los objetos por defecto que toda cuenta tiene, en la tabla de objetos de tu
+propio juego, para que se dibujen como el cosmético que elijas. Por eso no hace falta tenerlo en
+el inventario, y por eso solo lo ves tú.
+
+- **Todos los héroes, todos los espacios**: arma, cabeza, hombros, espalda, brazos, montura,
+  aspecto completo del héroe (las arcanas que cambian el modelo entero), personas, invocaciones,
+  habilidades y voz.
+- **Todas las rarezas**: por defecto se muestran las arcanas y los inmortales, y un clic muestra
+  el resto (legendarios, míticos, raros...).
+- **Exclusivos**: un filtro muestra lo que la tienda nunca vendió, de cofres, pases de batalla y
+  eventos, como Dragonclaw Hook, Phantom Advent o Planetfall. En la tabla actual del juego eso es
+  el 99 % de los inmortales.
+- **Estilos y variantes**: cada estilo de una arcana se puede elegir, y las variantes (Golden,
+  Crimson, Tyrian...) aparecen agrupadas bajo su versión original.
+- **Sets completos** en un clic, a partir de los bundles del propio juego.
+- **Personas**: al elegir un objeto de persona, la persona se activa sola.
+- Todo es un registro normal de **Mis mods**: se apaga, se quita y viaja en los presets.
+
+Requiere desactivar el modo seguro (la app lo explica y lo hace por ti) y una cuenta VIP.
+
+<br>
+
+## Instalación
+
+1. Descarga el **[instalador de Mod Assistant](https://github.com/Dreftian/Dota2-Mods-Releases/releases/latest/download/Dota2-Mod-Setup.exe)**:
+   enlace directo, siempre a la última versión. También hay una
+   [versión portable](https://github.com/Dreftian/Dota2-Mods-Releases/releases/latest/download/Dota2.Mod.exe).
+2. Ábrelo. La app se instala sin pedir permisos de administrador, crea un acceso directo y arranca.
+3. Encuentra Dota 2 sola. Sin opciones de lanzamiento, sin tocar las propiedades de Steam.
 
 > [!IMPORTANT]
-> Windows will call the publisher unknown, because the installer carries no paid signature.
-> Click **More info**, then **Run anyway**. Every release is built from this source by a
-> [public workflow](https://github.com/TheFleece/dota2-mod-manager/actions/workflows/release.yml)
-> rather than uploaded from anybody's desktop, and the build log for the exact file you
-> downloaded is open to read.
+> Windows dirá que el editor es desconocido porque el instalador todavía no tiene firma de código
+> de pago. Pulsa **Más información** y luego **Ejecutar de todas formas**. Cada versión se publica
+> junto con su código fuente completo en
+> [Dota2-Mods-Releases](https://github.com/Dreftian/Dota2-Mods-Releases/releases).
 
-Every file on a release is listed with its SHA-256 in `SHA256SUMS`, and the release workflow signs
-that list through Sigstore. To check that a download came out of that workflow, with the GitHub CLI:
-
-```bash
-gh attestation verify Dota-2-Mod-Manager-Setup.exe --repo TheFleece/dota2-mod-manager
-```
-
-Or against the list alone, in a folder holding both files:
-
-```bash
-sha256sum --check --ignore-missing SHA256SUMS
-```
-
-On Windows without the GitHub CLI, `Get-FileHash Dota-2-Mod-Manager-Setup.exe` in PowerShell prints
-the hash to compare with its line in `SHA256SUMS`. Releases published before this check existed
-have no `SHA256SUMS`.
+Requisitos: Windows 10 u 11 de 64 bits y Dota 2 instalado desde Steam.
 
 <br>
 
-## How it works
+## Cómo funciona
 
-Nothing is injected into Dota's process, and no file of the game is opened while it runs.
+No se inyecta nada en el proceso de Dota y no se abre ningún archivo del juego mientras está en marcha.
 
-- Dota mounts **one** folder, named after its **voice** language. The app sets that language in
-  the game's own settings and installs there — **no launch option involved**, which is the part
-  worth reading twice. [Why that works](https://dota2modmanager.com/docs/language/)
-- VPK mods go in as `pakNN_dir.vpk`, slots 10 to 99. Categories that must load first get
-  `pak02` to `pak09`. [Slots and load order](https://dota2modmanager.com/docs/vpk/)
-- Switching a mod off renames its file to `.off`. The game skips it, the file stays
-- Fonts and cursors go into the game's own folders, with the originals backed up first
-- Everything that writes to the game folder is one transaction: if a step fails, the whole
-  change rolls back, displaced files included
-- Safe mode, on by default, means the app never touches Dota's own files. Turning it off adds
-  one line to `gameinfo_branchspecific.gi` and a signature to `dota.signatures` — both backed up
-  before the first edit, both restored byte for byte when it goes back on.
-  [What that buys and costs](https://dota2modmanager.com/docs/safe/)
+- Dota monta **una** carpeta con el nombre de su idioma de **voces**. La app ajusta ese idioma en
+  la configuración del propio juego e instala ahí, **sin opciones de lanzamiento**.
+- Los mods VPK entran como `pakNN_dir.vpk`, espacios del 10 al 99. Las categorías que deben cargar
+  primero reciben del `pak02` al `pak09`. Los espacios 65 a 67 nunca se usan porque los escribe otro programa.
+- Apagar un mod renombra su archivo a `.off`: el juego lo salta y el archivo se queda.
+- Todo lo que escribe en la carpeta del juego es una transacción: si un paso falla, el cambio
+  entero se deshace, incluidos los archivos que se movieron para hacer sitio.
+- El modo seguro, activado por defecto, significa que la app no toca los archivos propios de Dota.
+  Desactivarlo añade una línea a `gameinfo_branchspecific.gi` y una firma a `dota.signatures`,
+  ambos respaldados antes y restaurados byte a byte al volver a activarlo. Es lo que permite los
+  cosméticos del juego y el Arsenal.
 
-Downloads live in `%APPDATA%/dota2-mod-manager/downloads`, the install manifest beside them.
-The full picture is in [ARCHITECTURE.md](ARCHITECTURE.md), and every module is listed in
-[docs/API.md](docs/API.md), which is generated from the source rather than written.
+La imagen completa está en [ARCHITECTURE.md](ARCHITECTURE.md) y cada módulo aparece en
+[docs/API.md](docs/API.md), que se genera desde el código.
 
 <br>
 
-## Alongside Dota2 Minify
+## Novedades de la 1.1.0
 
-[Dota2 Minify](https://github.com/Egezenn/dota2-minify) is a different kind of tool by a
-different author: it builds mods by patching the game where this installs finished ones from a
-catalog. **Run both.** This app installs into whichever folder the game will really mount —
-including the one Minify picked — never hands out the pak slots Minify writes, and leaves its
-files alone. Minify since v1.14rc7 checks ownership before clearing the map folder, so a terrain
-installed here survives its uninstall.
+<img src="docs/screenshots/novedades.jpg" alt="Las notas de la versión 1.1.0 dentro de la app" width="100%">
 
-[What Minify is, and how the two share a game](https://dota2modmanager.com/docs/minify/).
+- **Arsenal VIP**, pestaña nueva (Ctrl+5), con todos los inmortales, arcanas y exclusivos.
+- **Más cosméticos gratis**: packs de cursores y skins de Roshan, que antes faltaban.
+- **Catálogo**: fuera 41 entradas de relleno que fallaban siempre al instalar y dos tarjetas de
+  rango duplicadas; los duplicados exactos se muestran una vez; un mod con el mismo nombre que otro
+  de otra categoría ya no se instala en su lugar.
+- **Rangos**: los packs de medallas del catálogo vuelven a instalar sus propios archivos, las
+  estrellas se integran en la medalla y el personalizador está traducido.
+- **Cuentas**: la contraseña de administrador ya no forma parte de la app, se puede cambiar la
+  contraseña, Premium vence en su fecha y un archivo de cuentas dañado ya no se borra.
+- **Archivos del juego**: reactivar el modo seguro ya no restaura copias `.bak` antiguas que podían
+  romper el matchmaking; las reconstrucciones fallidas se avisan y se reintentan; el interruptor de
+  mods es una sola transacción.
+- **Velocidad**: reconstruir la tabla de objetos con muchos aspectos pasó de unos 30 segundos a menos de uno.
+- **Español en todas partes**: unos 340 textos que faltaban.
+
+El historial completo está en [CHANGELOG.es.md](CHANGELOG.es.md) (también en
+[inglés](CHANGELOG.md) y [ruso](CHANGELOG.ru.md)).
 
 <br>
 
-## Documentation
+## Documentación
 
 | | |
 |---|---|
-| [Installing mods](https://dota2modmanager.com/docs/install/) | The whole route, by hand and with the app |
-| [The language folder](https://dota2modmanager.com/docs/language/) | Why `-language` is not needed, and what it does when it is there |
-| [VPK and load order](https://dota2modmanager.com/docs/vpk/) | Pak slots, which mod wins, and `gameinfo.gi` |
-| [Safe mode](https://dota2modmanager.com/docs/safe/) | What the app writes into the game, and what it does not |
-| [Free cosmetics](https://dota2modmanager.com/docs/cosmetics/) | The item table, and what it can and cannot give you |
-| [After a Dota patch](https://dota2modmanager.com/docs/troubleshooting/) | What breaks, and what the app puts back |
-| [Every fact, checkable](https://dota2modmanager.com/facts/) | Version, platforms, counts, and how to verify each one |
-| [ARCHITECTURE.md](ARCHITECTURE.md) · [docs/API.md](docs/API.md) | Which file owns which decision, and every module's exports |
-| [CONTRIBUTING.md](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md) · [SECURITY.md](SECURITY.md) | How to work on it, with or without an assistant, and how to report a hole |
-| [docs/assurance-case.md](docs/assurance-case.md) | What could go wrong, what stops it, and the test that proves each answer |
-| [TRADEMARK.md](TRADEMARK.md) · [docs/code-signing-policy.md](docs/code-signing-policy.md) | What the licence gives you and what it does not, and what is signed today |
-| [Status](https://dota2modmanager.betteruptime.com) | Whether the update feed, the mirror, the catalog and the site are answering right now |
-| [PRIVACY.md](PRIVACY.md) | What is collected (nothing), and every address the app can contact |
-| [DECISIONS.md](DECISIONS.md) | What was decided on purpose, what is genuinely missing, and the command that checks each one |
-| [GOVERNANCE.md](GOVERNANCE.md) | Who decides what, how a change is accepted, and what happens to the project without its maintainer |
-| [docs/second-maintainer.md](docs/second-maintainer.md) | The second pair of hands: what the role is, and what to do on the day it matters |
-| [ROADMAP.md](ROADMAP.md) | What is coming next, what comes later, and what this project will not do |
-| [CHANGELOG.md](CHANGELOG.md) · [CHANGELOG.ru.md](CHANGELOG.ru.md) | What changed in each release |
+| [ARCHITECTURE.md](ARCHITECTURE.md) · [docs/API.md](docs/API.md) | Qué archivo decide qué, y lo que exporta cada módulo |
+| [DECISIONS.md](DECISIONS.md) | Lo decidido a propósito, lo que falta de verdad y el comando que comprueba cada cosa |
+| [CONTRIBUTING.md](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md) | Cómo trabajar en el proyecto, con o sin asistente |
+| [SECURITY.md](SECURITY.md) · [PRIVACY.md](PRIVACY.md) | Cómo informar una vulnerabilidad, y qué se recopila (nada) |
+| [CHANGELOG.es.md](CHANGELOG.es.md) | Qué cambió en cada versión |
 
 <br>
 
-## Report a problem
+## Informar un problema
 
-| | |
-|---|---|
-| [Bug report](https://github.com/TheFleece/dota2-mod-manager/issues/new?template=bug_report.yml) | Something is broken. **Settings → Diagnostics → Export report** puts everything needed in one file |
-| [Feature request](https://github.com/TheFleece/dota2-mod-manager/issues/new?template=feature_request.yml) | An idea for how the app should work |
-| [Discussions](https://github.com/TheFleece/dota2-mod-manager/discussions) | Questions, setups worth showing, and anything that is not yet a bug |
-| [Discord](https://discord.gg/PBvG8D9MxT) | Quick help, in the catalog's own community |
-| [Security](SECURITY.md) | Vulnerabilities, privately — never a public issue |
+Abre un [issue en Dota2-Mods-Releases](https://github.com/Dreftian/Dota2-Mods-Releases/issues)
+con tu versión (aparece en Configuración), qué hiciste y qué esperabas.
+**Configuración → Diagnóstico → Exportar informe** reúne en un archivo todo lo necesario, sin datos
+personales. Para ayuda rápida está el [Discord](https://discord.gg/PBvG8D9MxT) de la comunidad del
+catálogo.
 
-Two things first: make sure you are on the latest version, and if Dota updated recently, open
-the app and let it put the patch back.
+Antes, dos cosas: asegúrate de tener la última versión y, si Dota se actualizó hace poco, abre la
+app y deja que reponga lo que el parche quitó.
 
 <br>
 
-## Project activity
-
-<div align="center">
-  <img src="https://dota2modmanager.com/activity.svg" alt="Commits per day over the last 60, split between work done by hand and work done by CI, with release days marked" width="100%">
-</div>
-
-Drawn from this repository's own `git log` when [the site](https://dota2modmanager.com) rebuilds,
-which it does daily and after every release. No third-party widget, so nobody reading this page
-is loading a tracker, and nothing has to be committed for the picture to move.
-
-**What runs on every push:**
-
-| | |
-|---|---|
-| [Tests](.github/workflows/test.yml) | eslint first, then the full suite with a coverage floor, on Linux and on Windows. Several of the tests hold the project against itself rather than testing a module: every IPC channel has a handler and every handler runs, every renderer import resolves, every Russian string has an English twin, the version and both changelogs agree, `docs/API.md` still matches the source, and `DECISIONS.md` still matches the repository |
-| [CodeQL](.github/workflows/codeql.yml) | Security and quality analysis, plus a weekly scheduled run |
-| [Linux](.github/workflows/linux.yml) | Builds the AppImage, starts the app against the sandbox, photographs the first window and reads the log for code that could not run |
-| [Window](.github/workflows/e2e.yml) | On Linux and on Windows: installs a mod, switches it off and on and removes it by clicking in the window, checking the game folder on disk after each launch. Offline, with a fixture catalog |
-| [Release](.github/workflows/release.yml) | On a tag only: builds the Windows installer, the portable build and the Linux AppImage from that commit into a draft release, installs the installer and the AppImage from the draft and clicks a mod through each, and publishes the release with its changelog section only when both pass |
-| [Site](.github/workflows/site.yml) | Rebuilds the documentation site so its counts, its version and this card stay true. On a pull request it only builds the site and checks the output |
-| [Mirror](.github/workflows/mirror.yml) | Pushes the same history to [GitLab](https://gitlab.com/TheFleece/dota2-mod-manager), so the code outlives this repository |
-| [Search report](.github/workflows/seo.yml) | Weekly, not per push: downloads, update checks, and visits from Google, Bing and Yandex, posted to [one public issue](https://github.com/TheFleece/dota2-mod-manager/issues/3) with every earlier week above it |
-| [Radar](.github/workflows/radar.yml) | Daily, not per push: rewrites the pinned "Project status" issue with what waits on a decision, what is red and what is about to expire, and messages the maintainer about anything overdue |
-| [Pull request rules](.github/workflows/pull-request.yml) | On every pull request: a change that fixes something changes a test too, or says in a `No-Test-Because:` line why it cannot |
-| [Labels](.github/workflows/labels.yml) | Keeps the repository's labels equal to `.github/labels.json` |
-| [Dependency updates](.github/workflows/dependency-updates.yml) | On Dependabot's pull requests: a minor or patch update merges itself once every required check passes, and anything bigger gets a label and waits for the maintainer |
-| [Scorecard](.github/workflows/scorecard.yml) | Weekly and on every change to main: OpenSSF Scorecard grades how the repository is kept (pinned actions, token permissions, branch protection, signed releases) and publishes the score behind the badge above |
-
-Nothing here commits back to `main`. Workflows that need to remember something between runs
-keep it in the Actions cache, or, for the weekly report, at the end of its own comment, because
-a bot commit per run is how a log stops being readable.
-
-<br>
-
-## Development
+## Desarrollo
 
 ```bash
 npm install
-npm start                 # run the app
-npm test                  # the whole suite, no framework, no mocks library
-npm run test:coverage     # the same with the floor CI enforces
-npm run docs              # regenerate docs/API.md from src/
-npm run sandbox:seed      # a throwaway game tree with real mods in it
-npm run start:sandbox     # the app against it, never your own game
+npm start                 # la app
+npm test                  # toda la suite: node:test, sin frameworks
+npm run lint              # eslint, solo lo que no podría ejecutarse
+npm run test:coverage     # lo mismo con el mínimo de cobertura
+npm run docs              # regenera docs/API.md desde src/
+npm run sandbox:seed      # un árbol de juego desechable con mods reales
+npm run start:sandbox     # la app contra ese árbol, nunca contra tu juego
 ```
 
-Node 24, Electron 44, no bundler — the renderer is plain HTML, CSS and JavaScript. Every release
-is produced by [`release.yml`](.github/workflows/release.yml) from the commit its tag names.
+Node 24, Electron 44 y sin bundler: la interfaz es HTML, CSS y JavaScript simples. Antes de cambiar
+algo lee [ARCHITECTURE.md](ARCHITECTURE.md) y [DECISIONS.md](DECISIONS.md).
 
-**Open an issue before building anything larger than a fix.** It costs one message and saves the
-case where two people solve the same thing twice, or where the answer was "that is deliberate,
-and here is why". [CONTRIBUTING.md](CONTRIBUTING.md) has the rest;
-[AGENTS.md](AGENTS.md) is the same ground for anyone working with a coding assistant.
-
-<br>
-
-## Written with Claude Code
-
-This project has been written with [Claude Code](https://claude.com/claude-code) since its first
-commit on 20 July 2026, and still is. Commits carry a `Co-Authored-By` trailer saying so.
-
-It says so here because guessing is worse. Everything that would tell you whether the code is any
-good is already in the open: every commit, more than forty test files, a linter and a coverage
-floor that CI enforces on two operating systems, and
-[DECISIONS.md](DECISIONS.md), which answers the questions reviewers keep asking with a command
-you can run yourself.
-
-Send a change written with an assistant and keep the trailer on it. [AGENTS.md](AGENTS.md) is
-what the project asks for in return.
+<!-- facts:deps-es -->
+`package.json` lista siete: `adm-zip` y `electron-updater` van dentro de la app; `electron`, `electron-builder`, `eslint`, `fast-check` y `typescript` solo la construyen o la comprueban.
+<!-- /facts:deps-es -->
+Los tests y todo lo que hay en `tools/` no usan ninguna dependencia. El lector y escritor de VPK,
+el parser de KeyValues, las protecciones de zip y la lógica de actualización están escritos aquí,
+porque cada dependencia es un extraño con permiso de escritura en la carpeta de un juego.
 
 <br>
 
-## What it is built on
+## Escrito con Claude Code
 
-Everything third-party the app ships or fetches, with the licence it comes under. The
-[NOTICE](NOTICE) file has the full text and the two additional terms this project adds under
-section 7 of the GPL.
-
-| | What for | Licence |
-|---|---|---|
-| [Electron](https://github.com/electron/electron) | The window and the process behind it | MIT |
-| [electron-updater](https://github.com/electron-userland/electron-builder) | Update checks and installing them | MIT |
-| [adm-zip](https://github.com/cthackers/adm-zip) | Reading mod archives, behind our own size and path guards | MIT |
-| [Source 2 Viewer](https://github.com/ValveResourceFormat/ValveResourceFormat) | Decoding Dota's own textures for item icons. Downloaded on demand, never bundled | MIT |
-| [Inter](https://github.com/rsms/inter), [Exo 2](https://github.com/NDISCOVER/Exo-2.0), [Material Symbols](https://github.com/google/material-design-icons) | The typefaces and icons, shipped inside the app rather than fetched | OFL-1.1, Apache-2.0 |
-| [Astro](https://github.com/withastro/astro) | The documentation site, not the app | MIT |
-
-<!-- facts:deps-en -->
-`package.json` lists seven: `adm-zip` and `electron-updater` ship inside the app, `electron`, `electron-builder`, `eslint`, `fast-check` and `typescript` only build or check it.
-<!-- /facts:deps-en -->
-The tests and everything under `tools/` use no dependencies at all. The VPK reader and writer, the KeyValues parser, the zip guards and the
-update logic are written here, because every dependency is a stranger with write access to a
-game folder on tens of thousands of machines.
-
-Valve's own `vpk.exe` is deliberately **not** here and must not be added: it is proprietary, and
-a project that bundles it is not open source in the sense SignPath's terms mean. Reading and
-writing VPK archives is done by this repository's own code, which is why `src/vpk.js` exists.
+Este proyecto se escribe con [Claude Code](https://claude.com/claude-code), y lo dice abiertamente:
+los commits llevan un trailer `Co-Authored-By`. La autoría y la responsabilidad de cada cambio
+siguen siendo de quien lo firma. [AGENTS.md](AGENTS.md) explica qué pide el proyecto a quien
+trabaja con un asistente.
 
 <br>
 
-## Credits
+## Licencia y créditos
 
-- **All mods, previews, guides and catalog data** come from the open-source
-  [**D2PFX**](https://github.com/h6rd/Dota2PornFxWeb) repository by [h6rd](https://github.com/h6rd)
-  and the Dota 2 modding community. This app is a desktop client for their catalog, and every mod
-  card in it credits its author.
-- Community tools (VPKMerge, Background Changer, Compiler, ItemsFix) belong to their authors.
-- **[hanta](https://www.youtube.com/@hqnta)** filmed a
-  [walkthrough](https://www.youtube.com/watch?v=Z_yalpuP6pA) in Russian, which answers more
-  questions than this page does for anyone who would rather watch than read.
+**Mod Assistant es una versión modificada de [Dota 2 Mod Manager](https://github.com/TheFleece/dota2-mod-manager)**,
+creado por **TheFleece** (Copyright (C) 2026 TheFleece), con espejo en
+[GitLab](https://gitlab.com/TheFleece/dota2-mod-manager). Dreftian Devs lo modifica desde el
+**20 de septiembre de 2026**; no es el programa original ni lo representa. El aviso de autoría
+original está en la app, en **Configuración**, sección "Acerca de".
 
-Every other page that links here, from the catalog's README to the projects built from this
-code, is listed with dates in [MENTIONS.md](MENTIONS.md). The few the maintainer wrote are in a
-list of their own.
+Se distribuye bajo la [GPL-3.0](LICENSE) con los términos adicionales del archivo [NOTICE](NOTICE):
+conservar esa línea de autoría, marcar esta versión como modificada y usar un nombre propio. El
+nombre "Dota 2 Mod Manager" y el dominio del proyecto original pertenecen a su autor. Cada versión
+publicada incluye su código fuente completo en
+[Dota2-Mods-Releases](https://github.com/Dreftian/Dota2-Mods-Releases/releases).
 
-<br>
-
-## License
-
-[GPL-3.0](LICENSE). Copyright (C) 2026 TheFleece.
-
-Fork it, change it, ship your own. GPL-3.0 asks you to keep the copyright line, to say that you
-changed the code and when, and to open your version under the same license. Section 7 lets an
-author add two more, and this repository does: keep the credit the app shows, and pick your own
-name for your version. [NOTICE](NOTICE) puts all of it in plain words.
-
-Catalog content belongs to [h6rd](https://github.com/h6rd/Dota2PornFxWeb) and the mod authors,
-under the license in their repository.
+- **Mods, vistas previas, guías y datos del catálogo**: el repositorio de código abierto
+  [**D2PFX**](https://github.com/h6rd/Dota2PornFxWeb) de [h6rd](https://github.com/h6rd) y la
+  comunidad de modding de Dota 2. Cada tarjeta de la app acredita a su autor.
+- Las herramientas de la comunidad (VPKMerge, Background Changer, Compiler, ItemsFix) pertenecen a sus autores.
+- Electron, electron-updater y adm-zip (MIT); Source 2 Viewer (MIT), descargado solo cuando hace
+  falta; tipografías Inter, Exo 2 y Material Symbols (OFL-1.1, Apache-2.0).
 
 <div align="center">
-<sub>Not affiliated with Valve Corporation. You modify game files at your own risk.</sub>
+<sub>Dota 2 es una marca registrada de Valve Corporation. Mod Assistant no está afiliado, respaldado ni patrocinado por Valve. Modificas los archivos del juego bajo tu propio riesgo.</sub>
 </div>
->>>>>>> 47baafd (feat: Mod Assistant v1.0.0 - Full multilingual, dark/light themes, InsForge auth, Dota2Changer mods and conflict auto-resolution)

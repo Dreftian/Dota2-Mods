@@ -15,13 +15,16 @@ const AdmZip = require('adm-zip');
 
 const { Installer } = require('../src/installer.js');
 const { FileTx } = require('../src/file-tx.js');
+const { Library } = require('../src/library.js');
+const { SLOT_CAPACITY } = require('../src/slots.js');
+const { listVpkPaths } = require('../src/vpk.js');
 const { rawZip } = require('./fixtures/raw-zip.js');
 
 const FONTS = ['dota', 'panorama', 'fonts'];
 const CURSOR = ['dota', 'resource', 'cursor'];
 
 /** A game folder the installer accepts, and an installer pointed at it. */
-function stand(t, { game: withGame = true } = {}) {
+function stand(t, { game: withGame = true, masterExplicitOff = null, ownedRelPaths = null } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'd2mm-installer-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const game = path.join(dir, 'game');
@@ -32,6 +35,8 @@ function stand(t, { game: withGame = true } = {}) {
     getGamePath: () => (withGame ? game : null),
     getLangSuffix: () => 'russian',
     onProgress: () => {},
+    masterExplicitOff,
+    ownedRelPaths,
   });
   const lang = path.join(game, 'dota_russian');
   const incoming = path.join(dir, 'incoming');
@@ -540,3 +545,485 @@ test('generateRankVpk covers all immortal tiers and star ranks', () => {
   assert.ok(unknownMedal.buffer.length > 0);
 });
 
+// ---------- slots: how many, and what happens when there are none ----------
+
+/** Mod paks in the language folder, sorted, suffixes and all. */
+const paks = (s) => fs.readdirSync(s.lang).filter((f) => /^pak\d+_/.test(f)).sort();
+
+/** Somebody's mod in every slot the allocator would hand out. */
+function fillEverySlot(s) {
+  s.installer.ensureLangFolder();
+  const used = s.installer.usedPakNames();
+  for (;;) {
+    let name;
+    try { name = s.installer.allocatePak(used, true); } catch { return; }
+    fs.writeFileSync(path.join(s.lang, name), `other mod in ${name}`);
+  }
+}
+
+test('the slots a mod can have are counted from the rule, and the last one refuses by range', (t) => {
+  /* The Library said 98, then 100, then 9999 for premium, while the allocator gave out 95.
+     The number is counted now, and this holds it to what allocatePak actually does. */
+  const s = stand(t);
+  const used = new Set();
+  const handed = [];
+  for (;;) {
+    try { handed.push(s.installer.allocatePak(used, false)); } catch (err) {
+      assert.match(err.message, /02-99/, 'the error names the range that is really full');
+      break;
+    }
+  }
+  assert.equal(handed.length, SLOT_CAPACITY);
+  assert.equal(SLOT_CAPACITY, 95, 'eight early slots and ninety more, less the three Minify writes');
+  assert.ok(handed.every((n) => /^pak\d\d_dir\.vpk$/.test(n)), 'nothing the game would never mount');
+  assert.equal(new Set(handed).size, handed.length, 'no slot handed out twice');
+});
+
+test('a rank written from bytes takes an early slot, and refuses rather than write over a mod', async (t) => {
+  /* With every slot taken the rank used to fall back to pak05 and write over whatever mod was
+     there, whose record then pointed at a generated medal. */
+  const s = stand(t);
+  assert.deepEqual(await s.installer.installDirectBuffer(Buffer.from('rank'), 'Rank', 'ranks'),
+    [{ root: 'lang', relPath: 'pak02_dir.vpk' }]);
+  fillEverySlot(s);
+  await assert.rejects(s.installer.installDirectBuffer(Buffer.from('another rank'), 'Rank', 'ranks'), /02-99/);
+  assert.equal(s.read('dota_russian', 'pak05_dir.vpk'), 'other mod in pak05_dir.vpk', 'somebody\'s mod was written over');
+  assert.equal(s.read('dota_russian', 'pak02_dir.vpk'), 'rank');
+});
+
+test('a medal pack from the catalog is downloaded like any mod; only a generator entry is generated', async (t) => {
+  /* The eight packs in the catalog's Ranks all went to the generator because of their category,
+     so every one of them installed the same generated file and none was ever downloaded. */
+  const s = stand(t);
+  const asked = [];
+  s.installer.download = async (categoryId, fileRef, label) => {
+    asked.push(fileRef);
+    return s.arrive(fileRef, `bytes of ${label}`);
+  };
+
+  const imperial = await s.installer.install({ categoryId: 'ranks', modName: 'Imperial Medals', fileRef: 'pak10_dir.vpk' });
+  const named = await s.installer.install({ categoryId: 'heroes', modName: 'Hero Tier Changer Skin', fileRef: 'Tier.vpk' });
+  assert.deepEqual(asked, ['pak10_dir.vpk', 'Tier.vpk'], 'both went to the download');
+  assert.deepEqual(imperial, [{ root: 'lang', relPath: 'pak02_dir.vpk' }], 'a rank still loads early');
+  assert.equal(s.read('dota_russian', 'pak02_dir.vpk'), 'bytes of Imperial Medals', 'its own archive, not the generator\'s');
+  assert.equal(s.read('dota_russian', named[0].relPath), 'bytes of Hero Tier Changer Skin', 'a name is not a category');
+
+  const generated = await s.installer.install({ categoryId: 'ranks', modName: 'Rank Changer', fileRef: 'generator:ranks' });
+  assert.equal(asked.length, 2, 'the generator entry downloads nothing');
+  const inside = listVpkPaths(fs.readFileSync(path.join(s.lang, generated[0].relPath)));
+  assert.ok(inside.some((p) => p.startsWith('panorama/images/rank_tier_icons/')), 'and is the generated medal');
+});
+
+// ---------- the master switch ----------
+
+test('mods switched off by the user are off for the next install, even with nothing on disk to say so', (t) => {
+  /* An empty library, or every mod already off one by one: switching mods off renames nothing,
+     so the folder alone never said "off", and the next mod went live under a Library that
+     showed mods off. */
+  let explicit = false;
+  const s = stand(t, { masterExplicitOff: () => explicit });
+  s.installer.ensureLangFolder();
+  assert.deepEqual(s.installer.setMasterEnabled(false), { changed: 0 });
+  assert.equal(s.installer.masterIsOff(), false, 'nothing on disk, and the switch not yet recorded');
+  explicit = true;
+  assert.equal(s.installer.masterIsOff(), true, 'the user\'s switch is enough on its own');
+
+  const built = stand(t);
+  built.installer.ensureLangFolder();
+  install(built.installer, 'heroes', built.arrive('A.vpk', 'a'));
+  built.installer.setMasterEnabled(false);
+  assert.equal(built.installer.masterIsOff(), true, 'without the flag the folder still answers');
+});
+
+test('a preset applied while mods are off switches mods behind the switch, not past it', (t) => {
+  /* A on, B off, mods off, then a preset holding only B - in the order presets-service applies
+     it, switching off first. B used to go live while the switch said off, and A came back on
+     with the rest although the Library showed it off. */
+  let explicit = false;
+  const s = stand(t, { masterExplicitOff: () => explicit });
+  const a = install(s.installer, 'heroes', s.arrive('A.vpk', 'a'));
+  const b = install(s.installer, 'heroes', s.arrive('B.vpk', 'b'));
+  s.installer.setEnabled(b, false);
+  s.installer.setMasterEnabled(false);
+  explicit = true;
+  assert.deepEqual(paks(s), ['pak10_dir.vpk.moff', 'pak11_dir.vpk.off']);
+
+  s.installer.setEnabled(a, false);
+  s.installer.setEnabled(b, true);
+  assert.deepEqual(paks(s), ['pak10_dir.vpk.off', 'pak11_dir.vpk.moff'], 'B waits for the switch, A is off for good');
+
+  explicit = false;
+  s.installer.setMasterEnabled(true);
+  assert.deepEqual(paks(s), ['pak10_dir.vpk.off', 'pak11_dir.vpk'], 'mods on brings back exactly the preset');
+});
+
+test('a file the game is holding stops the master switch whole, and says which', (t) => {
+  /* The renames were one at a time: a pak Dota held stopped the sweep, the ones before it
+     stayed renamed, and the one .moff on disk had the Library say "mods off" while the rest
+     went on loading. */
+  const s = stand(t);
+  for (const n of ['A', 'B', 'C']) install(s.installer, 'heroes', s.arrive(`${n}.vpk`, n));
+  const rename = fs.renameSync;
+  t.after(() => { fs.renameSync = rename; });
+  const holdOn = (code) => {
+    fs.renameSync = (from, to) => {
+      if (String(from).endsWith('pak11_dir.vpk') && String(to).endsWith('.moff')) {
+        throw Object.assign(new Error(`${code}: held, rename '${from}'`), { code });
+      }
+      return rename(from, to);
+    };
+  };
+
+  holdOn('EBUSY');
+  assert.throws(() => s.installer.setMasterEnabled(false),
+    (err) => err.message.includes('pak11_dir.vpk') && !err.message.includes('EBUSY') && err.cause.code === 'EBUSY');
+  fs.renameSync = rename;
+  assert.deepEqual(paks(s), ['pak10_dir.vpk', 'pak11_dir.vpk', 'pak12_dir.vpk'], 'nothing is left half switched');
+  assert.equal(s.installer.masterIsOff(), false, 'and nothing on disk says mods are off');
+
+  holdOn('EIO');
+  assert.throws(() => s.installer.setMasterEnabled(false), (err) => err.message.includes('EIO: held'));
+  fs.renameSync = rename;
+  assert.deepEqual(paks(s), ['pak10_dir.vpk', 'pak11_dir.vpk', 'pak12_dir.vpk']);
+});
+
+test('our own mod in pak99 goes off with the rest; a pak99 nobody claims is left to Minify', (t) => {
+  /* The 87th mod somebody installs lands in pak99, the slot older Minify releases wrote their
+     English fix to. By number alone "Mods off" left ours live. */
+  const s = stand(t);
+  s.installer.ensureLangFolder();
+  fs.writeFileSync(path.join(s.lang, 'pak10_dir.vpk'), 'ours');
+  fs.writeFileSync(path.join(s.lang, 'pak99_dir.vpk'), 'the 87th');
+
+  s.installer.writeOwnership(['pak10_dir.vpk', 'pak99_dir.vpk']);
+  s.installer.setMasterEnabled(false);
+  assert.deepEqual(paks(s), ['pak10_dir.vpk.moff', 'pak99_dir.vpk.moff'], 'the note says it is ours');
+  s.installer.setMasterEnabled(true);
+
+  s.installer.writeOwnership(['pak10_dir.vpk']);
+  s.installer.setMasterEnabled(false);
+  assert.deepEqual(paks(s), ['pak10_dir.vpk.moff', 'pak99_dir.vpk'], 'claimed by nobody: Minify\'s English fix');
+  assert.deepEqual(s.installer.externalFiles([{ root: 'lang', relPath: 'pak10_dir.vpk' }], { scanExtras: false }), [],
+    'and not offered as a loose file either');
+  s.installer.setMasterEnabled(true);
+
+  // the note is only rewritten when the Library lists; the library's own list is fresher
+  s.installer.setMasterEnabled(false, ['pak10_dir.vpk', 'pak99_dir.vpk']);
+  assert.deepEqual(paks(s), ['pak10_dir.vpk.moff', 'pak99_dir.vpk.moff']);
+});
+
+test('a pak99 a preset, a pack or an import just wrote goes off with the rest, with no list handed over', (t) => {
+  /* Only mods:install passed the library's list. main.js after a preset or a pack deploy, and
+     src/adopt.js after an import, switched mods off against the note, which did not name the mod
+     that had just landed in pak99 yet, and left it live as Minify's. */
+  let owned = ['pak10_dir.vpk'];
+  const s = stand(t, { ownedRelPaths: () => owned });
+  s.installer.ensureLangFolder();
+  fs.writeFileSync(path.join(s.lang, 'pak10_dir.vpk'), 'ours');
+  s.installer.writeOwnership(owned);
+  fs.writeFileSync(path.join(s.lang, 'pak99_dir.vpk'), 'the 87th, from a preset');
+  owned = ['pak10_dir.vpk', 'pak99_dir.vpk'];
+
+  s.installer.setMasterEnabled(false);
+  assert.deepEqual(paks(s), ['pak10_dir.vpk.moff', 'pak99_dir.vpk.moff'], 'the library knew it before the note did');
+  s.installer.setMasterEnabled(true);
+  assert.deepEqual(paks(s), ['pak10_dir.vpk', 'pak99_dir.vpk']);
+
+  owned = ['pak10_dir.vpk'];
+  s.installer.setMasterEnabled(false);
+  assert.deepEqual(paks(s), ['pak10_dir.vpk.moff', 'pak99_dir.vpk'], 'one the library does not have is still Minify\'s');
+
+  const main = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
+  assert.match(main, /new Installer\(\{[\s\S]*?ownedRelPaths: \(\) => library\.knownLangRelPaths\(\)[\s\S]*?\}\);/,
+    'and the app hands the installer its library, or none of this happens outside the tests');
+});
+
+// ---------- what older versions left where the game never looks ----------
+
+test('mods an older version parked in pak100 and above come back to slots the game reads', (t) => {
+  /* 1.0.6, 1.0.8 and 1.0.9 went on to pak100-pak250 once 02-99 were full. The engine reads two
+     digits, so those mods were listed, switched on, and did nothing, and nothing moved them. */
+  const s = stand(t);
+  s.installer.ensureLangFolder();
+  const userData = path.join(s.dir, 'userdata');
+  const lib = new Library(userData);
+  const put = (name, body) => fs.writeFileSync(path.join(s.lang, name), body);
+  const lang = (...relPaths) => relPaths.map((relPath) => ({ root: 'lang', relPath }));
+  put('pak10_dir.vpk', 'ordinary');
+  put('pak150_dir.vpk', 'upper');
+  put('pak120_dir.vpk.off', 'lower, switched off');
+  put('pak130_dir.vpk', 'pack index');
+  put('pak130_000.vpk', 'pack volume');
+  lib.add({ name: 'Ordinary', categoryId: 'heroes', files: lang('pak10_dir.vpk') });
+  const upper = lib.add({ name: 'Upper', categoryId: 'heroes', files: lang('pak150_dir.vpk') });
+  const lower = lib.add({ name: 'Lower', categoryId: 'trees', files: lang('pak120_dir.vpk') });
+  const pack = lib.add({ name: 'Pack', categoryId: 'heroes', kind: 'pack', files: lang('pak130_dir.vpk', 'pak130_000.vpk') });
+
+  assert.deepEqual(s.installer.migrateLegacyPriorityPaks(lib), { moved: 3, stuck: 0 }, 'it runs with the startup repair');
+
+  const saved = new Library(userData);
+  assert.deepEqual(saved.find(lower.id).files, lang('pak02_dir.vpk'), 'an early category gets an early slot');
+  assert.deepEqual(saved.find(pack.id).files, lang('pak11_dir.vpk', 'pak11_000.vpk'), 'a set moves whole');
+  assert.deepEqual(saved.find(upper.id).files, lang('pak12_dir.vpk'), 'and the lower of two stays on top');
+  assert.deepEqual(paks(s), ['pak02_dir.vpk.off', 'pak10_dir.vpk', 'pak11_000.vpk', 'pak11_dir.vpk', 'pak12_dir.vpk']);
+  assert.equal(s.read('dota_russian', 'pak02_dir.vpk.off'), 'lower, switched off', 'switched off stays off');
+  assert.deepEqual(s.installer.migrateLegacyPriorityPaks(lib), { moved: 0, stuck: 0 }, 'a second start finds nothing to do');
+});
+
+test('a parked mod with no slot to go to is kept and marked, and moves once one frees up', (t) => {
+  const s = stand(t);
+  const userData = path.join(s.dir, 'userdata');
+  const lib = new Library(userData);
+  fillEverySlot(s);
+  fs.writeFileSync(path.join(s.lang, 'pak140_dir.vpk'), 'parked');
+  const rec = lib.add({ name: 'Parked', categoryId: 'heroes', files: [{ root: 'lang', relPath: 'pak140_dir.vpk' }] });
+
+  assert.deepEqual(s.installer.migrateLegacyPriorityPaks(lib), { moved: 0, stuck: 1 });
+  assert.equal(new Library(userData).find(rec.id).notMounted, true, 'the Library can say it does not load');
+  assert.equal(s.read('dota_russian', 'pak140_dir.vpk'), 'parked', 'and the mod is still there');
+
+  fs.rmSync(path.join(s.lang, 'pak50_dir.vpk'));
+  assert.deepEqual(s.installer.migrateLegacyPriorityPaks(lib), { moved: 1, stuck: 0 });
+  const moved = new Library(userData).find(rec.id);
+  assert.deepEqual(moved.files, [{ root: 'lang', relPath: 'pak50_dir.vpk' }]);
+  assert.equal(moved.notMounted, undefined, 'the mark goes once it loads');
+  assert.equal(s.read('dota_russian', 'pak50_dir.vpk'), 'parked');
+});
+
+// ---------- the channels that install, and the rank ones ----------
+
+/** A settings.json that lives as long as the object: what one run of the app would see. */
+function memorySettings(seed = {}) {
+  const data = { ...seed };
+  return { data, get: (k) => data[k], set: (k, v) => { data[k] = v; } };
+}
+
+/**
+ * src/ipc-mods.js registered against a stand, with Electron's ipcMain standing in. Registering
+ * is what a start of the app does, so a second call with the same settings is the next start.
+ */
+function modsChannels(s, { settings = memorySettings() } = {}) {
+  const Module = require('module');
+  const handlers = new Map();
+  const electron = { ipcMain: { handle: (channel, fn) => handlers.set(channel, fn) }, dialog: {} };
+  const load = Module._load;
+  Module._load = function stubbed(request, ...rest) {
+    return request === 'electron' ? electron : load.call(this, request, ...rest);
+  };
+  const file = require.resolve('../src/ipc-mods.js');
+  const library = new Library(path.join(s.dir, 'userdata'));
+  const log = [];
+  try {
+    delete require.cache[file];
+    require(file).registerModsIpc({
+      applyMasterToCursors: (on) => log.push(`cursors ${on}`), blocked: () => null, catalog: {},
+      diag: (msg) => log.push(msg), disableOtherCursors: () => [],
+      fingerprints: { hasData: () => false, match: () => null, fonts: [] },
+      importVpkBuffers: () => null, importVpkPaths: () => null, installer: s.installer,
+      isCursorRecord: () => false, library, refreshPresence: () => {},
+      schemaService: { harvest: () => null, refresh: () => {}, state: () => ({ enabled: false }) },
+      sendProgress: () => {}, settings, verifyStuck: () => false, win: () => null,
+    });
+  } finally {
+    Module._load = load;
+    delete require.cache[file];
+  }
+  return { call: (channel, ...args) => handlers.get(channel)({}, ...args), library, log };
+}
+
+/** download() as the network would answer it, from bytes named after the mod. */
+function offline(s) {
+  s.installer.download = async (categoryId, fileRef, label) => s.arrive(path.basename(fileRef), `bytes of ${label}`);
+}
+
+test('the Library is told how many slots there really are', async (t) => {
+  const s = stand(t);
+  s.installer.ensureLangFolder();
+  const res = await modsChannels(s).call('mods:list');
+  assert.equal(res.slotCeil, SLOT_CAPACITY);
+});
+
+test('the slot count counts the slots the allocator hands out, and nothing else in the folder', async (t) => {
+  /* Every pakNN in the folder counted against a ceiling that leaves out Minify's three, so the
+     arrangement the Library recommends - Minify in the same folder - read 98 of 95. */
+  const s = stand(t);
+  s.installer.ensureLangFolder();
+  for (const name of ['pak65_dir.vpk', 'pak66_dir.vpk', 'pak67_dir.vpk.moff', 'pak00_dir.vpk', 'pak01_dir.vpk', 'pak150_dir.vpk']) {
+    fs.writeFileSync(path.join(s.lang, name), 'not a slot of ours');
+  }
+  assert.deepEqual(s.installer.slotUse([]), { taken: 0, ceiling: SLOT_CAPACITY });
+  fillEverySlot(s);
+  const ch = modsChannels(s);
+  ch.library.add({ categoryId: 'heroes', name: 'The 87th', files: [{ root: 'lang', relPath: 'pak99_dir.vpk' }] });
+  const full = await ch.call('mods:list');
+  assert.deepEqual([full.slots, full.slotCeil], [SLOT_CAPACITY, SLOT_CAPACITY], 'full is exactly full');
+
+  // an old Minify's English fix in pak99: not a mod of ours, and a slot we cannot have
+  const beside = stand(t);
+  beside.installer.ensureLangFolder();
+  fs.writeFileSync(path.join(beside.lang, 'pak99_dir.vpk'), 'Minify\'s English fix');
+  assert.deepEqual(beside.installer.slotUse([]), { taken: 0, ceiling: SLOT_CAPACITY - 1 });
+  fillEverySlot(beside);
+  assert.deepEqual(beside.installer.slotUse([]), { taken: SLOT_CAPACITY - 1, ceiling: SLOT_CAPACITY - 1 },
+    'the count still meets the ceiling where installing stops');
+  assert.deepEqual(beside.installer.slotUse(['pak99_dir.vpk']), { taken: SLOT_CAPACITY, ceiling: SLOT_CAPACITY },
+    'and one of ours in pak99 is just a slot in use');
+});
+
+test('a mod installed while the user has mods off goes in switched off', async (t) => {
+  const s = stand(t, { masterExplicitOff: () => true });
+  offline(s);
+  const ch = modsChannels(s);
+  const res = await ch.call('mods:install', { categoryId: 'heroes', name: 'Axe', fileRef: 'Axe.vpk' });
+  assert.equal(res.ok, true);
+  assert.deepEqual(paks(s), ['pak10_dir.vpk.moff'], 'it went live while the Library said mods were off');
+  assert.ok(ch.log.includes('cursors false'), 'and cursors follow the switch as well');
+});
+
+test('Apply puts the new rank in before the old one comes out, and leaves the catalog\'s medal packs alone', async (t) => {
+  const s = stand(t);
+  offline(s);
+  const ch = modsChannels(s);
+  const pack = await ch.call('mods:install', { categoryId: 'ranks', name: 'Imperial Medals', fileRef: 'pak10_dir.vpk' });
+  assert.deepEqual(pack.record.files, [{ root: 'lang', relPath: 'pak02_dir.vpk' }]);
+  assert.deepEqual(await ch.call('ranks:getCustom'), { active: false }, 'a medal pack is not the custom rank');
+
+  const first = await ch.call('ranks:applyCustom', { medal: 'rank5', heroTier: 5, heroLevel: 30 });
+  assert.equal(first.ok, true);
+  assert.deepEqual(first.record.files, [{ root: 'lang', relPath: 'pak03_dir.vpk' }]);
+  const second = await ch.call('ranks:applyCustom', { medal: 'rank6', heroTier: 5, heroLevel: 30 });
+  assert.deepEqual(second.record.files, [{ root: 'lang', relPath: 'pak04_dir.vpk' }], 'written while the old one was still there');
+  assert.deepEqual(paks(s), ['pak02_dir.vpk', 'pak04_dir.vpk'], 'the old rank is gone, the medal pack is not');
+  assert.deepEqual(ch.library.list().map((r) => r.name).sort(), ['Imperial Medals', second.name].sort());
+  assert.equal((await ch.call('ranks:getCustom')).record.id, second.record.id);
+
+  assert.deepEqual(await ch.call('ranks:removeCustom'), { ok: true });
+  assert.deepEqual(paks(s), ['pak02_dir.vpk'], 'Reset takes out the generated rank only');
+  assert.deepEqual(ch.library.list().map((r) => r.name), ['Imperial Medals']);
+});
+
+test('a rank the game is holding is reported, and the folder is left as it was', async (t) => {
+  /* The failure used to be swallowed: Apply added a second rank that the first, on its lower
+     slot, went on beating, and Reset said "restored" with the rank still in the game. */
+  const s = stand(t);
+  const ch = modsChannels(s);
+  const first = await ch.call('ranks:applyCustom', { medal: 'rank5' });
+  const remove = s.installer.remove.bind(s.installer);
+  let held = (files) => files.some((f) => f.relPath === 'pak02_dir.vpk');
+  s.installer.remove = (files, opts) => {
+    if (held(files)) throw Object.assign(new Error('EBUSY: locked'), { code: 'EBUSY' });
+    return remove(files, opts);
+  };
+
+  const again = await ch.call('ranks:applyCustom', { medal: 'rank6' });
+  assert.ok(again.error && !again.error.includes('EBUSY'), `a message for people, got ${again.error}`);
+  assert.deepEqual(paks(s), ['pak02_dir.vpk'], 'the new rank came back out');
+  assert.deepEqual(ch.library.list().map((r) => r.id), [first.record.id]);
+
+  const reset = await ch.call('ranks:removeCustom');
+  assert.ok(reset.error, 'Reset does not say it worked');
+  assert.deepEqual(ch.library.list().map((r) => r.id), [first.record.id], 'and keeps the record of what is still there');
+
+  // nothing can come out at all: the new pak stays, and so does a record pointing at it
+  held = () => true;
+  assert.ok((await ch.call('ranks:applyCustom', { medal: 'rank7' })).error);
+  assert.deepEqual(paks(s), ['pak02_dir.vpk', 'pak03_dir.vpk']);
+  assert.equal(ch.library.list().length, 2, 'no pak is left that the library does not know about');
+
+  held = () => false;
+  assert.deepEqual(await ch.call('ranks:removeCustom'), { ok: true });
+  assert.deepEqual(paks(s), []);
+});
+
+test('a rank applied while mods are off is off too', async (t) => {
+  const s = stand(t, { masterExplicitOff: () => true });
+  const ch = modsChannels(s);
+  const res = await ch.call('ranks:applyCustom', { medal: 'rank5' });
+  assert.equal(res.ok, true);
+  assert.deepEqual(paks(s), ['pak02_dir.vpk.moff']);
+});
+
+
+test('a rank 1.0.14 generated for a medal card is the rank Apply replaces and Reset takes out; a pack bought since is not', async (t) => {
+  /* 1.0.14 sent every Ranks card to the generator and recorded the card's own fileRef, with no
+     customRank. Once only customRank counted, those ranks went on beating the one applied over
+     them from their lower slot, and Reset said "restored" with them still in the game. */
+  const s = stand(t);
+  const files = await s.installer.installDirectBuffer(Buffer.from('what 1.0.14 generated'), 'Divine Medals', 'ranks');
+  const legacy = new Library(path.join(s.dir, 'userdata'))
+    .add({ categoryId: 'ranks', name: 'Divine Medals', fileRef: 'pak17_dir.vpk', files });
+  const settings = memorySettings();
+
+  const ch = modsChannels(s, { settings });
+  assert.equal(settings.data.legacyRanksMigrated, true, 'marked once, and said so');
+  assert.equal((await ch.call('ranks:getCustom')).record.id, legacy.id, 'the Customizer sees it as its own');
+  const applied = await ch.call('ranks:applyCustom', { medal: 'rank5', heroTier: 5, heroLevel: 30 });
+  assert.equal(applied.ok, true);
+  assert.deepEqual(paks(s), ['pak03_dir.vpk'], 'the old generated rank is out, not left on the lower slot');
+
+  offline(s);
+  const pack = await ch.call('mods:install', { categoryId: 'ranks', name: 'Imperial Medals', fileRef: 'pak10_dir.vpk' });
+  const nextStart = modsChannels(s, { settings });
+  assert.equal(nextStart.library.find(pack.record.id).customRank, undefined, 'a real medal pack is not taken for a generated rank');
+  assert.equal((await nextStart.call('ranks:getCustom')).record.id, applied.record.id);
+  assert.deepEqual(await nextStart.call('ranks:removeCustom'), { ok: true });
+  assert.deepEqual(paks(s), ['pak02_dir.vpk'], 'Reset leaves the pack');
+  assert.deepEqual(nextStart.library.list().map((r) => r.name), ['Imperial Medals']);
+});
+
+test('Apply keeps the rank it just wrote when the old one\'s file is already gone, and still changes it with every slot taken', async (t) => {
+  /* New before old: the new rank takes the first free slot, which is the old one's when its file
+     was deleted by hand, and removing the old record then deleted the new file. And with every
+     slot taken there was no room for the new one until the old one was out. */
+  const s = stand(t);
+  const ch = modsChannels(s);
+  const first = await ch.call('ranks:applyCustom', { medal: 'rank5' });
+  assert.deepEqual(first.record.files, [{ root: 'lang', relPath: 'pak02_dir.vpk' }]);
+  fs.rmSync(path.join(s.lang, 'pak02_dir.vpk'));
+
+  const second = await ch.call('ranks:applyCustom', { medal: 'rank6' });
+  assert.equal(second.ok, true);
+  assert.deepEqual(second.record.files, [{ root: 'lang', relPath: 'pak02_dir.vpk' }]);
+  assert.deepEqual(paks(s), ['pak02_dir.vpk'], 'the rank just applied is still on disk');
+  assert.deepEqual(ch.library.list().map((r) => r.id), [second.record.id]);
+
+  fillEverySlot(s);
+  const before = fs.readFileSync(path.join(s.lang, 'pak02_dir.vpk'));
+  const third = await ch.call('ranks:applyCustom', { medal: 'rank7' });
+  assert.equal(third.ok, true, `changing the rank at the limit failed: ${third.error}`);
+  assert.deepEqual(third.record.files, [{ root: 'lang', relPath: 'pak02_dir.vpk' }], 'into the slot the old one gave up');
+  assert.ok(!fs.readFileSync(path.join(s.lang, 'pak02_dir.vpk')).equals(before), 'and it is the new rank');
+  assert.deepEqual(ch.library.list().map((r) => r.id), [third.record.id]);
+  assert.equal(s.read('dota_russian', 'pak05_dir.vpk'), 'other mod in pak05_dir.vpk', 'nobody else made room');
+});
+
+test('a mod parked above pak99 is listed as not loading, and covers nobody', async (t) => {
+  /* remountHighSlots marked the ones it could not bring back, and nothing read the mark: the row
+     showed the mod on, the count counted it, and coverage took it for mounted. */
+  const vpk = require('../src/vpk.js');
+  const { crc32: crc } = require('../src/schema.js');
+  const hook = (body) => vpk.buildVpk([{
+    ext: 'vmdl_c', folder: 'models/items/pudge/hook', name: 'hook', data: Buffer.from(body),
+    preload: Buffer.alloc(0), crc: crc(Buffer.from(body)) >>> 0,
+  }]);
+  const s = stand(t);
+  s.installer.ensureLangFolder();
+  fs.writeFileSync(path.join(s.lang, 'pak20_dir.vpk'), hook('mounted'));
+  fs.writeFileSync(path.join(s.lang, 'pak150_dir.vpk'), hook('parked'));
+  fs.writeFileSync(path.join(s.lang, 'pak30_dir.vpk'), 'moved down since');
+  const ch = modsChannels(s);
+  const lang = (relPath) => [{ root: 'lang', relPath }];
+  ch.library.add({ categoryId: 'heroes', name: 'Mounted', files: lang('pak20_dir.vpk') });
+  ch.library.add({ categoryId: 'heroes', name: 'Parked', files: lang('pak150_dir.vpk') });
+  const since = ch.library.add({ categoryId: 'heroes', name: 'Since', files: lang('pak30_dir.vpk') });
+  ch.library.update(since.id, { notMounted: true });
+
+  const listed = new Map((await ch.call('mods:list')).installed.map((r) => [r.name, r]));
+  assert.equal(listed.get('Parked').notMounted, true);
+  assert.equal(listed.get('Parked').coveredBy, undefined, 'the game never mounts it, so nobody covers it');
+  assert.ok(!listed.get('Since').notMounted, 'the slot decides, not a mark a move left behind');
+  assert.ok(!listed.get('Mounted').notMounted);
+
+  s.installer.migrateLegacyPriorityPaks(ch.library);
+  assert.equal(new Library(path.join(s.dir, 'userdata')).find(since.id).notMounted, undefined, 'and the next start drops it');
+});

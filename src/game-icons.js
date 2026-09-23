@@ -66,8 +66,11 @@ function createGameIcons({ userDataDir, toolchain, getGamePath, log = () => {} }
     try {
       const { text } = schema.readGameSchema(game);
       const map = new Map();
+      // keyed the way every picker names an item - UTF-8, through the same toUtf8 - not by the
+      // latin1 bytes the table is read as; nine names with a curly quote, an accent or a "TM"
+      // never matched and fell back to the wiki. Arsenal wearables are asked for by name too.
       for (const item of schema.listItems(text)) {
-        if (item.image && item.name) map.set(item.name, item.image);
+        if (item.image && item.name) map.set(schema.toUtf8(item.name), item.image);
       }
       index = map;
       indexStamp = stamp;

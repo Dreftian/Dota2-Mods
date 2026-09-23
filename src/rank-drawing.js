@@ -1,5 +1,6 @@
-// Renders authentic Dota 2 rank and hero badge numbers directly onto textures
-// and patches Panorama CSS style sheets for in-game display.
+// Draws onto rank textures: leaderboard digits, hero badge levels, star pips baked into a medal.
+// Nothing here touches a Panorama style sheet: patching those is what took the game's layout
+// down (e458486).
 
 const fs = require('fs');
 const zlib = require('zlib');
@@ -337,6 +338,46 @@ function renderRankPlaqueDigits(vtexBuffer, rankNumber) {
 }
 
 /**
+ * Draws one raw RGBA texture over another of the same size, the way Panorama stacks the pip
+ * image on top of the medal image.
+ *
+ * The pip slots (pip1_psd..pip7_psd) are shared by every player with that many stars, so a mod
+ * that replaces one account's medal cannot replace them without changing everyone's stars. The
+ * stars go into the medal instead. Both textures are the same uncompressed format (BGRA8888 in
+ * the shipped assets), so blending channel by channel needs no knowledge of the byte order; only
+ * alpha has to be the fourth byte, which it is in both.
+ *
+ * @param {Buffer} baseVtex The medal: VTEX header followed by raw pixels
+ * @param {Buffer} layerVtex The pips: same header size and pixel count as the medal
+ * @returns {Buffer} A copy of the medal with the layer on top, or the medal untouched when the
+ *   two do not line up (a PNG-wrapped texture, or a different size)
+ */
+function compositeVtexLayer(baseVtex, layerVtex) {
+  if (!baseVtex || !layerVtex) return baseVtex;
+  const baseHeader = baseVtex.readUInt32LE(0);
+  const layerHeader = layerVtex.readUInt32LE(0);
+  if (isPng(baseVtex, baseHeader) || isPng(layerVtex, layerHeader)) return baseVtex;
+  const layer = layerVtex.subarray(layerHeader);
+  if (layer.length === 0 || layer.length % 4 || layer.length !== baseVtex.length - baseHeader) return baseVtex;
+
+  const copy = Buffer.from(baseVtex);
+  const out = copy.subarray(baseHeader);
+  for (let i = 0; i < out.length; i += 4) {
+    const sa = layer[i + 3] / 255;
+    if (sa === 0) continue;
+    const da = out[i + 3] / 255;
+    // Straight (not premultiplied) alpha "over": the medal shows through wherever a star is
+    // only partly opaque, which is its soft edge.
+    const oa = sa + da * (1 - sa);
+    for (let c = 0; c < 3; c++) {
+      out[i + c] = Math.round((layer[i + c] * sa + out[i + c] * da * (1 - sa)) / oa);
+    }
+    out[i + 3] = Math.round(oa * 255);
+  }
+  return copy;
+}
+
+/**
  * Renders authentic Dota 2 Radiance font level digits centered onto hero badge textures.
  * Supports uncompressed RGBA (256x256, 64x64 small, 32x32 tiny) and PNG-wrapped VTEX.
  *
@@ -454,4 +495,5 @@ module.exports = {
   renderRankPlaqueDigits,
   renderHeroBadgeDigits,
   createHeroLevelVtex,
+  compositeVtexLayer,
 };

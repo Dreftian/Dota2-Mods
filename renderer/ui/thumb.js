@@ -10,12 +10,14 @@ import { isCursorRec } from '../core/records.js';
 import { esc } from './format.js';
 import { previewUrl, isVideo } from './media.js';
 import { cosmeticIcon, cosmeticIconKnown } from './cosmetic-icons.js';
+import { modInCategory } from '../core/mod-index.js';
 
-// The catalog's own picture for a mod, by the name it is filed under. Styles have one each,
-// so the record's file (or its style label) says which of them is this one's.
+// The catalog's own picture for a mod, by the category and name it is filed under - by name
+// alone, a mega-kill 'Lina' lost its picture to the announcer of the same name. Styles have
+// one each, so the record's file (or its style label) says which of them is this one's.
 export function catalogPreviewUrl(categoryId, name, styleLabel, fileRef) {
-  const hit = state.modIndex.get(String(name || '').toLowerCase());
-  if (!hit || hit.categoryId !== categoryId) return null;
+  const hit = modInCategory(categoryId, name);
+  if (!hit) return null;
   const styles = hit.mod.styles || [];
   const style = styles.find((s) => fileRef && s.file === fileRef)
     || styles.find((s) => (s.label || null) === (styleLabel || null));
@@ -124,11 +126,13 @@ export function extThumbHtml(f) {
   return fallbackThumbHtml(chain, fb.icon, cls);
 }
 
-// catalog thumbnail for a fingerprint match, resolved from the loaded catalog index
+// Catalog thumbnail for a fingerprint match. The picture is fetched from the match's own
+// category, so it has to be that category's mod; only a match that names no category falls
+// back to the name alone.
 export function catalogPreviewFor(match) {
   const m = match && match[0];
   if (!m) return null;
-  const hit = state.modIndex.get(m.name.toLowerCase());
+  const hit = m.categoryId ? modInCategory(m.categoryId, m.name) : state.modIndex.get(String(m.name || '').toLowerCase());
   if (!hit) return null;
   const mod = hit.mod;
   if (m.styleLabel && mod.styles) {

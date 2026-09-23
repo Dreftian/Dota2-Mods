@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 
 const gamelang = require('./gamelang');
-const { readMinify, isMinifyFile, isMinifyPak } = require('./minify');
+const { readMinify, isMinifyFile, isMinifyPak, isMinifyLegacyPak, ownedByNote } = require('./minify');
 
 /**
  * @param {object} deps
@@ -53,10 +53,14 @@ function settingsViewFor({ settings, library, discordAuth, validateGamePath, lan
       if (!suffix || !game) return 0;
       try {
         const dir = path.join(game, `dota_${suffix}`);
+        // a pak99 is ours when we say so: the library for our own folder, the note elsewhere
+        const ours = suffix === langFolder()
+          ? new Set(library.knownLangRelPaths().map((r) => String(r).replace(/\\/g, '/').toLowerCase()))
+          : ownedByNote(dir);
         return fs.readdirSync(dir).filter((f) => {
           const low = f.toLowerCase();
           if (!/_dir\.vpk(\.off|\.moff)?$/.test(low)) return false;
-          return isMinifyFile(low) || isMinifyPak(path.join(dir, f));
+          return isMinifyFile(low) || isMinifyPak(path.join(dir, f)) || isMinifyLegacyPak(path.join(dir, f), ours);
         }).length;
       } catch {
         return 0;

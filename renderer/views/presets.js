@@ -40,9 +40,11 @@ function shareDialog(plan) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'confirm-overlay';
+    // L`` fills its values in as they are, and a received preset is named by whoever sent it,
+    // so the name is escaped before it goes in rather than after
     overlay.innerHTML = `
       <div class="confirm-box share-box">
-        <div class="share-title">${L`Поделиться пресетом «${plan.name}»`}</div>
+        <div class="share-title">${L`Поделиться пресетом «${esc(plan.name)}»`}</div>
         <div class="share-line">
           <span class="ms">link</span>
           <div><b>${refs}</b> ${plural(refs, 'мод из каталога', 'мода из каталога', 'модов из каталога')}
@@ -109,7 +111,7 @@ function shareSheet(preset, link) {
     overlay.className = 'confirm-overlay';
     overlay.innerHTML = `
       <div class="confirm-box share-box">
-        <div class="share-title">${L`Поделиться пресетом «${preset.name}»`}</div>
+        <div class="share-title">${L`Поделиться пресетом «${esc(preset.name)}»`}</div>
 
         <div class="share-way">
           <div class="share-way-head"><span class="ms">link</span>${L`Ссылка`}</div>
@@ -384,11 +386,20 @@ export async function renderPresets() {
   });
   list.querySelectorAll('[data-resolve]').forEach((b) => {
     b.addEventListener('click', async () => {
+      // the same guard as Apply above: a rejected channel used to leave this button disabled
+      // with nothing said, and the card never redrawn
       b.disabled = true;
-      const r = await window.api.presets.resolve(b.dataset.resolve);
+      let r;
+      try {
+        r = await window.api.presets.resolve(b.dataset.resolve);
+      } catch (err) {
+        r = { error: String(err?.message || err) };
+      }
       if (r.error) toast(r.error, 'error', 7000);
       else {
         toast(L`Установлено и применено: ${r.installed} ${plural(r.installed, 'мод', 'мода', 'модов')}`);
+        // the Arsenal looks in a received preset are VIP, and a free account gets the rest of it
+        if (r.vipSkipped) toast(L`Образы из Арсенала VIP пропущены (нужен VIP): ${r.vipSkipped}`, 'warn', 7000);
         for (const err of (r.errors || []).slice(0, 3)) toast(err, 'warn', 7000);
       }
       await refreshInstalledIndex();

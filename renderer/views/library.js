@@ -44,9 +44,8 @@ registerView('library', () => renderLibrary());
 // does a record match the current library search (by its name or any member name)?
 function libMatchesSearch(rec) {
   const q = libSearch.trim().toLowerCase();
-  return !q || rec.name.toLowerCase().includes(q) || (rec.members || []).some((m) => m.name.toLowerCase().includes(q));
+  return !q || String(rec.name || '').toLowerCase().includes(q) || (rec.members || []).some((m) => m.name.toLowerCase().includes(q));
 }
-
 
 // 2x2 preview grid built from a pack's first members. When not one of them has a picture of
 // its own, four empty boxes say nothing a single "several heroes in one" stand-in wouldn't
@@ -96,7 +95,7 @@ function packRowHtml(rec, i, masterOff) {
       <button class="pack-expand ${open ? 'open' : ''}" data-expand="${esc(rec.id)}" aria-expanded="${open}" aria-label="${L`Развернуть состав пака`}"><span class="ms">chevron_right</span></button>
       ${packThumbGridHtml(rec)}
       <div class="lib-info">
-        <div class="lib-name">${esc(rec.name)} <span class="lib-tag pack">${L`Пак · ${members.length} ${plural(members.length, 'мод', 'мода', 'модов')}`}</span></div>
+        <div class="lib-name">${esc(rec.name)} <span class="lib-tag pack">${L`Пак · ${members.length} ${plural(members.length, 'мод', 'мода', 'модов')}`}</span>${parkedTagHtml(rec)}</div>
         <div class="lib-meta">
           <span>${L`${onCount} из ${members.length} включено`}</span>
           ${pakFileHtml(rec)}
@@ -151,11 +150,11 @@ function schemaTagHtml(rec) {
     : ` <span class="lib-tag schema off" title="${esc(L`Мод меняет схему предметов. Без правок схемы встанет только модель — эффекты и иконки работать не будут.`)}"><span class="ms">error</span>${L`нужны правки`}</span>`;
 }
 
-/* A mod that is installed, switched on, and still not the one the game loads.
- *
- * Two mods can carry the same file, and the lower pak number wins it. Nothing used to say
- * so, so an overruled mod looked like a mod the app had broken. The row says who covers it
- * and how much; the fix is the load order, which right-click already offers. */
+/* A mod that is installed, switched on, and still not the one the game loads, which unsaid looked
+ * like a mod the app had broken. Another mod carries the same file on a lower pak and wins it: the
+ * row says who and how much, and right-click has the load order. Or an old version parked it in
+ * pak100+, which the game never mounts, and no slot was free to bring it back to (src/slots.js). */
+const parkedTagHtml = (rec) => (rec.notMounted ? ` <span class="lib-tag covered" title="${L`Не загружается: нет свободного слота pakNN`}"><span class="ms">block</span>${L`Не загружается: нет свободного слота pakNN`}</span>` : '');
 function coveredTagHtml(rec) {
   const by = rec.coveredBy;
   if (!by || !by.length || !rec.enabled) return '';
@@ -208,10 +207,10 @@ function normalRowHtml(rec, i, masterOff) {
       ${gripHtml(rec)}
       ${selectable ? `<input type="checkbox" class="lib-check" data-check="${esc(rec.id)}" ${selected ? 'checked' : ''} aria-label="${L`Выбрать мод`}">` : '<span class="lib-check-gap"></span>'}
       ${cosmetic
-        ? `<div class="lib-thumb" data-name="${esc(rec.name)}"><span class="ms thumb-glyph">${cosmeticMeta(rec.slot).icon}</span></div>`
+        ? `<div class="lib-thumb" data-name="${esc(rec.itemName || rec.name)}"><span class="ms thumb-glyph">${cosmeticMeta(rec.slot).icon}</span></div>`
         : libThumbHtml(rec, 'lib-thumb')}
       <div class="lib-info">
-        <div class="lib-name">${esc(rec.name)}${rec.styleLabel ? ` <span class="lib-style-label">(${esc(rec.styleLabel)})</span>` : ''}${rec.match ? ` <span class="lib-tag match">${esc(matchLabel(rec.match))}</span>` : rec.info ? ` <span class="lib-tag">${esc(rec.info)}</span>` : ''}${schemaTagHtml(rec)}${coveredTagHtml(rec)}</div>
+        <div class="lib-name">${esc(rec.name)}${rec.styleLabel ? ` <span class="lib-style-label">(${esc(rec.styleLabel)})</span>` : ''}${rec.match ? ` <span class="lib-tag match">${esc(matchLabel(rec.match))}</span>` : rec.info ? ` <span class="lib-tag">${esc(rec.info)}</span>` : ''}${schemaTagHtml(rec)}${parkedTagHtml(rec) || coveredTagHtml(rec)}</div>
         <div class="lib-meta"><span>${esc(catLabel)}</span>${pakFileHtml(rec)}</div>
       </div>
       <div class="lib-actions">
@@ -231,7 +230,7 @@ function normalRowHtml(rec, i, masterOff) {
  * the app thinks are in conflict - which files actually cover which is a call for the person
  * looking at the game (see the note on orderBtnsHtml). */
 function rowMenuItems(rec) {
-  const langDir = rec.files.some((f) => f.root === 'lang' && /_dir\.vpk$/i.test(f.relPath));
+  const langDir = (rec.files || []).some((f) => f.root === 'lang' && /_dir\.vpk$/i.test(f.relPath));
   const exportable = isCursorRec(rec) || langDir;
   const ordered = rec.slotIndex != null;
   const isCovered = rec.coveredBy && rec.coveredBy.length > 0;
@@ -411,7 +410,6 @@ function selectableCosmeticIds() {
     .filter((r) => isCosmeticRec(r) && libMatchesSearch(r))
     .map((r) => r.id);
 }
-
 
 function paintSelectAll(cb, ids) {
   if (!cb) return;
@@ -916,11 +914,13 @@ async function renderLibrary() {
     else if (!valid.has(k)) librarySel.delete(k);
   }
 
-  const enabledCount = installedAll.filter((m) => m.enabled).length;
-  const isPremiumUser = !!(state.currentUser?.isPremium || state.currentUser?.isAdmin || state.currentUser?.role === 'admin' || state.currentUser?.email === 'dreftian@gmail.com');
+  const enabledCount = installedAll.filter((m) => m.enabled && !m.notMounted).length;
+  const isPremiumUser = !!(state.currentUser?.isPremium || state.currentUser?.isAdmin);
   const slots = res.slots || 0;
-  const slotCeil = isPremiumUser ? 9999 : (res.slotCeil ? Math.max(100, res.slotCeil) : 100);
-  const nearLimit = !isPremiumUser && slots >= 90;
+  // The game's ceiling, the same for every plan: Premium lifts the 100-mod limit, not the pak
+  // slots, and a VIP told "unlimited" met the same wall on the 96th mod with no warning first.
+  const slotCeil = res.slotCeil || 95;
+  const nearLimit = slots >= slotCeil - 5;
   const external = externalAll;
   libExternal = externalAll;
   const matchedCount = installedAll.filter((r) => r.match).length + externalAll.filter((f) => f.match && !f.duplicateOf).length;
@@ -935,7 +935,7 @@ async function renderLibrary() {
   await paint(() => { viewRoot.innerHTML = `
     <div class="view-header" style="display:flex;align-items:center;">
       <h1 class="view-title">${L`Мои моды`}</h1>
-      ${isPremiumUser ? `<span class="badge badge-vip" style="margin-left: 12px; font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.3); font-weight: 600;">VIP: ${L`Неограниченное место`}</span>` : ''}
+      ${isPremiumUser ? `<span class="badge badge-vip" style="margin-left: 12px; font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.3); font-weight: 600;">VIP: ${L`Без лимита в 100 модов`}</span>` : ''}
     </div>
     ${noticeBannerHtml()}
     ${masterOff ? `
@@ -966,7 +966,7 @@ async function renderLibrary() {
       <div class="banner warn" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <span class="ms">warning</span>
         <div class="banner-body" style="flex:1"><b>${L`В gameinfo уже прописан другой патчер`}</b>: <code>${esc(state.patchState.foreign)}</code>${L`. Два патчера в одном файле уживаются плохо — включай наш только если тем не пользуешься.`}</div>
-        <button class="btn btn-sm btn-primary" id="resolveForeignBtn" style="white-space:nowrap;flex-shrink:0;">${L`Resolver conflicto`}</button>
+        <button class="btn btn-sm btn-primary" id="resolveForeignBtn" style="white-space:nowrap;flex-shrink:0;">${L`Устранить конфликт`}</button>
       </div>` : ''}
     ${state.patchState && state.patchState.vanillaOk === false ? `
       <div class="banner warn">
@@ -1029,7 +1029,7 @@ async function bindLibrary(external) {
     if (res?.error) {
       toast(res.error, 'error');
     } else {
-      toast(L`Conflict resolved successfully`);
+      toast(L`Конфликт устранён`);
       state.patchState = res;
       renderLibrary();
     }

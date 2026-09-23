@@ -40,7 +40,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { isMinifyFile, isMinifyPak } = require('./minify');
+const { isMinifyFile, isMinifyPak, isMinifyLegacyPak, ownedByNote } = require('./minify');
 
 /* Languages Dota records VOICE in - four of them, and that is the list that matters here.
  *
@@ -417,6 +417,10 @@ function ensureLangFolder(gamePath, suffix) {
  * already taken in the destination is not overwritten, because the file there is somebody's
  * current mod and this one is a leftover.
  *
+ * Whose a pak99 is comes from the note we leave in the folder, since this runs at startup with
+ * no library to ask: ours go, and the English fix an older Minify dropped there stays. Going by
+ * the number alone left our own pak99 behind, and the library then dropped it as missing.
+ *
  * @returns {number} how many files were actually moved
  */
 function moveLangFolder(gamePath, fromSuffix, toSuffix) {
@@ -426,9 +430,11 @@ function moveLangFolder(gamePath, fromSuffix, toSuffix) {
   try {
     if (!fs.existsSync(oldDir)) return 0;
     const newDir = ensureLangFolder(gamePath, toSuffix);
+    const ours = ownedByNote(oldDir);
     for (const f of fs.readdirSync(oldDir)) {
       if (/^pak01_/i.test(f) || f.toLowerCase() === 'gameinfo.gi') continue;
       if (isMinifyFile(f.toLowerCase()) || isMinifyPak(path.join(oldDir, f))) continue;
+      if (isMinifyLegacyPak(path.join(oldDir, f), ours)) continue;
       const dst = path.join(newDir, f);
       if (fs.existsSync(dst)) continue;
       fs.renameSync(path.join(oldDir, f), dst);

@@ -447,3 +447,121 @@ test("the game's own table must be where the game keeps it", (t) => {
   ]));
   assert.throws(() => schema.readGameSchema(empty), /items_game/);
 });
+
+// ---------- the merge at the size the Arsenal makes it ----------
+// Added 2026-09-23. Every lookup used to walk the whole items section and every edit copied the
+// whole table again: 350 blocks took 72 s on the real one, on every mod switched on or off.
+
+/** The merge as it was written before the index: section walks, spliced from the tail. */
+function mergeTailFirst(baseText, patches) {
+  const seen = new Map();
+  for (const p of patches) seen.set(String(p.id), p);
+  const section = schema.itemsSection(baseText);
+  const edits = [];
+  for (const p of seen.values()) {
+    const hit = schema.findItem(baseText, p.id, section);
+    if (hit) edits.push({ start: hit.start, end: hit.end, text: schema.reindent(p.block, '\t\t') });
+  }
+  edits.sort((a, b) => b.start - a.start);
+  let text = baseText;
+  for (const e of edits) text = text.slice(0, e.start) + e.text + text.slice(e.end);
+  return text;
+}
+
+test('the indexed merge writes exactly the bytes the old one did', () => {
+  // a named, non-numeric block too: the index does not carry those and the walk still has to
+  const base = large(3000).replace('\t"items"\n\t{\n', '\t"items"\n\t{\n\t\t"named"\n\t\t{\n\t\t\t"name"\t\t"By name"\n\t\t}\n');
+  const patches = [];
+  for (let i = 1; i <= 3000; i += 11) patches.push({ id: String(i), block: `"${i}"\n{\n\t"name"\t\t"Patched ${i}"\n}`, source: `mod ${i}` });
+  patches.push({ id: '12', block: '"12"\n{\n\t"name"\t\t"Later wins"\n}', source: 'later' });
+  patches.push({ id: 'named', block: '"named"\n{\n\t"name"\t\t"Renamed"\n}', source: 'by name' });
+  patches.push({ id: '999999', block: '"999999"\n{\n}', source: 'nowhere' });
+
+  const out = schema.mergeSchema(base, patches);
+  assert.equal(out.text, mergeTailFirst(base, patches));
+  assert.ok(out.text.includes('"Later wins"') && out.text.includes('"Renamed"'));
+  assert.deepEqual(out.missing, ['999999']);
+  assert.equal(out.applied.length, patches.length - 2, 'one id twice is one edit, and the missing one is not applied');
+});
+
+test('the game\'s own table stays parsed across rebuild after rebuild', () => {
+  // each rebuild reads the game's table, then the merged one, then the game's again; the merged
+  // one of the second rebuild used to push the game's out, and every other rebuild walked it anew
+  const base = large(1200);
+  const first = schema.listItems(base);
+  for (let i = 0; i < 3; i++) {
+    const merged = schema.mergeSchema(base, [{ id: '5', block: `"5"\n{\n\t"name"\t\t"Rebuild ${i}"\n}` }]);
+    schema.validateSchema(merged.text, base);
+  }
+  assert.equal(schema.listItems(base), first);
+});
+
+test('the same table read twice is not compared byte for byte on every item', () => {
+  // Two reads of the game's table are two strings with one content, and === between them walks
+  // every byte. The caches used to keep the first string, and slotOf asks once per item: on the
+  // real table one list of cursor packs took minutes. Loose on purpose; measured 2026-09-23 at
+  // a few ms here, and about 18 s before.
+  const base = large(60000);
+  const twin = Buffer.from(base, 'latin1').toString('latin1');
+  schema.cosmeticOptions(base, 'weapon');
+  const started = Date.now();
+  for (const text of [twin, base, twin]) schema.cosmeticOptions(text, 'weapon');
+  const took = Date.now() - started;
+  assert.ok(took < 3000, `three lists over one table read twice took ${took} ms`);
+});
+
+test('hundreds of blocks merge in a moment rather than a minute', () => {
+  // loose on purpose: a slow machine must pass. Measured 2026-09-23: 40 ms now, 3.3 s before
+  const base = large(20000);
+  const patches = [];
+  for (let i = 1; i <= 20000; i += 25) patches.push({ id: String(i), block: `"${i}"\n{\n\t"name"\t\t"Patched ${i}"\n}` });
+  const started = Date.now();
+  const out = schema.mergeSchema(base, patches);
+  const took = Date.now() - started;
+  assert.equal(out.applied.length, 800);
+  assert.ok(took < 1500, `800 blocks into 20 000 items took ${took} ms`);
+});
+
+// ---------- which slot an item is filed under ----------
+
+const PREFABBED = [
+  '"items_game"', '{',
+  '\t"prefabs"', '\t{',
+  '\t\t"wearable"', '\t\t{', '\t\t\t"item_slot"\t\t"weapon"', '\t\t}',
+  '\t\t"announcer"', '\t\t{', '\t\t\t"item_slot"\t\t"none"', '\t\t}',
+  '\t\t"cursor_pack"', '\t\t{', '\t\t\t"item_slot"\t\t"cursor_pack"', '\t\t}',
+  '\t\t"roshan"', '\t\t{', '\t\t\t"item_slot"\t\t"roshan"', '\t\t}',
+  '\t}',
+  '\t"items"', '\t{',
+  '\t\t"202"', '\t\t{', '\t\t\t"name"\t\t"Default Cursor Pack"', '\t\t\t"prefab"\t\t"cursor_pack"', '\t\t\t"item_slot"\t\t"weapon"', '\t\t\t"baseitem"\t\t"1"', '\t\t}',
+  '\t\t"801"', '\t\t{', '\t\t\t"name"\t\t"Default Roshan"', '\t\t\t"prefab"\t\t"roshan"', '\t\t\t"item_slot"\t\t"weapon"', '\t\t\t"baseitem"\t\t"1"', '\t\t}',
+  '\t\t"5100"', '\t\t{', '\t\t\t"name"\t\t"Some Cursor"', '\t\t\t"prefab"\t\t"cursor_pack"', '\t\t\t"visuals"', '\t\t\t{', '\t\t\t}', '\t\t}',
+  '\t\t"586"', '\t\t{', '\t\t\t"name"\t\t"Default Mega-Kill Announcer"', '\t\t\t"prefab"\t\t"announcer"', '\t\t\t"item_slot"\t\t"mega_kills"', '\t\t\t"baseitem"\t\t"1"', '\t\t}',
+  '\t\t"6000"', '\t\t{', '\t\t\t"name"\t\t"A Hat"', '\t\t\t"prefab"\t\t"wearable"', '\t\t\t"item_slot"\t\t"head"', '\t\t}',
+  '\t}',
+  '}', '',
+].join('\r\n');
+
+test('a prefab that fixes its own slot beats a stray item_slot, so cursor packs and Roshan are offered', () => {
+  const [cursorBase, roshan, cursor, mega, hat] = schema.listItems(PREFABBED);
+  assert.equal(schema.slotOf(cursorBase, PREFABBED), 'cursor_pack', 'the "weapon" on 202 is a leftover');
+  assert.equal(schema.slotOf(roshan, PREFABBED), 'roshan');
+  assert.equal(schema.slotOf(cursor, PREFABBED), 'cursor_pack');
+  assert.equal(schema.slotOf(mega, PREFABBED), 'mega_kills', '"none" leaves the choice to the item');
+  assert.equal(schema.slotOf(hat, PREFABBED), 'head', 'a wearable names its own slot');
+  assert.equal(schema.slotOf(cursorBase), 'weapon', 'without the table there is only the item\'s word');
+  assert.equal(schema.baseItemFor(PREFABBED, 'cursor_pack').id, '202');
+  assert.equal(schema.baseItemFor(PREFABBED, 'weapon'), null);
+  assert.deepEqual(schema.cosmeticOptions(PREFABBED, 'cursor_pack'), [{ id: '5100', name: 'Some Cursor' }]);
+  assert.deepEqual([...schema.prefabSlots(PREFABBED)], [['wearable', 'weapon'], ['announcer', 'none'], ['cursor_pack', 'cursor_pack'], ['roshan', 'roshan']]);
+  assert.deepEqual([...schema.prefabSlots(WEATHER)], [], 'a table with no prefabs block files items as it always did');
+});
+
+test('a small section is found without walking the whole table, and a missing one is null', () => {
+  const bounds = schema.sectionOf(PREFABBED, 'prefabs');
+  assert.ok(PREFABBED.slice(bounds[0], bounds[1]).includes('"cursor_pack"'));
+  assert.equal(schema.sectionOf(PREFABBED, 'item_sets'), null);
+  assert.equal(schema.sectionOf('', 'prefabs'), null);
+  assert.equal(schema.itemIndex(PREFABBED).get('801').name, 'Default Roshan');
+  assert.equal(schema.itemIndex(PREFABBED), schema.itemIndex(PREFABBED), 'kept beside the list it indexes');
+});

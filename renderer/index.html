@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="styles/library.css">
   <link rel="stylesheet" href="styles/presets.css">
   <link rel="stylesheet" href="styles/settings.css">
+  <link rel="stylesheet" href="styles/arsenal.css">
   <link rel="stylesheet" href="styles/feedback.css">
   <link rel="stylesheet" href="styles/transitions.css">
 </head>
@@ -36,7 +37,7 @@
     <!-- Custom title bar -->
     <header id="titlebar">
       <div class="tb-brand">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="#e33d26" aria-hidden="true"><path d="M19.43 6.97c.18-.96.32-1.78.32-1.82s-.25-.25-.68-.55l-.73-.51c-.05-.03-3.9.98-3.9 1.05s4.64 3.6 4.66 3.58c.01-.01.15-.8.33-1.75zM7.28 19.92c1.01-.38 1.84-.7 1.84-.7s-3.93-3.82-4.44-4.31l-.29-.23c-.01.01-.33.86-.71 1.89-.42 1.14-.68 1.9-.66 1.93.03.04 2.4 2.09 2.42 2.1.01 0 .83-.31 1.84-.68zm13.52-2.09c.52-1.27.93-2.31.92-2.33-.02-.02-9.83-6.64-16.7-11.27l-.55-.37-.9.41c-.5.22-.9.42-.89.45.01.03 3.33 3.51 7.38 7.74l7.37 7.69h2.41l.96-2.32z"/></svg>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="#29cfe6" aria-hidden="true"><path d="M19.43 6.97c.18-.96.32-1.78.32-1.82s-.25-.25-.68-.55l-.73-.51c-.05-.03-3.9.98-3.9 1.05s4.64 3.6 4.66 3.58c.01-.01.15-.8.33-1.75zM7.28 19.92c1.01-.38 1.84-.7 1.84-.7s-3.93-3.82-4.44-4.31l-.29-.23c-.01.01-.33.86-.71 1.89-.42 1.14-.68 1.9-.66 1.93.03.04 2.4 2.09 2.42 2.1.01 0 .83-.31 1.84-.68zm13.52-2.09c.52-1.27.93-2.31.92-2.33-.02-.02-9.83-6.64-16.7-11.27l-.55-.37-.9.41c-.5.22-.9.42-.89.45.01.03 3.33 3.51 7.38 7.74l7.37 7.69h2.41l.96-2.32z"/></svg>
         <span class="tb-title">Mod Assistant</span>
         <span class="tb-sub">Dota 2</span>
         <!-- Click the hero to recolour the window. The catalog's own site does this beside
@@ -48,6 +49,9 @@
 
       <nav id="tbNav">
         <button class="tb-tab active" data-view="catalog" data-i18n="Каталог">Catalog</button>
+        <!-- the label comes first: data-i18n rewrites the first text node, and a leading icon
+             would get the translation written in front of it as well -->
+        <button class="tb-tab" data-view="arsenal" data-i18n="Арсенал VIP">Arsenal VIP<span class="ms tb-gem" aria-hidden="true">diamond</span></button>
         <button class="tb-tab" data-view="library" data-i18n="Мои моды">My mods<span class="tb-badge" id="libCount"></span></button>
         <button class="tb-tab" data-view="presets" data-i18n="Пресеты">Presets</button>
         <button class="tb-tab" data-view="settings" data-i18n="Настройки">Settings</button>

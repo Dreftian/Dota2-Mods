@@ -30,11 +30,14 @@ const { t } = require('./i18n');
  * @param {Function} ctx.afterDeployMaster
  * @param {Function} ctx.disableOtherCursors
  * @param {Function} ctx.sendProgress
+ * @param {{isVip: () => boolean}} ctx.auth  whether Arsenal picks in a received preset may be made
  */
 function registerPresetsIpc({
   win, settings, catalog, installer, library, schemaService, presets,
-  adoptImportedFiles, afterDeployMaster, disableOtherCursors, sendProgress,
+  adoptImportedFiles, afterDeployMaster, disableOtherCursors, sendProgress, auth,
 }) {
+  // an account check that throws is a no
+  const vip = () => { try { return !!auth.isVip(); } catch { return false; } };
   // `win` arrives as a getter, not as the window. These are registered before the window
   // is created, so a value captured here would be undefined forever - which is exactly
   // what win:isMaximized did on the first run after this file was split out.
@@ -230,10 +233,17 @@ function registerPresetsIpc({
     const fpIndex = presets.installedFpIndex();
     const errors = [];
     let schemaTouched = false;
+    // Arsenal picks ('hero:' slots) are VIP. Without it they are left out and counted rather
+    // than listed as errors: nothing is wrong with the preset, and the rest of it still applies.
+    let vipSkipped = 0;
 
     // -> ids of the library records that now provide this mod (a multi-hero bundle splits
     // into several), or an empty list when it could not be resolved at all
     const resolveEntry = async (entry) => {
+      if (entry.kind === 'cosmetic' && String(entry.slot || '').startsWith('hero:') && !vip()) {
+        vipSkipped++;
+        return [];
+      }
       try {
         if (entry.kind === 'catalog') {
           const rec = await installFromCatalog(entry, cat, errors);
@@ -291,7 +301,7 @@ function registerPresetsIpc({
     if (schemaTouched) schemaService.refresh();
     afterDeployMaster();
     sendProgress({ type: 'done', label: preset.name });
-    return { ok: true, installed: preset.mods.length, errors };
+    return { ok: true, installed: preset.mods.length, errors, vipSkipped };
   });
 }
 

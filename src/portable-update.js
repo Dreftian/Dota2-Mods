@@ -22,7 +22,8 @@ const fs = require('fs');
 const path = require('path');
 const { fetchText, downloadFile } = require('./net');
 
-const REPO = 'Dreftian/Dota2-Mods';
+// the public repository of builds; the source one is private (see src/updater.js)
+const REPO = 'Dreftian/Dota2-Mods-Releases';
 const MANIFEST = 'portable.yml';
 
 const releaseUrl = (version, file) =>

@@ -4,11 +4,15 @@
  * somewhere to live and so this could be tested against a stand-in for electron-updater rather
  * than only by releasing something.
  *
- * Two feeds. GitHub is the origin; https://cdn.dota2modmanager.com/updates/ is a copy this
- * project also owns, tried only after GitHub fails. On 2026-08-17 GitHub was down for three
- * hours, which meant no installed copy could check for or fetch an update, and nobody noticed,
- * because an app that fails to update looks exactly like an app. Each four-hourly round starts at
- * GitHub again: the mirror is for the hours it is down, not a place to settle into.
+ * Two feeds. The GitHub API is the origin; the second reads the same release through its
+ * plain download address, which does not go through the API and its rate limit, and is tried only
+ * after the first fails. On 2026-08-17 GitHub was down for three hours, which meant no installed
+ * copy could check for or fetch an update, and nobody noticed, because an app that fails to
+ * update looks exactly like an app. Each four-hourly round starts at the origin again.
+ *
+ * Both read Dota2-Mods-Releases, a public repository that holds only the builds and the source
+ * archive of each one. The source repository is private from 2026-09-23, and a private
+ * repository answers an installed copy with nothing at all, so the builds had to live apart.
  *
  * Two channels. Everybody reads `latest`; the testers the maintainer picked read `beta`, which is
  * a different manifest (beta.yml) in the same place. src/beta.js decides who is on which, and the
@@ -22,8 +26,8 @@
 const { BETA_CHANNEL } = require('./beta');
 
 /** The copy of each release this project keeps, for the hours GitHub is not answering. */
-const MIRROR = 'https://github.com/Dreftian/Dota2-Mods/releases/latest/download/';
-const GITHUB = { provider: 'github', owner: 'Dreftian', repo: 'Dota2-Mods' };
+const MIRROR = 'https://github.com/Dreftian/Dota2-Mods-Releases/releases/latest/download/';
+const GITHUB = { provider: 'github', owner: 'Dreftian', repo: 'Dota2-Mods-Releases' };
 /** How often an open window looks again. */
 const EVERY = 4 * 60 * 60 * 1000;
 

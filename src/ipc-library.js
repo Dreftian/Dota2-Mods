@@ -19,6 +19,19 @@ function registerLibraryIpc({
   applyMasterToCursors, catalog, disableOtherCosmetics, disableOtherCursors, fingerprints,
   installer, isCursorRecord, library, refreshPresence, schemaService, settings,
 }) {
+  /* The item table is rebuilt after the switch or the removal has already happened, and it can
+   * fail on its own (a pak held open, a table that does not validate). That used to be dropped:
+   * the answer said "ok" while the old table stayed in the game. The change itself stands - it is
+   * what the person asked for - so the answer says what did not follow, and the service's
+   * schemaDirty makes the next heal() try the rebuild again. Returns why it failed, or null. */
+  const rebuildError = () => {
+    const res = schemaService.refresh();
+    return res && !res.ok && res.error ? res.error : null;
+  };
+  const switchedButNotBuilt = (why) => t('Мод переключён, но таблицу предметов собрать не удалось ({0}). Приложение попробует снова перед следующим запуском игры', why);
+  const removedButNotBuilt = (why) => t('Мод удалён, но таблицу предметов собрать не удалось ({0}). Приложение попробует снова перед следующим запуском игры', why);
+  const notBuilt = (why) => t('Таблицу предметов собрать не удалось ({0}). Приложение попробует снова перед следующим запуском игры', why);
+
   ipcMain.handle('mods:masterState', () => {
     try {
       const explicit = settings ? settings.get('masterExplicitOff') === true : false;
@@ -48,7 +61,8 @@ function registerLibraryIpc({
           : [];
       installer.setEnabled(rec.files, enabled, rec.id);
       library.setEnabled(id, enabled);
-      if (touchesSchema(rec)) schemaService.refresh();
+      const failed = touchesSchema(rec) ? rebuildError() : null;
+      if (failed) return { error: switchedButNotBuilt(failed), replaced };
       return { ok: true, replaced };
     } catch (err) {
       return { error: String(err.message || err) };
@@ -81,7 +95,8 @@ function registerLibraryIpc({
         errors.push(`${rec.name}: ${String(err.message || err)}`);
       }
     }
-    if (schemaTouched) schemaService.refresh();
+    const failed = schemaTouched ? rebuildError() : null;
+    if (failed) errors.push(notBuilt(failed));
     return { ok: true, removed, errors };
   });
 
@@ -104,7 +119,8 @@ function registerLibraryIpc({
         errors.push(`${rec.name}: ${String(err.message || err)}`);
       }
     }
-    if (schemaTouched) schemaService.refresh();
+    const failed = schemaTouched ? rebuildError() : null;
+    if (failed) errors.push(notBuilt(failed));
     return { ok: true, changed, errors };
   });
 
@@ -143,12 +159,21 @@ function registerLibraryIpc({
       if (rec.kind === 'pack') installer.removePackFully(rec);
       else installer.remove(rec.files, { recId: rec.id, deployed: rec.enabled !== false });
       library.removeRecord(id);
-      if (touchesSchema(rec)) schemaService.refresh();
+      const failed = touchesSchema(rec) ? rebuildError() : null;
+      if (failed) return { error: removedButNotBuilt(failed) };
       return { ok: true };
     } catch (err) {
       return { error: String(err.message || err) };
     }
   });
+
+  /* A swap can carry a mod that an old version parked above 99 down to a slot the game reads, or
+   * another up out of one, so the notMounted mark remountHighSlots leaves follows the new slot. */
+  const saveSwapped = (m) => {
+    const rec = library.find(m.id);
+    if (rec) delete rec.notMounted;
+    library.update(m.id, installer.slotNumber(m) > 99 ? { files: m.files, notMounted: true } : { files: m.files });
+  };
 
   /**
    * Move a mod one step through the load order. The game mounts pakNN_dir.vpk in numeric
@@ -174,7 +199,7 @@ function registerLibraryIpc({
       const to = at + (dir < 0 ? -1 : 1);
       if (to < 0 || to >= ordered.length) return { ok: true, moved: 0 };
       const other = ordered[to].r;
-      for (const m of installer.swapSlots(rec, other)) library.update(m.id, { files: m.files });
+      for (const m of installer.swapSlots(rec, other)) saveSwapped(m);
       return { ok: true, moved: 1, with: other.name };
     } catch (err) {
       return { error: String(err.message || err) };
@@ -209,9 +234,7 @@ function registerLibraryIpc({
       let steps = 0;
       while (at !== to && steps <= ordered.length) {
         const step = to > at ? 1 : -1;
-        for (const m of installer.swapSlots(ordered[at].r, ordered[at + step].r)) {
-          library.update(m.id, { files: m.files });
-        }
+        for (const m of installer.swapSlots(ordered[at].r, ordered[at + step].r)) saveSwapped(m);
         ordered = orderNow();
         at = ordered.findIndex((x) => x.r.id === id);
         steps++;
