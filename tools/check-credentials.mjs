@@ -33,7 +33,9 @@ import { googleAccessToken } from './google-auth.mjs';
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const REPO = process.env.GITHUB_REPOSITORY || 'TheFleece/dota2-mod-manager';
+// exported so the test greets the key with the same repository the check expects: in CI that is
+// GITHUB_REPOSITORY, which on a fork is not the name this file falls back to
+export const REPO = process.env.GITHUB_REPOSITORY || 'TheFleece/dota2-mod-manager';
 const SITE = 'https://dota2modmanager.com';
 const CF = 'https://api.cloudflare.com/client/v4';
 

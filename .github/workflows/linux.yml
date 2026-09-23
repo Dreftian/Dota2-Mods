@@ -51,7 +51,8 @@ jobs:
       - name: The desktop entry claims the preset scheme
         run: |
           set -euo pipefail
-          cd dist
+          # package.json writes the builds to Install/ (directories.output), not to dist/
+          cd Install
           chmod +x ./*.AppImage
           ./*.AppImage --appimage-extract > /dev/null
           entry=$(ls squashfs-root/*.desktop | head -1)
@@ -62,7 +63,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: AppImage
-          path: dist/*.AppImage
+          path: Install/*.AppImage
           if-no-files-found: error
 
   start:

@@ -31,7 +31,7 @@
 
     'hero.eyebrow': 'For Dota 2 · Windows 10/11 · Free',
     'hero.title': 'Dota 2 your way: <span class="gradient-text">mods, cosmetics and arcanas</span> in one click',
-    'hero.lead': 'Over 1,300 community mods, free cosmetics pulled from your own game, and Arsenal VIP to equip the arcanas and immortals of each of the 127 heroes without owning them. Everything is local: only you see it.',
+    'hero.lead': 'Over 1,300 community mods, free cosmetics pulled from your own game, and Arsenal VIP to equip the arcanas and immortals of each of the 125 heroes without owning them. Everything is local: only you see it.',
     'hero.shotAlt': 'Mod Assistant Arsenal VIP: the sets, arcana and immortals of Juggernaut, with rarity and exclusives filters',
     'hero.caption': 'Real screenshot of the app: Arsenal VIP with Juggernaut (Spanish interface).',
     'ars.shotAlt': 'Arsenal VIP: the hero list with how many immortals and arcanas each one has',
@@ -77,7 +77,7 @@
 
     'ars.title': 'Every arcana and immortal, for every hero',
     'ars.lead': 'Equip the looks the game already ships with on your heroes, without owning them: slot by slot, with styles, variants and full sets.',
-    'ars.list': '<li><strong>25 arcanas</strong> you can wear, persona selectors included</li><li><strong>500+ immortals</strong>, plus legendary, mythical, rare and more</li><li>For each of the <strong>127 heroes</strong>, with its own items, slot by slot, with <strong>styles</strong>, <strong>variants</strong> (Golden, Crimson…) and <strong>full sets</strong></li><li><strong>Exclusives</strong> filter: what the store never sold (treasures, battle passes, events)</li><li>Read from your installed game: new items show up without an app update</li>',
+    'ars.list': '<li><strong>25 arcanas</strong> you can wear, persona selectors included</li><li><strong>500+ immortals</strong>, plus legendary, mythical, rare and more</li><li>For each of the <strong>125 heroes</strong>, with its own items, slot by slot, with <strong>styles</strong>, <strong>variants</strong> (Golden, Crimson…) and <strong>full sets</strong></li><li><strong>Exclusives</strong> filter: what the store never sold (treasures, battle passes, events)</li><li>Read from your installed game: new items show up without an app update</li>',
     'ars.cta': 'Explore Arsenal VIP',
     'ars.cta2': 'See pricing',
     'ars.fine': 'Browse everything for free; equipping needs Premium ($5.00 USD/month) and safe mode off. Only you see them.',
