@@ -17,6 +17,7 @@ const os = require('os');
 const path = require('path');
 
 const patcher = require('../src/patcher.js');
+const i18n = require('../src/i18n.js');
 const { MARKER, FOLDER } = patcher;
 
 const GAMEINFO = `"GameInfo"
@@ -252,4 +253,292 @@ test('reverting ignores .bak copies beside the game files, which belong to an ol
   assert.equal(fs.readFileSync(gameinfo, 'utf8'), GAMEINFO, 'gameinfo.gi was not rolled back to the copy');
   assert.equal(branchOf(game), BRANCH, 'the branch file is vanilla again');
   assert.equal(patcher.state(game, FOLDER).vanillaOk, true);
+});
+
+test('a gameinfo cut off inside its SearchPaths block is refused before anything is written', (t) => {
+  /* A game update that was interrupted, or a disk that filled up, can leave gameinfo.gi ending in
+     the middle of the block the patch is copied from. Building from half a block would register
+     half the game's search paths, so the file is refused and the game folder left as it was. */
+  const { game, backupDir } = tree(t, true);
+  fs.writeFileSync(patcher.paths(game).gameinfo, GAMEINFO.slice(0, GAMEINFO.indexOf('Mod\t')));
+
+  assert.throws(
+    () => patcher.apply({ gamePath: game, folder: FOLDER, backupDir }),
+    { message: i18n.t('gameinfo.gi: блок SearchPaths не закрыт') },
+  );
+  assert.equal(branchOf(game), BRANCH, 'the branch file was not touched');
+  assert.equal(fs.existsSync(path.join(game, FOLDER)), false, 'and no folder was registered');
+});
+
+/*
+ * Writing a game file while something holds it open.
+ *
+ * Steam keeps the gameinfo files open while it runs, and Windows refuses to rename over a file
+ * another process has open. writeAtomic() has two fallbacks for that and a refusal for everything
+ * else. None of the three can be produced on demand on a real disk, so the refused rename is staged
+ * on fs.renameSync and the rest is the real file system.
+ */
+const refusedRename = (code) => Object.assign(new Error(`${code}: rename refused`), { code });
+const leftovers = (game) => fs.readdirSync(path.join(game, 'dota')).filter((f) => f.endsWith('.mmtmp'));
+
+test('a rename refused because the file is held open is retried after moving the file aside', (t) => {
+  const { game, backupDir } = tree(t, false);
+  const real = fs.renameSync;
+  let refused = 0;
+  const rename = t.mock.method(fs, 'renameSync', (from, to) => {
+    if (!refused && fs.existsSync(to)) { refused++; throw refusedRename('EPERM'); }
+    return real(from, to);
+  });
+
+  const st = patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+
+  assert.equal(refused, 1, 'the first rename over the live file was refused');
+  assert.equal(rename.mock.callCount(), 2, 'and the second, onto a path with nothing in it, went through');
+  assert.ok(branchOf(game).includes(MARKER), 'the patch is on disk');
+  assert.equal(st.patched, true);
+  assert.deepEqual(leftovers(game), [], 'no temporary file is left in the game folder');
+});
+
+test('a rename that keeps being refused falls back to writing the file in place', (t) => {
+  const { game, backupDir } = tree(t, false);
+  const rename = t.mock.method(fs, 'renameSync', () => { throw refusedRename('EBUSY'); });
+
+  const st = patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+
+  assert.equal(rename.mock.callCount(), 2, 'both renames were tried before writing in place');
+  assert.ok(branchOf(game).includes(MARKER), 'the patch was written in place');
+  assert.equal(st.patched, true);
+  assert.deepEqual(leftovers(game), [], 'and the temporary copy was cleaned up');
+});
+
+test('a rename error that is not a lock is thrown, with the game file as it was', (t) => {
+  // another drive (EXDEV) or a full disk is not something waiting fixes, and deleting the live
+  // file to retry would turn a failed write into a missing gameinfo
+  const { game, backupDir } = tree(t, false);
+  t.mock.method(fs, 'renameSync', () => { throw refusedRename('EXDEV'); });
+
+  assert.throws(() => patcher.apply({ gamePath: game, folder: FOLDER, backupDir }), { code: 'EXDEV' });
+  assert.equal(branchOf(game), BRANCH, 'the branch file is still the original');
+  assert.deepEqual(leftovers(game), [], 'and the half-finished temporary file is gone');
+});
+
+/*
+ * cleanForeign(): another patcher's lines, taken out of a game this app has patched.
+ *
+ * Dota2SkinChanger registers its own folder ahead of the game's, in gameinfo.gi and in the branch
+ * file, signs its edit into the list after the DIGEST line, and leaves a junction called
+ * Dota2SkinChanger in the game folder. Two tools registering folders at once reads to the user as
+ * "some of my mods do not load", so the other tool's lines come out - and only those.
+ */
+const SKIN = 'Dota2SkinChanger';
+/** The two lines the foreign tool adds, put ahead of the first Game line of a search path block. */
+function withSkinChanger(text, eol) {
+  const at = text.search(/^[ \t]*Game[ \t]+/m);
+  assert.ok(at > 0, 'the fixture has a Game line to put the foreign lines in front of');
+  return text.slice(0, at) + `\t\t\tGame\t\t\t\t${SKIN}${eol}\t\t\tMod\t\t\t\t\t${SKIN}${eol}` + text.slice(at);
+}
+
+test('cleaning out a foreign patcher keeps our own patch, signed, and changes nothing else', (t) => {
+  const { game, backupDir, sig } = tree(t, true);
+  const branch = patcher.paths(game).branch;
+  const gameinfo = patcher.paths(game).gameinfo;
+  fs.writeFileSync(sig, Buffer.from(listFor('A', fs.readFileSync(branch)), 'latin1'));
+  patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+  const ours = fs.readFileSync(branch);
+  const oursSigned = fs.readFileSync(sig);
+
+  // the foreign tool edits both files, signs its own version of the branch file, and adds a folder
+  const foreign = Buffer.from(withSkinChanger(ours.toString('latin1'), '\r\n'), 'latin1');
+  fs.writeFileSync(branch, foreign);
+  fs.appendFileSync(sig, Buffer.from(patcher.signatureLine(foreign) + '\r\n', 'latin1'));
+  // plus an unmarked dota_mods line: what an interrupted patch or a copying tool leaves behind
+  fs.writeFileSync(gameinfo, withSkinChanger(GAMEINFO, '\n')
+    .replace('\t\t\tGame\t\t\t\tcore', `\t\t\tGame\t\t\t\t${FOLDER}\n\t\t\tGame\t\t\t\tcore`));
+  fs.mkdirSync(path.join(game, SKIN));
+  assert.equal(patcher.state(game, FOLDER).foreign, SKIN, 'the foreign patch is seen before cleaning');
+
+  const st = patcher.cleanForeign({ gamePath: game, folder: FOLDER });
+
+  assert.deepEqual(fs.readFileSync(branch), ours, 'the branch file is our patch again, byte for byte');
+  assert.deepEqual(fs.readFileSync(sig), oursSigned,
+    "the list is signed for that file: the foreign signature is gone and Valve's lines are untouched");
+  assert.equal(fs.readFileSync(gameinfo, 'utf8'), GAMEINFO, 'gameinfo.gi is back to what the game shipped');
+  assert.equal(fs.existsSync(path.join(game, SKIN)), false, 'the empty folder it left is gone');
+  assert.equal(st.patched, true);
+  assert.equal(st.signed, true);
+  assert.equal(st.foreign, null);
+});
+
+test('cleaning an install with nothing foreign in it writes nothing at all', (t) => {
+  /* Every write into the game folder is a chance to meet a file Steam holds open, so a clean that
+     finds nothing to clean must not rewrite the files it read. */
+  const { game, backupDir } = tree(t, true);
+  patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+  const writes = t.mock.method(fs, 'writeFileSync');
+
+  const st = patcher.cleanForeign({ gamePath: game, folder: FOLDER });
+
+  assert.equal(writes.mock.callCount(), 0, 'nothing was written');
+  assert.equal(st.patched, true);
+  assert.equal(st.signed, true);
+});
+
+test('cleaning an install with no list takes the lines out and invents no list', (t) => {
+  const { game, backupDir, sig } = tree(t, false);
+  patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+  const ours = branchOf(game);
+  fs.writeFileSync(patcher.paths(game).branch, Buffer.from(withSkinChanger(ours, '\r\n'), 'latin1'));
+
+  const st = patcher.cleanForeign({ gamePath: game, folder: FOLDER });
+
+  assert.equal(branchOf(game), ours, 'the foreign lines are gone and ours are still there');
+  assert.equal(fs.existsSync(sig), false, 'no signature list was created for it');
+  assert.equal(st.foreign, null);
+  assert.equal(st.patched, true);
+});
+
+test('cleaning with no branch file cleans gameinfo.gi and creates nothing', (t) => {
+  const { game, sig } = tree(t, true);
+  const branch = patcher.paths(game).branch;
+  const gameinfo = patcher.paths(game).gameinfo;
+  fs.rmSync(branch);
+  const listBefore = fs.readFileSync(sig);
+  fs.writeFileSync(gameinfo, withSkinChanger(GAMEINFO, '\n'));
+
+  const st = patcher.cleanForeign({ gamePath: game, folder: FOLDER });
+
+  assert.equal(fs.readFileSync(gameinfo, 'utf8'), GAMEINFO, 'gameinfo.gi lost the foreign lines');
+  assert.equal(fs.existsSync(branch), false, 'no branch file was made up');
+  assert.deepEqual(fs.readFileSync(sig), listBefore, 'and the list was not touched');
+  assert.equal(st.patched, false);
+});
+
+test('a folder the foreign tool left with files in it is not deleted', (t) => {
+  // rmdir, not rm: an empty folder or a link is clutter, a folder holding somebody's files is not ours
+  const { game } = tree(t, false);
+  const dir = path.join(game, SKIN);
+  fs.mkdirSync(dir);
+  fs.writeFileSync(path.join(dir, 'pak01_dir.vpk'), 'their mod');
+
+  patcher.cleanForeign({ gamePath: game, folder: FOLDER });
+  patcher.revert({ gamePath: game, folder: FOLDER });
+
+  assert.equal(fs.readFileSync(path.join(dir, 'pak01_dir.vpk'), 'utf8'), 'their mod', 'their files are still there');
+});
+
+test('the junction the foreign tool leaves is removed, and what it points at is not',
+  { skip: process.platform !== 'win32' && 'directory junctions are a Windows thing' }, (t) => {
+    const { game } = tree(t, false);
+    const target = path.join(path.dirname(game), 'skinchanger-data');
+    fs.mkdirSync(target);
+    fs.writeFileSync(path.join(target, 'pak01_dir.vpk'), 'their mod');
+    fs.symlinkSync(target, path.join(game, SKIN), 'junction');
+
+    patcher.cleanForeign({ gamePath: game, folder: FOLDER });
+
+    assert.equal(fs.existsSync(path.join(game, SKIN)), false, 'the junction is gone from the game folder');
+    assert.equal(fs.readFileSync(path.join(target, 'pak01_dir.vpk'), 'utf8'), 'their mod',
+      'and the folder it pointed at is intact');
+  });
+
+/*
+ * revert() when the copies it would like to use are missing or cannot be trusted.
+ *
+ * The order is: a .bak beside the file if this build's list vouches for it, else the copy in the
+ * app's own folder if it verifies (or there is no list to verify it against), else the live file
+ * with our block taken out. Each step is there because the one before it can be absent or wrong.
+ */
+/** A branch file somebody edited by hand: nothing of ours in it, so stripping cannot undo it. */
+const HAND_EDITED = BRANCH.replace('\t\tSteamAppId', '\t\tToolsAppId\t\t\t\t571\r\n\t\tSteamAppId');
+
+test("a .bak the installed build's list vouches for is what goes back", (t) => {
+  for (const withBak of [true, false]) {
+    const { game, backupDir, sig } = tree(t, true);
+    const branch = patcher.paths(game).branch;
+    fs.writeFileSync(sig, Buffer.from(listFor('A', Buffer.from(BRANCH, 'latin1')), 'latin1'));
+    fs.writeFileSync(branch, Buffer.from(HAND_EDITED, 'latin1'));
+    if (withBak) fs.writeFileSync(branch + '.bak', Buffer.from(BRANCH, 'latin1'));
+
+    const st = patcher.revert({ gamePath: game, folder: FOLDER, backupDir });
+
+    if (withBak) {
+      assert.equal(branchOf(game), BRANCH, 'the .bak hashes to what Valve signed, so it was restored');
+      assert.equal(st.vanillaOk, true);
+    } else {
+      // the contrast: with nothing trustworthy to restore from, the edit stays and is reported
+      assert.equal(branchOf(game), HAND_EDITED, 'without the .bak nothing could undo the edit');
+      assert.equal(st.vanillaOk, false, 'and the state says the file is not what Valve shipped');
+    }
+  }
+});
+
+test('a .bak the list does not vouch for is not used, and neither is one when there is no list', (t) => {
+  for (const withList of [true, false]) {
+    const { game, backupDir, sig } = tree(t, withList);
+    if (withList) fs.writeFileSync(sig, Buffer.from(listFor('A', Buffer.from(BRANCH, 'latin1')), 'latin1'));
+    patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+    fs.writeFileSync(patcher.paths(game).branch + '.bak', Buffer.from(BRANCH.replace('570', '569'), 'latin1'));
+
+    patcher.revert({ gamePath: game, folder: FOLDER, backupDir });
+
+    assert.equal(branchOf(game), BRANCH, `the app's own copy went back, not the older build's .bak (list: ${withList})`);
+  }
+});
+
+test('a copy in the app folder that the list disowns is not written back', (t) => {
+  // the revert() half of 'a backup from an older build is replaced': revert can meet that copy
+  // before an apply() has had the chance to replace it
+  const { game, backupDir, sig } = tree(t, true);
+  fs.writeFileSync(sig, Buffer.from(listFor('A', Buffer.from(BRANCH, 'latin1')), 'latin1'));
+  patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+  fs.writeFileSync(path.join(backupDir, 'gameinfo_branchspecific.gi.orig'), Buffer.from(BRANCH.replace('570', '569'), 'latin1'));
+
+  const st = patcher.revert({ gamePath: game, folder: FOLDER, backupDir });
+
+  assert.equal(branchOf(game), BRANCH, 'the live file was un-patched instead of the old build going back');
+  assert.equal(st.vanillaOk, true);
+});
+
+test('without a backup folder, reverting takes our block out of the live files', (t) => {
+  for (const withList of [true, false]) {
+    const { game, backupDir, sig } = tree(t, withList);
+    if (withList) fs.writeFileSync(sig, Buffer.from(listFor('A', Buffer.from(BRANCH, 'latin1')), 'latin1'));
+    const listBefore = withList ? fs.readFileSync(sig) : null;
+    patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+
+    const st = patcher.revert({ gamePath: game, folder: FOLDER });
+
+    assert.equal(branchOf(game), BRANCH, `the branch file is the original again (list: ${withList})`);
+    if (withList) assert.deepEqual(fs.readFileSync(sig), listBefore, 'and the list lost our line');
+    assert.equal(st.patched, false);
+    assert.equal(st.vanillaOk, true);
+    assert.equal(fs.existsSync(path.join(game, FOLDER)), false, 'the empty mod folder went with it');
+  }
+});
+
+test('a signature list that has gone missing comes back from the copy taken before patching', (t) => {
+  const { game, backupDir, sig } = tree(t, true);
+  const listBefore = fs.readFileSync(sig);
+  patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+  fs.rmSync(sig);
+
+  patcher.revert({ gamePath: game, folder: FOLDER, backupDir });
+
+  assert.deepEqual(fs.readFileSync(sig), listBefore, 'the list is back, without our line in it');
+  assert.equal(branchOf(game), BRANCH);
+});
+
+test('reverting also takes a foreign patcher out of gameinfo.gi and removes its empty folder', (t) => {
+  const { game, backupDir } = tree(t, true);
+  patcher.apply({ gamePath: game, folder: FOLDER, backupDir });
+  const gameinfo = patcher.paths(game).gameinfo;
+  fs.writeFileSync(gameinfo, withSkinChanger(GAMEINFO, '\n'));
+  fs.mkdirSync(path.join(game, SKIN));
+
+  const st = patcher.revert({ gamePath: game, folder: FOLDER, backupDir });
+
+  assert.equal(fs.readFileSync(gameinfo, 'utf8'), GAMEINFO, 'gameinfo.gi is what the game shipped');
+  assert.equal(fs.existsSync(path.join(game, SKIN)), false, 'the foreign folder is gone');
+  assert.equal(branchOf(game), BRANCH);
+  assert.equal(st.patched, false);
 });
