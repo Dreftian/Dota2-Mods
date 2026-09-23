@@ -11,8 +11,9 @@
  * update looks exactly like an app. Each four-hourly round starts at the origin again.
  *
  * Both read Dota2-Mods-Releases, a public repository that holds only the builds and the source
- * archive of each one. The source repository is private from 2026-09-23, and a private
- * repository answers an installed copy with nothing at all, so the builds had to live apart.
+ * archive of each one. Keeping them apart means the source repository's visibility never decides
+ * whether an installed copy can update: a private repository answers it with nothing at all, and
+ * making the source private was on the table on 2026-09-23 (it stayed public).
  *
  * Two channels. Everybody reads `latest`; the testers the maintainer picked read `beta`, which is
  * a different manifest (beta.yml) in the same place. src/beta.js decides who is on which, and the
