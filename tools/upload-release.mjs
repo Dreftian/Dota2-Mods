@@ -4,9 +4,9 @@
  * the source archive of the exact commit they came from, and notes that carry the original
  * author's credit.
  *
- * The source repository is private from 1.1.0, so the releases repository is where installed
- * copies update from (src/updater.js), where the website's buttons point, and where the GPL's
- * offer of the source has to be kept. NOTICE (7b, 7c) asks every release page of a modified
+ * From 1.1.0 the releases repository is where installed copies update from (src/updater.js), where
+ * the website's buttons point, and where the GPL's offer of the source is kept, whatever the
+ * source repository's visibility. NOTICE (7b, 7c) asks every release page of a modified
  * version to name the original and say it was changed, and since when.
  *
  * Usage: node tools/upload-release.mjs   (RELEASE_REPO=owner/name publishes elsewhere,
